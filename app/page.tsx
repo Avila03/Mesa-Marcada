@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 
 export default function Home() {
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
-    redirect("/painel");
-  }
-  return <iframe className="demo-frame" src="/demo.html" title="Mesa Marcada — Demonstração v0.5"/>;
+  // A versão 0.6 é o fluxo principal. A demonstração v0.5 permanece
+  // disponível apenas em /demo.html, sem mascarar configuração ausente.
+  redirect("/painel");
 }
