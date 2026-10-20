@@ -1,5 +1,8 @@
+import { redirect } from "next/navigation";
+
 export default function Home() {
-  // First milestone: an isolated, dependency-free interactive prototype.
-  // Move UI into React components when Supabase auth and Postgres are integrated.
-  return <iframe className="demo-frame" src="/demo.html" title="Mesa Marcada — Protótipo interativo" />;
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
+    redirect("/painel");
+  }
+  return <iframe className="demo-frame" src="/demo.html" title="Mesa Marcada — Demonstração v0.5"/>;
 }
