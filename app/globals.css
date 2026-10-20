@@ -1,0 +1,4 @@
+:root {color-scheme:dark; --bg:#101814; --fg:#f4f0e7; --gold:#e1b976; --muted:#a1b19f}
+* {box-sizing:border-box}
+html,body {margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.demo-frame {border:0;display:block;width:100%;height:100dvh;background:var(--bg)}
