@@ -22,9 +22,31 @@ A aplicação v0.5 segue em `/demo.html` como referência. As primeiras telas re
 
 **Não envie `.env.local` ao GitHub**; ele está no `.gitignore`.
 
+## Política aprovada: cadastro aberto (v0.6)
+
+- Qualquer pessoa com acesso ao site pode criar sua conta por e-mail e senha; **não existe convite obrigatório**.
+- A confirmação de e-mail é mantida quando configurada no Supabase Auth.
+- A rota `/auth/callback` troca o código de confirmação (PKCE) por uma sessão autenticada.
+- Contas autenticadas podem consultar o catálogo de salas e eventos, mesmo sem estar confirmadas nessas sessões. Os registros de compras de fichas, despesas e resultados continuam sujeitos às policies RLS por sessão.
+- **Nota de privacidade:** o cadastro aberto também permite que desconhecidos visualizem o nome, a data e o local dos eventos. Evite inserir endereços residenciais detalhados em eventos públicos até termos controles adicionais de visibilidade.
+- Antes de liberar o cadastro na internet, verifique em **Supabase > Authentication > Sign In / Providers > Email** se o login por e-mail está habilitado e confirme as configurações de registro e verificação do e-mail. O conector atual não disponibiliza leitura/alteração dessas preferências administrativas; é necessária uma conferência no painel.
+- Proteja o cadastro com **CAPTCHA (Cloudflare Turnstile ou hCaptcha)** e revise limites de envio de e-mails/SMTP se o site for aberto ao público. A integração CAPTCHA ainda não foi construída no formulário.
+
+## Preparação do deploy na Vercel
+
+1. Acesse https://vercel.com/new, autorize o GitHub e importe `Avila03/Mesa-Marcada`.
+2. Framework `Next.js`, diretório raiz `./`, branch de produção `main` (a `main` contém apenas a demonstração v0.5).
+3. Configure **Preview** e depois **Production** com as variáveis `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Somente a chave **publishable**, nunca `service_role` ou `sb_secret`.
+4. Faça primeiro uma Preview da branch `feature/supabase-v0.6`; o pull request nº 1 permanece em rascunho. Não mescle à `main` antes dos testes com duas contas e revisão das proteções do cadastro aberto.
+5. No Supabase, em **Authentication > URL Configuration**, mantenha `http://localhost:3000/**` nos redirects locais e adicione o endereço de Preview gerado pela Vercel com `/auth/callback`. Após escolher a URL definitiva, configure **Site URL** e esse URL explícito de callback.
+6. Teste cadastro, confirmação de e-mail, login, logout, presença e isolamento financeiro em **dois usuários distintos**, sem dados sensíveis reais. Documente os resultados em `docs/TESTES-v0.6.md`.
+7. Após validação e revisão final, considere mesclar a v0.6 e só então habilitar produção para os usuários.
+
+A chave publishable é pública por definição, mas o acesso aos dados depende sempre do Auth e das políticas RLS. Não publique chaves secretas nem arquivos locais `.env`.
+
 ## Banco de dados
 
-As duas migrações do MVP v0.6 foram aplicadas ao projeto Supabase `mazfsqoksabexhqrhyej`, com RLS nas dez tabelas.
+As migrações do MVP v0.6 foram aplicadas ao projeto Supabase `mazfsqoksabexhqrhyej`, com RLS nas dez tabelas.
 
 - Perfis derivados do cadastro Supabase Auth;
 - Salas e sessões;
