@@ -1,5 +1,14 @@
 # Histórico de versões — Mesa Marcada
 
+## v1.3 — Administração geral e Anfitriões
+- Painel Administração restrito à conta cadastrada em `app_admins`, sem autoelevação.
+- Lista de eventos, anfitriões, participantes, pendências e auditoria.
+- Excluir da agenda é reversível; restaurar evento agendado reativa o status anterior.
+- Eventos ocultados deixam de aparecer para usuários comuns também nas consultas do Supabase.
+- Admin pode confirmar pagamentos, revisar fichas e encerrar eventos de outros Anfitriões.
+- Histórico de alterações administrativas preservado.
+- Host continua gerenciando seus próprios eventos, sem poderes sobre os demais.
+
 ## v1.2 — Acertos de rachas e financeiro pendente
 - Quem pagou uma despesa pode confirmar ou reabrir o recebimento de cada pessoa no racha.
 - O perfil separa valores pendentes de valores já acertados, sem movimentar dinheiro.
