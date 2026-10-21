@@ -1,0 +1,62 @@
+/* Mesa Marcada v1.9 — cadeiras premium, sem alterar o design mobile existente. */
+.mm-seat-shell{--seat-accent:#258bff;--seat-aura:rgba(37,139,255,.19);color:#f1f5fb}
+.mm-seat-shell.is-blackjack{--seat-accent:#ff424d;--seat-aura:rgba(255,66,77,.18)}
+.mm-seat-topline{display:flex;justify-content:space-between;align-items:flex-start;gap:13px;margin-bottom:15px}
+.mm-seat-eyebrow{font-size:10px;letter-spacing:1.65px;color:var(--seat-accent);font-weight:800}
+.mm-seat-topline h2{font-size:clamp(20px,2.4vw,26px);letter-spacing:-.5px;margin:7px 0}
+.mm-seat-topline p{font-size:12px;color:#a9bbcf;margin:0}
+.mm-seat-counter{flex-shrink:0;color:#b8d4ed;border:1px solid #335574;background:#10263b;border-radius:100px;font-size:11px;font-weight:800;padding:9px 11px}
+.mm-seat-layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(240px,.9fr);gap:14px;align-items:stretch}
+.mm-seat-stage{position:relative;min-height:410px;border-radius:17px;border:1px solid #2b3d50;overflow:hidden;
+ background:radial-gradient(ellipse at 50% 40%,var(--seat-aura) 0%,transparent 55%),#0c131e;isolation:isolate}
+.mm-seat-table{position:absolute;left:16%;top:20%;width:68%;height:61%;padding:6px;
+ border:5px solid #365d7c;border-radius:49%;background:#061a27;box-shadow:0 0 0 5px #162a3b,0 25px 45px #0008}
+.mm-seat-shell.is-blackjack .mm-seat-table{left:14%;width:72%;top:24%;height:55%;border-radius:28% 28% 48% 48%;border-color:#405b72;box-shadow:0 0 0 5px #1e3446,0 22px 43px #0008}
+.mm-seat-table-surface{display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;width:100%;height:100%;border:1px solid #37647c;border-radius:inherit;background:radial-gradient(ellipse at center,#123b48,#071e2b);color:#557f92;letter-spacing:4px;font-family:Georgia,serif}
+.mm-seat-shell.is-blackjack .mm-seat-table-surface{background:radial-gradient(ellipse at center,#17404a,#08252c);border-color:#385a62}
+.mm-seat-table-glyph{font-size:65px;opacity:.22;color:var(--seat-accent)}
+.mm-seat-table-surface strong{font-size:14px;opacity:.65;letter-spacing:5px}
+.mm-seat-table-surface small{font:700 9px Inter,system-ui,sans-serif;opacity:.65;letter-spacing:3px}
+.mm-seat-chair{position:absolute;transform:translate(-50%,-50%);width:88px;min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:6px;padding:0;border:none;background:transparent;color:#b9c9d8;z-index:2}
+.mm-seat-chair-circle{width:49px;height:49px;display:grid;place-items:center;border-radius:50%;
+ color:#79bdff;background:#102b45;border:1px dashed #3c82bc;font:800 20px Inter,system-ui,sans-serif;
+ box-shadow:0 4px 16px #0007;transition:transform .2s,box-shadow .2s,border-color .2s}
+.mm-seat-chair:not(:disabled):hover .mm-seat-chair-circle{transform:translateY(-3px);box-shadow:0 0 19px var(--seat-aura);border-color:var(--seat-accent)}
+.mm-seat-chair-caption{font-size:10px;max-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#bfd0df;text-align:center;font-weight:700}
+.mm-seat-chair.is-taken .mm-seat-chair-circle{background:#1b354d;border:2px solid #405d77;color:#f1f5fb;font-size:14px}
+.mm-seat-chair.is-free .mm-seat-chair-circle{background:color-mix(in srgb,var(--seat-accent) 14%,#0a1b2d);color:var(--seat-accent);border-color:color-mix(in srgb,var(--seat-accent) 60%,#243e59)}
+.mm-seat-chair.is-mine .mm-seat-chair-circle{background:color-mix(in srgb,var(--seat-accent) 38%,#092640);border:2px solid var(--seat-accent);color:white;box-shadow:0 0 0 4px var(--seat-aura),0 9px 27px var(--seat-aura);font-size:14px}
+.mm-seat-dealer{width:100px;min-height:82px}
+.mm-seat-dealer .mm-seat-chair-circle,.mm-seat-dealer.is-free .mm-seat-chair-circle{width:57px;height:57px;background:#372714;border:2px solid #ffc35c;color:#ffe0a3;box-shadow:0 0 26px #e5a5323d}
+.mm-seat-dealer .mm-seat-chair-caption{color:#ffd991}
+.mm-seat-dealer.is-mine .mm-seat-chair-circle{background:#806027;border-color:#ffe29c;box-shadow:0 0 0 4px #f0ad352f,0 0 28px #f5a83180}
+.mm-seat-dealer.is-taken .mm-seat-chair-circle{background:#6d522d;border-color:#ffc35c}
+.mm-seat-chair:disabled{cursor:default;opacity:1}
+.mm-seat-chair:focus-visible{outline:2px solid #fff;outline-offset:3px;border-radius:12px}
+.mm-seat-detail{border:1px solid #2e4154;background:linear-gradient(140deg,#101b29,#0d121a);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:13px;min-width:0}
+.mm-seat-detail h3{font-size:20px;letter-spacing:-.4px;margin:0 0 3px}
+.mm-seat-fact{display:flex;align-items:center;justify-content:space-between;gap:9px;border-bottom:1px solid #283b4a;padding:11px 0}
+.mm-seat-fact>span{font-size:12px;color:#a1b7cd}
+.mm-seat-fact strong{font-size:12px;text-align:right}
+.mm-seat-warning{border:1px solid #806233;background:#241c13;color:#ffd796;border-radius:11px;padding:11px;font-size:12px;line-height:1.5}
+.mm-seat-note{color:#9aafc2;font-size:11px;line-height:1.6}
+.mm-seat-stand{border:1px solid #365171;background:#132335;color:#d3e5f4;border-radius:10px;padding:11px;font-weight:700}
+.mm-seat-stand:hover{border-color:var(--seat-accent)}
+.mm-seat-legend{display:flex;flex-wrap:wrap;gap:10px;border-top:1px solid #2b4056;padding-top:14px;margin-top:auto;font-size:10px;color:#adbdcd}
+.mm-seat-legend span{display:flex;gap:5px;align-items:center}
+.mm-seat-legend i{width:9px;height:9px;display:inline-block;border-radius:50%}
+.mm-seat-legend .free{background:#258bff}.mm-seat-legend .taken{background:#5b758b}.mm-seat-legend .mine{background:#51cbff}.mm-seat-legend .dealer{background:#ffc35c}
+@media(max-width:850px){.mm-seat-layout{grid-template-columns:1fr}.mm-seat-stage{min-height:350px}.mm-seat-detail{padding:17px}}
+@media(max-width:490px){
+ .mm-seat-topline{flex-direction:column}.mm-seat-counter{align-self:flex-start}
+ .mm-seat-stage{min-height:320px}
+ .mm-seat-table{border-width:3px;box-shadow:0 0 0 3px #162a3b,0 15px 25px #0007}
+ .mm-seat-shell.is-blackjack .mm-seat-table{border-width:3px;box-shadow:0 0 0 3px #162a3b}
+ .mm-seat-chair{width:58px;min-height:61px;gap:4px}
+ .mm-seat-chair-circle{width:37px;height:37px;font-size:16px}
+ .mm-seat-chair.is-mine .mm-seat-chair-circle,.mm-seat-chair.is-taken .mm-seat-chair-circle{font-size:11px}
+ .mm-seat-chair-caption{font-size:8px;max-width:60px}
+ .mm-seat-dealer .mm-seat-chair-circle,.mm-seat-dealer.is-free .mm-seat-chair-circle{width:43px;height:43px}
+ .mm-seat-table-glyph{font-size:45px}.mm-seat-table-surface strong{font-size:9px;letter-spacing:3px}
+ .mm-seat-table-surface small{font-size:7px;letter-spacing:1px}
+}
