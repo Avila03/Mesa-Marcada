@@ -55,6 +55,7 @@ export default function PainelPage(){
   const [detailTab,setDetailTab]=useState<DetailTab>("visao");
   const [selectedId,setSelectedId]=useState("");
   const [profileId,setProfileId]=useState("");
+  const [profileReturn,setProfileReturn]=useState<View>("ranking");
   const [financeRows,setFinanceRows]=useState<FinanceLine[]>([]);
   const [financeLoading,setFinanceLoading]=useState(false);
   const [gameView,setGameView]=useState<Game>("poker");
@@ -427,12 +428,12 @@ export default function PainelPage(){
       </>}
 
       {page==="ranking"&&<RankingPanel game={rankGame} onGameChange={setRankGame} ranking={ranking}
-        onPlayer={id=>{setProfileId(id);go("perfil")}}/>}
+        onPlayer={id=>{setProfileReturn("ranking");setProfileId(id);go("perfil")}}/>}
 
       {page==="perfil"&&<ProfilePanel
         profile={profiles.find(p=>p.id===(profileId||user.id))}
         userId={user.id} events={events} attendances={attendances} stats={ranking}
-        busy={working} onBack={profileId&&profileId!==user.id?()=>go("ranking"):undefined}
+        busy={working} onBack={profileId&&profileId!==user.id?()=>go(profileReturn):undefined}
         onSave={async details=>{
           const db=getSupabase();
           if(!db)throw new Error("Sem conexão com o banco.");
@@ -482,7 +483,7 @@ export default function PainelPage(){
             <div className="panelhead"><h2>Participantes</h2><span className="tag">{guests.length}/{selected.max_participants}</span></div>
             <div className="mm-progress"><div style={{width:(Math.min(1,guests.length/selected.max_participants)*100)+"%"}}/></div>
             <div className="mm-chipgroup">{guests.map(g=><button className="mm-v09-attendee-link" type="button" key={g.user_id}
-              onClick={()=>{setProfileId(g.user_id);go("perfil")}}>
+              onClick={()=>{setProfileReturn("detalhe");setProfileId(g.user_id);go("perfil")}}>
               <AttendeeMiniCard symbol={profiles.find(p=>p.id===g.user_id)?.avatar_symbol} name={nameFor(g.user_id)}/>
             </button>)}</div>
             {!guests.length&&<p>Ainda não há presenças confirmadas. Convide seus amigos!</p>}
