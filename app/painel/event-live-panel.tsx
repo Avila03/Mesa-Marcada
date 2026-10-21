@@ -1,6 +1,7 @@
 "use client";
 
 import UiIcon from "./ui-icon";
+import "../event-live.css";
 import type {UiIconName} from "./ui-icon";
 import {fullDate} from "@/lib/mesa-types";
 
