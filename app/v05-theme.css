@@ -845,3 +845,38 @@ a{text-decoration:none}
 .mm-achievement.locked .mm-achievement-status{color:#c4cad2}
 @media(max-width:920px){.mm-ranking-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.mm-achievement-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.mm-ranking-filter-row{align-items:stretch}.mm-ranking-period{width:100%}.mm-ranking-period button{flex:1;padding:10px 5px}.mm-rank-entry{gap:7px;padding:10px}.mm-rank-entry .mm-player-avatar{width:34px;height:34px;font-size:11px}.mm-rank-order{min-width:30px;width:30px;height:34px}.mm-rank-person strong{font-size:12px}.mm-rank-person small{font-size:10px}.mm-rank-performance strong{font-size:16px}.mm-rank-performance{min-width:70px}.mm-rank-open{display:none}.mm-achievement{padding:12px}.mm-achievement-grid{gap:8px}}
+
+/* v1.5.1 — correção de pictogramas no iOS e prioridade ao conteúdo do Dashboard. */
+.sidebar .nav .ico{display:grid;place-items:center;line-height:1}
+.sidebar .nav .ico svg{width:22px;height:22px;display:block;flex-shrink:0}
+.sidebar .nav .mm-nav-label{display:block;white-space:nowrap;font-size:inherit;letter-spacing:-.1px}
+.mm-side-profile button[aria-label="Sair"],.mm-mobile-account button[aria-label="Sair"]{display:inline-grid;place-items:center}
+.mm-side-profile button[aria-label="Sair"] svg,.mm-mobile-account button[aria-label="Sair"] svg{display:block}
+.mm-breadcrumb-row .pill{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.mm-create,.mm-hero-cta,.mm-room-facts span,.mm-detail-tabs button,.mm-admin-privilege{display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.mm-create svg,.mm-hero-cta svg{flex-shrink:0}
+.mm-room-facts span{justify-content:flex-start}
+.metric .micon{display:inline-flex;align-items:center;justify-content:center}
+.mm-app-companion{margin-top:27px}
+.mm-app-companion-installed{gap:10px;padding:16px 19px;border-color:#243d57;background:linear-gradient(125deg,#101b29,#0d141d)}
+.mm-app-companion-installed .mm-app-companion-head h2{font-size:16px}
+.mm-app-companion-installed .mm-app-companion-head p{display:none}
+.mm-app-companion-installed .mm-app-actions{justify-content:space-between}
+.mm-app-installed-status{display:inline-flex;align-items:center;gap:4px;font-size:12px}
+.mm-app-companion-installed .mm-formfoot{font-size:11px}
+.mm-app-device{display:inline-flex;align-items:center}
+@media(max-width:740px){
+  /* A interface standalone do iPhone pode ocupar a zona da barra de status. */
+  .main{padding-top:calc(18px + env(safe-area-inset-top,0px))}
+  .sidebar .nav button{font-size:10px}
+  .sidebar .nav .ico svg{width:21px;height:21px}
+  .sidebar .nav .mm-nav-label{font-size:10px;letter-spacing:-.25px}
+  .mm-app-companion{margin-top:28px}
+  .mm-app-companion-installed{padding:14px}
+  .mm-app-companion-installed .mm-app-actions{gap:10px}
+  .mm-app-companion-installed .mm-app-actions>.btn{flex:1 1 100%}
+}
+@media(max-width:380px){
+  .sidebar .nav .mm-nav-label{font-size:9px}
+  .sidebar .nav .ico svg{width:20px;height:20px}
+}

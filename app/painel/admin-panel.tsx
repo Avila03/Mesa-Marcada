@@ -3,6 +3,7 @@
 import {useMemo,useState} from "react";
 import type {Event,Profile,Attendance,Buy} from "@/lib/mesa-types";
 import {fullDate,money} from "@/lib/mesa-types";
+import UiIcon from "./ui-icon";
 
 export type HiddenEvent={session_id:string;previous_status:string;hidden_at:string;hidden_by:string};
 export type AdminAudit={id:number;session_id:string|null;action:string;performed_by:string;occurred_at:string;description:string};
@@ -40,7 +41,7 @@ export default function AdminPanel({
       <div><div className="eyebrow">MESA MARCADA · CONTROLE GERAL</div><h1>Administração</h1>
         <p>Controle geral dos eventos. Exclusões são reversíveis e registradas no histórico.</p>
       </div>
-      <span className="mm-admin-privilege">★ Administrador Geral</span>
+      <span className="mm-admin-privilege"><UiIcon name="settings" size={17}/> Administrador Geral</span>
     </div>
     <div className="mm-admin-kpis">
       <div><small>Jogadores cadastrados</small><strong>{profiles.length}</strong></div>
