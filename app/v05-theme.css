@@ -1107,7 +1107,7 @@ body{
   z-index:100;
   overflow:hidden;
   overscroll-behavior:none;
-  touch-action:none;
+  touch-action:pan-y;
   padding:18px;
   display:flex;
   justify-content:center;

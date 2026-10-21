@@ -44,7 +44,8 @@ export function useStableDialog(open:boolean,screen:string,onClose:()=>void){
     // Com a barra de rolagem removida, reserva seu espaço para não deslocar
     // cartões, menus ou botões lateralmente no desktop.
     const scrollbarWidth=Math.max(0,window.innerWidth-root.clientWidth);
-    if(scrollbarWidth>0){
+    const gutterIsReserved=window.getComputedStyle(root).getPropertyValue("scrollbar-gutter").includes("stable");
+    if(scrollbarWidth>0&&!gutterIsReserved){
       const padding=parseFloat(window.getComputedStyle(body).paddingRight)||0;
       body.style.paddingRight=(padding+scrollbarWidth)+"px";
     }
