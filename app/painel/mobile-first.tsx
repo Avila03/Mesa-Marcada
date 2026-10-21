@@ -492,7 +492,7 @@ export default function PainelPage(){
           return <section className="mm-mobile-next-event">
             <div><span className="eyebrow">SUA PRÓXIMA NOITE</span>
               <h2>{next.title}</h2>
-              <p>{fullDate(next.starts_at)} · {eventTime(next.starts_at)} · {roomTitle(next.room_id)}</p>
+              <p>{new Date(next.starts_at).toLocaleDateString("pt-BR",{dateStyle:"medium"})} · {eventTime(next.starts_at)} · {roomTitle(next.room_id)}</p>
               <small>{attending?"✓ Você confirmou presença":"Sua presença ainda não foi confirmada"}</small>
             </div>
             <div className="mm-mobile-next-event-actions">
