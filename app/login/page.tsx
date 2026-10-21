@@ -4,6 +4,11 @@ import { FormEvent, useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase/browser";
 import "../v05-theme.css";
 
+function postLoginPath(){
+  const next=new URLSearchParams(window.location.search).get("next");
+  return next&&/^\/painel\?evento=[0-9a-f-]{36}$/i.test(next)?next:"/painel";
+}
+
 export default function LoginPage() {
   const [signup,setSignup] = useState(false);
   const [name,setName] = useState("");
@@ -15,7 +20,7 @@ export default function LoginPage() {
   useEffect(()=>{
     const db=getSupabase();
     if(!db) return;
-    void db.auth.getUser().then(({data})=>{if(data.user)window.location.replace("/painel")});
+    void db.auth.getUser().then(({data})=>{if(data.user)window.location.replace(postLoginPath())});
   },[]);
 
   async function handleSubmit(event:FormEvent<HTMLFormElement>){
@@ -29,13 +34,13 @@ export default function LoginPage() {
           email:email.trim(),password,options:{data:{display_name:name.trim()},emailRedirectTo:window.location.origin+"/auth/callback"}
         });
         if(error)throw error;
-        if(data.session){window.location.replace("/painel");return;}
+        if(data.session){window.location.replace(postLoginPath());return;}
         // Confirmar e-mail é uma configuração do Supabase Auth, não do frontend.
         setMessage("A conta foi registrada, mas o Supabase ainda solicita confirmação por e-mail. O administrador precisa desativar essa exigência nas configurações de autenticação.");
       }else{
         const {error}=await db.auth.signInWithPassword({email:email.trim(),password});
         if(error)throw error;
-        window.location.replace("/painel");
+        window.location.replace(postLoginPath());
       }
     }catch(e){
       const text=e instanceof Error?e.message:"";

@@ -1,12 +1,13 @@
 {
   "name": "mesa-marcada",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "smoke": "node scripts/smoke-v09.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.0",
