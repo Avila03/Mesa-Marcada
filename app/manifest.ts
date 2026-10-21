@@ -14,8 +14,9 @@ export default function manifest():MetadataRoute.Manifest{
     orientation:"portrait-primary",
     lang:"pt-BR",
     icons:[
-      {src:"/mesa-marcada-logo.webp",sizes:"96x96",type:"image/webp",purpose:"any"},
-      {src:"/mesa-marcada-logo.webp",sizes:"any",type:"image/webp",purpose:"maskable"}
+      {src:"/icons/mesa-192.svg",sizes:"192x192",type:"image/svg+xml",purpose:"any"},
+      {src:"/icons/mesa-512.svg",sizes:"512x512",type:"image/svg+xml",purpose:"maskable"},
+      {src:"/mesa-marcada-logo.webp",sizes:"96x96",type:"image/webp",purpose:"any"}
     ],
     shortcuts:[
       {name:"Eventos",short_name:"Eventos",url:"/painel"},
