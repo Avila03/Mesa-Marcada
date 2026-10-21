@@ -4,6 +4,7 @@ import {useEffect,useMemo,useState} from "react";
 import type {FormEvent, ReactNode} from "react";
 import type {Game,Profile,Rank,Attendance,Event} from "@/lib/mesa-types";
 import {fullDate} from "@/lib/mesa-types";
+import UiIcon from "./ui-icon";
 
 const favoriteOptions:Game[]=["poker","blackjack"];
 const number=(n:unknown)=>new Intl.NumberFormat("pt-BR",{maximumFractionDigits:1}).format(Number(n)||0);
@@ -243,7 +244,7 @@ export function EventShareActions({id,title,date,room}:{id:string;title:string;d
   return <div className="mm-v09-share">
     <button type="button" className="btn mm-v09-share-primary" onClick={()=>void share()}>↗ Compartilhar evento</button>
     <button type="button" className="btn" onClick={()=>void copy()}>⎘ Copiar link</button>
-    <button type="button" className="btn" onClick={calendar}>▦ Calendário</button>
+    <button type="button" className="btn" onClick={calendar}><UiIcon name="calendar" size={17}/> Calendário</button>
     {result&&<div role="status" className="mm-v09-share-notice">{result}</div>}
     <p className="mm-formfoot">O link exige login no Mesa Marcada; compartilhe somente com quem deve saber sobre o encontro. O convite não inclui o endereço exato.</p>
   </div>;

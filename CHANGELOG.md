@@ -1,5 +1,13 @@
 # Histórico de versões — Mesa Marcada
 
+## v1.5.1 — Ícones consistentes no iPhone e Dashboard mais limpo
+- Move orientações de instalação e avisos para o fim do Dashboard. Quando o PWA já está instalado, o cartão mostra somente preferências relevantes.
+- Substitui símbolos inconsistentes do menu Início, Eventos, Mesas, Ranking, Perfil e Administração por SVGs com desenho e alinhamento padronizados.
+- Botões Sair, Criar evento, Calendário, tutoriais, painéis de métricas e Administração também usam ícones vetoriais.
+- Ajusta a área superior do aplicativo em iOS standalone para respeitar o espaço do relógio e bateria.
+- Dashboard mostra em Próximas noites apenas eventos futuros (não eventos históricos agendados por erro).
+- Adiciona check automatizado de interface ao CI.
+
 ## v1.5 — Temporadas, desempenho e conquistas
 - Rankings de Poker e Blackjack separados, com filtros mês/ano/histórico.
 - Saldo, percentual médio, melhor noite, participações e sequência positiva.

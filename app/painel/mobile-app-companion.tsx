@@ -2,6 +2,7 @@
 
 import {useEffect,useRef,useState} from "react";
 import {getSupabase} from "@/lib/supabase/browser";
+import UiIcon from "./ui-icon";
 
 type InstallEvent=Event&{
   prompt:()=>Promise<void>;
@@ -121,12 +122,13 @@ export default function MobileAppCompanion({onUpdate,visible}:{onUpdate:()=>Prom
     {alerts.map((label,i)=><p key={i}>{label}</p>)}
     <button type="button" onClick={()=>setAlerts([])}>Dispensar</button>
   </div>:null;
-  return <section className="mm-app-companion" aria-label="Mesa Marcada no smartphone">
+  return <section className={"mm-app-companion "+(appInstalled?"mm-app-companion-installed":"")} aria-label="Mesa Marcada no smartphone">
     <div className="mm-app-companion-head">
-      <div><span className="eyebrow">MESAS SEM COMPLICAÇÃO</span><h2>Seu clube no celular</h2>
-        <p>Instale o Mesa Marcada e acompanhe alterações nos eventos enquanto estiver usando o app.</p>
+      <div><span className="eyebrow">{appInstalled?"PREFERÊNCIAS DO APLICATIVO":"MESA MARCADA NO CELULAR"}</span>
+        <h2>{appInstalled?"Avisos de eventos":"Instalar no seu celular"}</h2>
+        {!appInstalled&&<p>Adicione o Mesa Marcada à tela inicial do seu aparelho para ter acesso rápido aos eventos.</p>}
       </div>
-      <span className="mm-app-device" aria-hidden="true">▣</span>
+      <span className="mm-app-device" aria-hidden="true"><UiIcon name={appInstalled?"bell":"smartphone"} size={27}/></span>
     </div>
     <div className="mm-app-actions">
       {!appInstalled&&(installPrompt?
@@ -136,7 +138,7 @@ export default function MobileAppCompanion({onUpdate,visible}:{onUpdate:()=>Prom
           <strong> Adicionar à Tela de Início</strong>.
         </div>:<div className="mm-app-install-hint">No navegador do Android ou computador, abra o menu e escolha <strong>Instalar aplicativo</strong> ou <strong>Adicionar à tela inicial</strong>.</div>
       )}
-      {appInstalled&&<span className="mm-v09-good">✓ Aplicativo instalado neste aparelho</span>}
+      {appInstalled&&<span className="mm-v09-good mm-app-installed-status"><UiIcon name="check" size={17}/> Já instalado</span>}
       {notifyEnabled?<button className="btn" type="button" onClick={disableAlerts}>Desativar avisos</button>:
         <button className="btn" type="button" onClick={()=>void enableAlerts()}>Ativar avisos de eventos</button>}
     </div>
@@ -146,6 +148,6 @@ export default function MobileAppCompanion({onUpdate,visible}:{onUpdate:()=>Prom
       {alerts.map((label,i)=><p key={i}>{label}</p>)}
       <button type="button" onClick={()=>setAlerts([])}>Dispensar</button>
     </div>}
-    <p className="mm-formfoot">Avisos são verificados enquanto o aplicativo está aberto. Notificações push com o app fechado exigirão configuração específica em uma futura atualização.</p>
+    <p className="mm-formfoot">Os avisos funcionam enquanto o aplicativo estiver aberto. Não são notificações push em segundo plano.</p>
   </section>;
 }

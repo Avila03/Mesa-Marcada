@@ -16,6 +16,8 @@ import {ExpenseSplitsPanel,MySplitsSummary} from "./expense-splits";
 import type {ExpenseSplitRow,MyExpenseSplitRow,ExpenseSettlement} from "./expense-splits";
 import AdminPanel from "./admin-panel";
 import MobileAppCompanion from "./mobile-app-companion";
+import UiIcon from "./ui-icon";
+import type {UiIconName} from "./ui-icon";
 import AdvancedRankingPanel,{PlayerAchievements} from "./advanced-ranking";
 import type {AdvancedRank,RankingPeriod} from "./advanced-ranking";
 import type {HiddenEvent,AdminAudit} from "./admin-panel";
@@ -290,7 +292,9 @@ export default function PainelPage(){
   const ownProfile=profiles.find(p=>p.id===user?.id);
   const firstName=nickname.split(" ")[0];
   const activeRooms=(["poker","blackjack"] as Game[]).map(g=>rooms.find(r=>r.game===g&&r.status==="active")).filter((r):r is Room=>Boolean(r));
-  const upcoming=events.filter(e=>e.status==="scheduled").sort((a,b)=>new Date(a.starts_at).getTime()-new Date(b.starts_at).getTime());
+  // Evita apresentar eventos históricos como "Sua próxima noite".
+  const upcoming=events.filter(e=>e.status==="scheduled"&&new Date(e.starts_at).getTime()>=Date.now())
+    .sort((a,b)=>new Date(a.starts_at).getTime()-new Date(b.starts_at).getTime());
   const myUpcoming=upcoming.filter(e=>attendances.some(a=>a.session_id===e.id&&a.user_id===user?.id));
   const selected=events.find(e=>e.id===selectedId);
   const guests=selected?attendances.filter(a=>a.session_id===selected.id):[];
@@ -437,44 +441,50 @@ export default function PainelPage(){
   if(loading)return <main className="mm-login-shell"><p className="mm-loading">Preparando sua mesa...</p></main>;
   if(!user)return <main className="mm-login-shell"><div className="mm-login-card"><SiteLogo kind="mobile"/><p className="mm-message">{error||"Redirecionando para login..."}</p><a href="/login" className="btn gold">Ir para o login</a></div></main>;
 
-  const navEntries:[View,string,string][]=[["inicio","Início","▦"],["eventos","Eventos","▤"],["mesas","Mesas","♠"],["ranking","Ranking","★"],["perfil","Perfil",""],
-    ...(isAdmin?[["admin","Administração","⚙"] as [View,string,string]]:[])];
+  const navEntries:[View,string,UiIconName][]=[
+    ["inicio","Início","home"],
+    ["eventos","Eventos","calendar"],
+    ["mesas","Mesas","cards"],
+    ["ranking","Ranking","trophy"],
+    ["perfil","Perfil","user"],
+    ...(isAdmin?[["admin","Administração","settings"] as [View,string,UiIconName]]:[])
+  ];
   const activePage=page==="detalhe"?"eventos":page==="mesa"?"mesas":page;
   return <div className="layout">
     <aside className="sidebar">
       <SiteLogo kind="sidebar"/>
       <nav className="nav" aria-label="Navegação principal">
         <div className="navlabel">NAVEGAÇÃO</div>
-        {navEntries.map(([id,label,icon])=><button className={"mm-nav-btn "+(activePage===id?"active":"")} key={id} type="button" onClick={()=>{if(id==="perfil")setProfileId(user.id);go(id)}} aria-current={activePage===id?"page":undefined}>
-          <span className="ico" aria-hidden="true">
-            {id==="perfil"?<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.8"/><path d="M4.2 20c.3-4.1 3.2-6.2 7.8-6.2s7.5 2.1 7.8 6.2"/></svg>:icon}
-          </span>{label}
+        {navEntries.map(([id,label,icon])=><button className={"mm-nav-btn "+(activePage===id?"active":"")} key={id} type="button" title={label}
+          aria-label={label} onClick={()=>{if(id==="perfil")setProfileId(user.id);go(id)}}
+          aria-current={activePage===id?"page":undefined}>
+          <span className="ico" aria-hidden="true"><UiIcon name={icon} size={22}/></span>
+          <span className="mm-nav-label">{id==="admin"?"Admin":label}</span>
         </button>)}
       </nav>
       <div className="mm-side-profile">
         <PlayerAvatar photoUrl={photoUrls[user.id]} name={nickname}/>
         <div className="person"><strong>{nickname}</strong><small>{isAdmin?"Administrador geral":"Jogador"}</small></div>
-        <button type="button" aria-label="Sair" title="Sair" onClick={async()=>{await getSupabase()?.auth.signOut();window.location.replace("/login")}}>↪</button>
+        <button type="button" aria-label="Sair" title="Sair" onClick={async()=>{await getSupabase()?.auth.signOut();window.location.replace("/login")}}><UiIcon name="log-out" size={21}/></button>
       </div>
     </aside>
 
     <main className="main" id="main-content">
       <div className="mm-mobile-head">
         <SiteLogo kind="mobile"/>
-        <div className="mm-mobile-account"><button type="button" className="mm-v09-profile-link" aria-label="Abrir meu perfil" onClick={()=>{setProfileId(user.id);go("perfil")}}><PlayerAvatar photoUrl={photoUrls[user.id]} name={nickname}/></button><button type="button" aria-label="Sair" onClick={async()=>{await getSupabase()?.auth.signOut();window.location.replace("/login")}}>↪</button></div>
+        <div className="mm-mobile-account"><button type="button" className="mm-v09-profile-link" aria-label="Abrir meu perfil" onClick={()=>{setProfileId(user.id);go("perfil")}}><PlayerAvatar photoUrl={photoUrls[user.id]} name={nickname}/></button><button type="button" aria-label="Sair" onClick={async()=>{await getSupabase()?.auth.signOut();window.location.replace("/login")}}><UiIcon name="log-out" size={21}/></button></div>
       </div>
       <div className="mm-breadcrumb-row">
         <div className="breadcrumb">Mesa Marcada　/　{page==="inicio"?"Visão geral":page==="detalhe"?"Evento":page==="mesa"?"Mesa de "+gameName(gameView):page==="eventos"?"Eventos":page==="mesas"?"Mesas":page==="perfil"?"Perfil":page==="admin"?"Administração":"Ranking"}</div>
-        <span className="pill">{isAdmin?"★ Administrador":`♠ ${firstName}`}</span>
+        <span className="pill"><UiIcon name={isAdmin?"settings":"user"} size={14}/>{isAdmin?"Administrador":firstName}</span>
       </div>
       {error&&<p className="mm-message error" role="alert" style={{marginBottom:16}}>{error}</p>}
       {message&&<p className="mm-message" role="status" style={{marginBottom:16}}>{message}</p>}
-      <MobileAppCompanion onUpdate={reload} visible={page==="inicio"}/>
 
       {page==="inicio"&&<>
         <div className="heading">
           <div><div className="eyebrow">BEM-VINDO DE VOLTA</div><h1>A próxima rodada<br/>começa aqui, {firstName}.</h1><p className="mm-page-intro">Encontre sua próxima noite e reúna todo mundo na mesa.</p></div>
-          <button type="button" className="btn gold mm-create" onClick={()=>openCreator()}><span>＋</span> Criar evento</button>
+          <button type="button" className="btn gold mm-create" onClick={()=>openCreator()}><UiIcon name="plus" size={22}/> Criar evento</button>
         </div>
         {(myUpcoming[0]||upcoming[0])&&(()=>{
           const next=myUpcoming[0]||upcoming[0];
@@ -493,10 +503,10 @@ export default function PainelPage(){
           </section>;
         })()}
         <div className="metrics">
-          <div className="metric"><div className="mhead">Eventos agendados <span className="micon">▤</span></div><strong>{upcoming.length}</strong><small>Próximas noites</small></div>
-          <div className="metric"><div className="mhead">Minhas presenças <span className="micon">♠</span></div><strong>{myUpcoming.length}</strong><small>Confirmações ativas</small></div>
-          <div className="metric"><div className="mhead">Mesas de jogos <span className="micon">♦</span></div><strong>{activeRooms.length}</strong><small>Poker e Blackjack</small></div>
-          <div className="metric"><div className="mhead">Jogadores cadastrados <span className="micon">♣</span></div><strong>{profiles.length}</strong><small>Na comunidade</small></div>
+          <div className="metric"><div className="mhead">Eventos agendados <span className="micon"><UiIcon name="calendar" size={22}/></span></div><strong>{upcoming.length}</strong><small>Próximas noites</small></div>
+          <div className="metric"><div className="mhead">Minhas presenças <span className="micon"><UiIcon name="check" size={22}/></span></div><strong>{myUpcoming.length}</strong><small>Confirmações ativas</small></div>
+          <div className="metric"><div className="mhead">Mesas de jogos <span className="micon"><UiIcon name="cards" size={22}/></span></div><strong>{activeRooms.length}</strong><small>Poker e Blackjack</small></div>
+          <div className="metric"><div className="mhead">Jogadores cadastrados <span className="micon"><UiIcon name="users" size={22}/></span></div><strong>{profiles.length}</strong><small>Na comunidade</small></div>
         </div>
         <div className="two">
           <section className="panel">
@@ -508,11 +518,11 @@ export default function PainelPage(){
                 <small>{eventTime(ev.starts_at)}　·　{roomTitle(ev.room_id)}　·　{attendances.filter(a=>a.session_id===ev.id).length}/{ev.max_participants} confirmados</small>
               </div>
               <button type="button" className="link" onClick={()=>openEvent(ev.id)}>Abrir →</button>
-            </div>):<div className="mm-empty"><span className="mm-empty-symbol">♠</span><strong>Nenhum evento marcado</strong><p>Comece criando o primeiro encontro.</p><button type="button" className="btn gold" onClick={()=>openCreator()}>＋ Criar evento</button></div>}
+            </div>):<div className="mm-empty"><span className="mm-empty-symbol">♠</span><strong>Nenhum evento marcado</strong><p>Comece criando o primeiro encontro.</p><button type="button" className="btn gold" onClick={()=>openCreator()}><UiIcon name="plus" size={18}/> Criar evento</button></div>}
           </section>
           <div className="stack">
             <section className="hero">
-              <div><div className="eyebrow">TUDO EM UM SÓ LUGAR</div><h2 className="mm-hero-heading">Uma noite para<br/><span className="mm-hero-title-strong">ficar na memória.</span></h2><p>Escolha a mesa, marque o horário e organize seus amigos.</p><button className="btn gold mm-hero-cta" type="button" onClick={()=>openCreator()}>＋ Criar evento</button></div>
+              <div><div className="eyebrow">TUDO EM UM SÓ LUGAR</div><h2 className="mm-hero-heading">Uma noite para<br/><span className="mm-hero-title-strong">ficar na memória.</span></h2><p>Escolha a mesa, marque o horário e organize seus amigos.</p><button className="btn gold mm-hero-cta" type="button" onClick={()=>openCreator()}><UiIcon name="plus" size={19}/> Criar evento</button></div>
               <span className="mm-hero-symbol" aria-hidden="true">♠ <em>♦</em></span>
             </section>
             <section className="panel">
@@ -531,7 +541,7 @@ export default function PainelPage(){
       </>}
 
       {page==="eventos"&&<>
-        <div className="heading"><div><div className="eyebrow">AGENDA DO GRUPO</div><h1>Eventos</h1><p>Confira as próximas noites ou marque um novo encontro.</p></div><button className="btn gold mm-create" type="button" onClick={()=>openCreator()}>＋ Criar evento</button></div>
+        <div className="heading"><div><div className="eyebrow">AGENDA DO GRUPO</div><h1>Eventos</h1><p>Confira as próximas noites ou marque um novo encontro.</p></div><button className="btn gold mm-create" type="button" onClick={()=>openCreator()}><UiIcon name="plus" size={18}/> Criar evento</button></div>
         <div className="mm-filter-bar" aria-label="Filtrar eventos">
           {([["agendados","Próximos"],["todos","Todos"],["encerrados","Anteriores"]] as const).map(([id,label])=>
             <button className={"filter "+(eventFilter===id?"active":"")} type="button" key={id} onClick={()=>setEventFilter(id)}>{label}</button>
@@ -540,7 +550,7 @@ export default function PainelPage(){
         <div className="mm-eventgrid">
           {visibleEvents.map(ev=><EventTile key={ev.id} value={ev} room={roomFor(ev.room_id)} count={attendances.filter(a=>a.session_id===ev.id).length} confirmed={attendances.some(a=>a.session_id===ev.id&&a.user_id===user.id)} busy={working} onConfirm={()=>void confirmAttendance(ev.id)} open={()=>openEvent(ev.id)}/>)}
         </div>
-        {!visibleEvents.length&&<div className="panel mm-empty"><span className="mm-empty-symbol">♠</span><h2>Nenhum evento por aqui</h2><p>Que tal organizar a próxima noite?</p><button className="btn gold" onClick={()=>openCreator()}>＋ Criar evento</button></div>}
+        {!visibleEvents.length&&<div className="panel mm-empty"><span className="mm-empty-symbol">♠</span><h2>Nenhum evento por aqui</h2><p>Que tal organizar a próxima noite?</p><button className="btn gold" onClick={()=>openCreator()}><UiIcon name="plus" size={18}/> Criar evento</button></div>}
       </>}
 
       {page==="mesas"&&<>
@@ -559,7 +569,7 @@ export default function PainelPage(){
               <div className="mm-room-card-content">
                 <h2>{game==="poker"?"Poker · Texas Hold’em":"Blackjack · 21"}</h2>
                 <p>{game==="poker"?"Combine suas cartas, domine as mãos e organize uma noite de Poker.":"Aprenda a chegar perto de 21 sem estourar e desafie o dealer."}</p>
-                <div className="mm-room-facts"><span>▤ {count} {count===1?"evento":"eventos"}</span><span>▣ Tutorial completo</span></div>
+                <div className="mm-room-facts"><span><UiIcon name="calendar" size={15}/> {count} {count===1?"evento":"eventos"}</span><span><UiIcon name="book-open" size={15}/> Tutorial completo</span></div>
                 <div className="mm-room-actions">
                   <button type="button" className="btn gold" onClick={()=>openGame(game)}>Abrir mesa →</button>
                   <button type="button" className="btn" onClick={()=>openGame(game,"tutorial")}>Aprender a jogar</button>
@@ -584,8 +594,8 @@ export default function PainelPage(){
           </div>
         </div>
         <div className="mm-detail-tabs" role="tablist" aria-label="Seções da mesa">
-          <button type="button" role="tab" aria-selected={gameTab==="eventos"} className={gameTab==="eventos"?"active":""} onClick={()=>setGameTab("eventos")}>▤ Eventos</button>
-          <button type="button" role="tab" aria-selected={gameTab==="tutorial"} className={gameTab==="tutorial"?"active":""} onClick={()=>setGameTab("tutorial")}>▣ Tutorial e regras</button>
+          <button type="button" role="tab" aria-selected={gameTab==="eventos"} className={gameTab==="eventos"?"active":""} onClick={()=>setGameTab("eventos")}><UiIcon name="calendar" size={16}/> Eventos</button>
+          <button type="button" role="tab" aria-selected={gameTab==="tutorial"} className={gameTab==="tutorial"?"active":""} onClick={()=>setGameTab("tutorial")}><UiIcon name="book-open" size={16}/> Tutorial e regras</button>
         </div>
         {gameTab==="eventos"&&<>
           <div className="mm-section-title"><h2>Eventos de {gameName(gameView)}</h2><span className={"tag "+gameView}>{events.filter(e=>roomFor(e.room_id)?.game===gameView).length} registrados</span></div>
@@ -598,7 +608,7 @@ export default function PainelPage(){
             <span className="mm-empty-symbol">{gameView==="poker"?"♠":"♦"}</span>
             <h2>Nenhum evento de {gameName(gameView)} ainda</h2>
             <p>Crie um evento nesta mesa e convide seus amigos.</p>
-            <button type="button" className="btn gold" onClick={()=>openCreator(activeRooms.find(r=>r.game===gameView)?.id)}>＋ Criar evento</button>
+            <button type="button" className="btn gold" onClick={()=>openCreator(activeRooms.find(r=>r.game===gameView)?.id)}><UiIcon name="plus" size={18}/> Criar evento</button>
           </div>}
         </>}
         {gameTab==="tutorial"&&<TableTutorial game={gameView}/>}
@@ -758,7 +768,7 @@ export default function PainelPage(){
             <form className="mm-form-stack" onSubmit={createPoll}>
               <label className="mm-field">Pergunta<input minLength={2} required value={pollQuestion} onChange={e=>setPollQuestion(e.target.value)} placeholder="O que vamos comer?"/></label>
               <label className="mm-field">Opções, uma por linha<textarea required rows={5} value={pollOptions} onChange={e=>setPollOptions(e.target.value)}/></label>
-              <button className="btn gold" disabled={!meConfirmed||selected.status!=="scheduled"||working}>＋ Criar enquete</button>
+              <button className="btn gold" disabled={!meConfirmed||selected.status!=="scheduled"||working}><UiIcon name="plus" size={18}/> Criar enquete</button>
             </form>
             {!meConfirmed&&<p className="mm-formfoot">Confirme sua presença neste evento antes de criar enquetes.</p>}
           </section>
@@ -768,8 +778,8 @@ export default function PainelPage(){
           <div className="mm-message" style={{marginBottom:18}}>Registre apenas as fichas adquiridas e seus resultados. Para organizar as despesas com comida e bebidas, abra a aba Gastos.</div>
           {!privateVisible?<div className="panel"><h2>Informações restritas</h2><p>Confirme presença neste evento para consultar ou registrar informações financeiras.</p></div>:<>
             <div className="metrics" style={{gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))"}}>
-              <div className="metric"><div className="mhead">Fichas distribuídas <span className="micon">♠</span></div><strong>{eventBuys.reduce((n,b)=>n+Number(b.chips_received),0).toLocaleString("pt-BR")}</strong><small>Compras e recompras</small></div>
-              <div className="metric"><div className="mhead">Entradas registradas <span className="micon">▤</span></div><strong>{money(eventBuys.reduce((n,b)=>n+Number(b.amount_brl),0))}</strong><small>Valor informativo</small></div>
+              <div className="metric"><div className="mhead">Fichas distribuídas <span className="micon"><UiIcon name="check" size={22}/></span></div><strong>{eventBuys.reduce((n,b)=>n+Number(b.chips_received),0).toLocaleString("pt-BR")}</strong><small>Compras e recompras</small></div>
+              <div className="metric"><div className="mhead">Entradas registradas <span className="micon"><UiIcon name="calendar" size={22}/></span></div><strong>{money(eventBuys.reduce((n,b)=>n+Number(b.amount_brl),0))}</strong><small>Valor informativo</small></div>
             </div>
             <div className="mm-denom-layout">
               <ChipPurchaseForm key={selected.id} eventId={selected.id}
@@ -913,14 +923,15 @@ export default function PainelPage(){
         )}
       </>}
 
+      <MobileAppCompanion onUpdate={reload} visible={page==="inicio"}/>
       <footer className="mm-formfoot" style={{marginTop:35}}>Mesa Marcada · Organize seus encontros. Valores em reais são apenas registros informativos.</footer>
     </main>
 
-    <button className="mm-fab" aria-label="Criar evento" type="button" onClick={()=>openCreator()}>＋</button>
+    <button className="mm-fab" aria-label="Criar evento" title="Criar evento" type="button" onClick={()=>openCreator()}><UiIcon name="plus" size={29}/></button>
 
     {modal==="evento"&&<div className="mm-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setModal(null)}}>
       <div className="mm-modal" role="dialog" aria-modal="true" aria-labelledby="new-event-title">
-        <header><div><div className="eyebrow">ORGANIZAR UMA NOITE</div><h2 id="new-event-title">Criar evento</h2></div><button className="mm-close" type="button" aria-label="Fechar" onClick={()=>setModal(null)}>×</button></header>
+        <header><div><div className="eyebrow">ORGANIZAR UMA NOITE</div><h2 id="new-event-title">Criar evento</h2></div><button className="mm-close" type="button" aria-label="Fechar" onClick={()=>setModal(null)}><UiIcon name="close" size={22}/></button></header>
         <form className="mm-form-stack" onSubmit={addEvent}>
           <label className="mm-field">Escolha a mesa
             <select value={form.room_id} onChange={e=>setForm({...form,room_id:e.target.value})} required>
