@@ -19,6 +19,7 @@ import MobileAppCompanion from "./mobile-app-companion";
 import UiIcon from "./ui-icon";
 import DashboardV16 from "./dashboard-v16";
 import EventLivePanel from "./event-live-panel";
+import {useStableDialog} from "./use-stable-dialog";
 import type {LiveState,LiveActivity} from "./event-live-panel";
 import type {UiIconName} from "./ui-icon";
 import AdvancedRankingPanel,{PlayerAchievements} from "./advanced-ranking";
@@ -87,6 +88,7 @@ export default function PainelPage(){
   const [gameView,setGameView]=useState<Game>("poker");
   const [gameTab,setGameTab]=useState<"eventos"|"tutorial">("eventos");
   const [modal,setModal]=useState<Modal>(null);
+  const modalOverlayRef=useStableDialog(modal!==null,page,()=>setModal(null));
   const [loading,setLoading]=useState(true);
   const [working,setWorking]=useState(false);
   const [message,setMessage]=useState("");
@@ -305,13 +307,6 @@ export default function PainelPage(){
     return()=>{active=false};
   },[user,selectedId,approvals,attendances,buys,results,expenses,expenseMembers]);
 
-  useEffect(()=>{
-    if(!modal)return;
-    const escape=(e:KeyboardEvent)=>{if(e.key==="Escape")setModal(null)};
-    window.addEventListener("keydown",escape);
-    return()=>window.removeEventListener("keydown",escape);
-  },[modal]);
-
   async function manageAdminEvent(eventId:string,action:"hide"|"restore"|"cancel"|"finish"){
     const messages:Record<string,string>={
       hide:"Excluir este evento da agenda? A operação é reversível e mantém os registros.",
@@ -473,7 +468,7 @@ export default function PainelPage(){
         ||attendances.some(a=>a.session_id===id&&a.user_id===user?.id));
     setSelectedId(id);setLiveActivities([]);
     setDetailTab(sub==="visao"&&active?"ao-vivo":sub);
-    setPage("detalhe");setError("");setMessage("");window.scrollTo({top:0,behavior:"smooth"});
+    setPage("detalhe");setError("");setMessage("");window.scrollTo({top:0,behavior:"auto"});
   }
   function go(next:View){
     setPage(next);setError("");setMessage("");window.scrollTo({top:0,behavior:"smooth"});
@@ -1024,8 +1019,8 @@ export default function PainelPage(){
 
     <button className="mm-fab" aria-label="Criar evento" title="Criar evento" type="button" onClick={()=>openCreator()}><UiIcon name="plus" size={29}/></button>
 
-    {modal==="evento"&&<div className="mm-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setModal(null)}}>
-      <div className="mm-modal" role="dialog" aria-modal="true" aria-labelledby="new-event-title">
+    {modal==="evento"&&<div ref={modalOverlayRef} className="mm-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setModal(null)}}>
+      <div className="mm-modal" role="dialog" aria-modal="true" aria-labelledby="new-event-title" tabIndex={-1}>
         <header><div><div className="eyebrow">ORGANIZAR UMA NOITE</div><h2 id="new-event-title">Criar evento</h2></div><button className="mm-close" type="button" aria-label="Fechar" onClick={()=>setModal(null)}><UiIcon name="close" size={22}/></button></header>
         <form className="mm-form-stack" onSubmit={addEvent}>
           <label className="mm-field">Escolha a mesa
