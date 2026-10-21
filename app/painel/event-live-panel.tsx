@@ -65,7 +65,6 @@ export default function EventLivePanel({
     </section>;
   }
   const active=Boolean(startedAt&&status==="scheduled");
-  const completed=guestCount>0&&checkedCount===guestCount&&purchaseCount>0;
   const timeline=[...activities].sort((a,b)=>
     new Date(b.occurred_at).getTime()-new Date(a.occurred_at).getTime()||b.id-a.id);
   return <div className="mm-live">
@@ -124,10 +123,7 @@ export default function EventLivePanel({
           <button type="button" className="btn" onClick={onFichas}>
             <UiIcon name="cards" size={17}/> Conferir valores
           </button>
-          {active&&(host||admin)&&<button type="button" className="btn gold"
-            disabled={busy||!canFinish||!completed} onClick={onFinish}>
-            <UiIcon name="check" size={18}/> Encerrar partida
-          </button>}
+
         </div>
         <p className="mm-live-expense-note">Os rachas opcionais de comida e bebida são independentes e <strong>não bloqueiam</strong> o encerramento.</p>
       </section>}

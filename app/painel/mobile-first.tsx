@@ -820,11 +820,7 @@ export default function PainelPage(){
             </div>
             <div className="mm-event-meta"><span>◷ {fullDate(selected.starts_at)}</span><span>⌖ {selected.location}</span><span>♠ {guests.length}/{selected.max_participants} participantes</span></div>
             <div className="mm-action-row">
-              {organizer&&selected.status==="scheduled"&&!selectedLive&&
-                <button type="button" className="btn gold" disabled={working}
-                  onClick={()=>setDetailTab("ao-vivo")}>
-                  <UiIcon name="spade" size={16}/> Iniciar ao vivo
-                </button>}
+
               {meConfirmed?
                 <button className="mm-btn-destructive" type="button" disabled={working||selected.status!=="scheduled"} onClick={()=>void act(async(db,id)=>{
                   const {error:leaveError}=await db.from("session_attendance").delete().eq("session_id",selected.id).eq("user_id",id);
