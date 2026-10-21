@@ -210,7 +210,7 @@ export default function PainelPage(){
     if(!db)return;
     let active=true;
     setRankingLoading(true);
-    void db.rpc("get_player_stats_period",{p_game:rankGame,p_period:rankPeriod})
+    void Promise.resolve(db.rpc("get_player_stats_period",{p_game:rankGame,p_period:rankPeriod}))
       .then(({data,error:rankingError})=>{
         if(!active)return;
         if(rankingError)setError("Ranking indisponível: "+rankingError.message);
