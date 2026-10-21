@@ -3,15 +3,24 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { getSupabase } from "@/lib/supabase/browser";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Game, View, DetailTab, Profile, Room, Event, Attendance, Poll, Choice, Vote, Buy, ChipResult, Expense, Rank } from "@/lib/mesa-types";
+import type { Game, View, DetailTab, Profile, Room, Event, Attendance, Poll, Choice, Vote, Buy, BuyItem, ChipResult, Expense, Rank } from "@/lib/mesa-types";
 import { money, fullDate, eventTime, gameName, errText } from "@/lib/mesa-types";
 import TableTutorial from "./table-tutorial";
 import "../v05-theme.css";
 import {AttendeeMiniCard,EventShareActions,FinanceReviewBoard,PlayerAvatar,ProfilePanel,RankingPanel} from "./v09-features";
 import type {FinanceLine} from "./v09-features";
+import ChipPurchaseForm from "./chip-purchase-form";
 
-type CreateEvent = {room_id:string;name:string;starts_at:string;location:string;min_entry_brl:string;max_participants:string};
-const defaultEvent:CreateEvent={room_id:"",name:"",starts_at:"",location:"",min_entry_brl:"0",max_participants:"10"};
+type ChipPriceKey="chip_price_1_brl"|"chip_price_5_brl"|"chip_price_10_brl"|"chip_price_25_brl"|"chip_price_50_brl";
+const chipPriceFields:{value:number;key:ChipPriceKey}[]=[
+  {value:1,key:"chip_price_1_brl"},
+  {value:5,key:"chip_price_5_brl"},
+  {value:10,key:"chip_price_10_brl"},
+  {value:25,key:"chip_price_25_brl"},
+  {value:50,key:"chip_price_50_brl"}
+];
+type CreateEvent = {room_id:string;name:string;starts_at:string;location:string;min_entry_brl:string;max_participants:string;chip_pricing_special:boolean}&Record<ChipPriceKey,string>;
+const defaultEvent:CreateEvent={room_id:"",name:"",starts_at:"",location:"",min_entry_brl:"0",max_participants:"10",chip_pricing_special:false,chip_price_1_brl:"1.00",chip_price_5_brl:"5.00",chip_price_10_brl:"0.10",chip_price_25_brl:"0.25",chip_price_50_brl:"0.50"};
 type Modal = "evento" | null;
 const MONTHS=["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 
@@ -73,6 +82,7 @@ export default function PainelPage(){
   const [choices,setChoices]=useState<Choice[]>([]);
   const [votes,setVotes]=useState<Vote[]>([]);
   const [buys,setBuys]=useState<Buy[]>([]);
+  const [chipItems,setChipItems]=useState<BuyItem[]>([]);
   const [results,setResults]=useState<ChipResult[]>([]);
   const [expenses,setExpenses]=useState<Expense[]>([]);
   const [ranking,setRanking]=useState<Rank[]>([]);
@@ -82,8 +92,6 @@ export default function PainelPage(){
   const [form,setForm]=useState<CreateEvent>(defaultEvent);
   const [pollQuestion,setPollQuestion]=useState("");
   const [pollOptions,setPollOptions]=useState("Pizza\nHambúrguer\nChurrasco");
-  const [chipCount,setChipCount]=useState("");
-  const [chipAmount,setChipAmount]=useState("0");
   const [finalChips,setFinalChips]=useState("");
   const [expenseName,setExpenseName]=useState("");
   const [expenseAmount,setExpenseAmount]=useState("");
@@ -102,6 +110,7 @@ export default function PainelPage(){
       db.from("session_poll_options").select("*").order("position"),
       db.from("session_poll_votes").select("poll_id,option_id,user_id"),
       db.from("session_chip_purchases").select("*"),
+      db.from("session_chip_purchase_items").select("*"),
       db.from("session_chip_results").select("*"),
       db.from("session_expenses").select("*"),
       db.from("session_finance_approvals").select("session_id,user_id,reviewed_at"),
@@ -116,10 +125,11 @@ export default function PainelPage(){
     setChoices((requests[5].data||[]) as Choice[]);
     setVotes((requests[6].data||[]) as Vote[]);
     setBuys((requests[7].data||[]) as Buy[]);
-    setResults((requests[8].data||[]) as ChipResult[]);
-    setExpenses((requests[9].data||[]) as Expense[]);
-    setApprovals((requests[10].data||[]) as {session_id:string;user_id:string;reviewed_at:string}[]);
-    setRanking((requests[11].data||[]) as Rank[]);
+    setChipItems((requests[8].data||[]) as BuyItem[]);
+    setResults((requests[9].data||[]) as ChipResult[]);
+    setExpenses((requests[10].data||[]) as Expense[]);
+    setApprovals((requests[11].data||[]) as {session_id:string;user_id:string;reviewed_at:string}[]);
+    setRanking((requests[12].data||[]) as Rank[]);
   },[]);
 
   useEffect(()=>{
@@ -219,6 +229,26 @@ export default function PainelPage(){
     }).sort((a,b)=>(b.difference??-Infinity)-(a.difference??-Infinity));
   },[guests,buys,results,selected]);
 
+  async function recordPurchase(quantities:number[]):Promise<boolean>{
+    const db=getSupabase();
+    if(!db||!user||!selected){setError("Entre em um evento para registrar fichas.");return false;}
+    if(!attendances.some(a=>a.session_id===selected.id&&a.user_id===user.id)){
+      setError("Confirme sua presença antes de comprar fichas.");
+      return false;
+    }
+    setWorking(true);setError("");setMessage("");
+    try{
+      const {error:purchaseError}=await db.rpc("record_chip_purchase",{
+        p_event_id:selected.id,p_quantities:quantities
+      });
+      if(purchaseError)throw purchaseError;
+      await reload();
+      setMessage("Compra registrada! Quantidades, pontos e valor calculados pelo Supabase.");
+      return true;
+    }catch(e){setError(errText(e));return false;}
+    finally{setWorking(false);}
+  }
+
   async function confirmAttendance(eventId:string){
     await act(async(db,id)=>{
       const {error:attendanceError}=await db.from("session_attendance")
@@ -251,7 +281,13 @@ export default function PainelPage(){
       const {data,error:eventError}=await db.from("sessions").insert({
         room_id:room.id,organizer_id:id,title:form.name.trim(),
         starts_at:new Date(form.starts_at).toISOString(),location:form.location.trim(),
-        min_entry_brl:Number(form.min_entry_brl),max_participants:Number(form.max_participants)
+        min_entry_brl:Number(form.min_entry_brl),max_participants:Number(form.max_participants),
+        chip_pricing_special:form.chip_pricing_special,
+        chip_price_1_brl:form.chip_pricing_special?Number(form.chip_price_1_brl):1,
+        chip_price_5_brl:form.chip_pricing_special?Number(form.chip_price_5_brl):5,
+        chip_price_10_brl:form.chip_pricing_special?Number(form.chip_price_10_brl):0.10,
+        chip_price_25_brl:form.chip_pricing_special?Number(form.chip_price_25_brl):0.25,
+        chip_price_50_brl:form.chip_pricing_special?Number(form.chip_price_50_brl):0.50
       }).select("id").single();
       if(eventError)throw eventError;
       setModal(null);openEvent(data.id);
@@ -548,25 +584,23 @@ export default function PainelPage(){
         </div>}
 
         {detailTab==="financeiro"&&<>
-          <div className="mm-message" style={{marginBottom:18}}>Os registros de fichas e os valores em reais são independentes. O Mesa Marcada não processa pagamentos ou apostas.</div>
+          <div className="mm-message" style={{marginBottom:18}}>Cada ficha tem um preço de compra e uma pontuação impressa. Os valores são calculados automaticamente e usados apenas para registros; o Mesa Marcada não processa pagamentos ou apostas.</div>
           {!privateVisible?<div className="panel"><h2>Informações restritas</h2><p>Confirme presença neste evento para consultar ou registrar informações financeiras.</p></div>:<>
             <div className="metrics" style={{gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))"}}>
               <div className="metric"><div className="mhead">Fichas distribuídas <span className="micon">♠</span></div><strong>{eventBuys.reduce((n,b)=>n+Number(b.chips_received),0).toLocaleString("pt-BR")}</strong><small>Compras e recompras</small></div>
               <div className="metric"><div className="mhead">Entradas registradas <span className="micon">▤</span></div><strong>{money(eventBuys.reduce((n,b)=>n+Number(b.amount_brl),0))}</strong><small>Valor informativo</small></div>
               <div className="metric"><div className="mhead">Despesas <span className="micon">♦</span></div><strong>{money(eventExpenses.reduce((n,b)=>n+Number(b.amount_brl),0))}</strong><small>Gastos compartilhados</small></div>
             </div>
-            <div className="mm-eventgrid">
-              <section className="panel">
-                <h2>Compra ou recompra</h2><p style={{margin:"9px 0 16px"}}>Registre apenas suas próprias fichas.</p>
-                <form className="mm-form-stack" onSubmit={e=>{e.preventDefault();void act(async(db,id)=>{
-                  const {error:buyError}=await db.from("session_chip_purchases").insert({session_id:selected.id,user_id:id,chips_received:Number(chipCount),amount_brl:Number(chipAmount)});
-                  if(buyError)throw buyError;setChipCount("");
-                },"Fichas registradas!")}}>
-                  <label className="mm-field">Quantidade de fichas<input type="number" min={1} step={1} required value={chipCount} onChange={e=>setChipCount(e.target.value)}/></label>
-                  <label className="mm-field">Valor em reais (R$)<input type="number" min={0} step="0.01" required value={chipAmount} onChange={e=>setChipAmount(e.target.value)}/></label>
-                  <button className="btn gold" disabled={working||!meConfirmed||selected.status!=="scheduled"}>Salvar compra</button>
-                </form>
-              </section>
+            <div className="mm-denom-layout">
+              <ChipPurchaseForm key={selected.id} eventId={selected.id}
+                prices={[selected.chip_price_1_brl,selected.chip_price_5_brl,
+                  selected.chip_price_10_brl,selected.chip_price_25_brl,selected.chip_price_50_brl]}
+                special={selected.chip_pricing_special}
+                locked={selected.chip_pricing_locked}
+                disabled={!meConfirmed||selected.status!=="scheduled"} busy={working}
+                onSave={recordPurchase}
+              />
+              <div className="stack">
               <section className="panel">
                 <h2>Meu resultado</h2><p style={{margin:"9px 0 16px"}}>Quantas fichas você tinha ao final?</p>
                 <form className="mm-form-stack" onSubmit={e=>{e.preventDefault();void act(async(db,id)=>{
@@ -596,11 +630,19 @@ export default function PainelPage(){
                   <button className="btn gold" disabled={working||!meConfirmed||selected.status!=="scheduled"}>Salvar despesa</button>
                 </form>
               </section>
+              </div>
             </div>
             <section className="panel mm-v09-purchases" style={{marginTop:19}}>
               <div className="panelhead"><h2>Compras e recompras registradas</h2><span className="tag">{eventBuys.length} lançamentos</span></div>
               {eventBuys.map(b=><div className="item mm-v09-finance-history" key={b.id}>
-                <div className="itemcontent"><strong>{nameFor(b.user_id)}</strong><small>{Number(b.chips_received).toLocaleString("pt-BR")} fichas · {money(b.amount_brl)}</small></div>
+                <div className="itemcontent"><strong>{nameFor(b.user_id)}</strong>
+                  <small>{Number(b.chips_received).toLocaleString("pt-BR")} pontos em fichas · {money(b.amount_brl)}</small>
+                  {chipItems.some(item=>item.purchase_id===b.id)&&<small className="mm-denom-receipt">
+                    {chipItems.filter(item=>item.purchase_id===b.id)
+                      .sort((a,b)=>a.chip_value-b.chip_value)
+                      .map(item=>item.quantity+"× ficha "+item.chip_value).join(" · ")}
+                  </small>}
+                </div>
                 {b.user_id===user.id&&selected.status==="scheduled"&&<button type="button"
                   className="mm-v09-delete-entry" disabled={working} onClick={()=>{
                     if(!window.confirm("Excluir este lançamento de fichas? Se o resultado já estava aprovado, a aprovação será retirada."))return;
@@ -685,6 +727,21 @@ export default function PainelPage(){
           <div className="mm-form-grid">
             <label className="mm-field">Entrada mínima (R$)<input type="number" min={0} step="0.01" required value={form.min_entry_brl} onChange={e=>setForm({...form,min_entry_brl:e.target.value})}/></label>
             <label className="mm-field">Vagas<input type="number" min={1} max={500} step={1} required value={form.max_participants} onChange={e=>setForm({...form,max_participants:e.target.value})}/></label>
+          </div>
+          <div className="mm-denom-event-setting">
+            <label className="mm-denom-special-switch">
+              <input type="checkbox" checked={form.chip_pricing_special}
+                onChange={e=>setForm({...form,chip_pricing_special:e.target.checked})}/>
+              <span><strong>★ Evento especial</strong><small>Personalizar o preço de cada ficha somente neste evento</small></span>
+            </label>
+            {form.chip_pricing_special?<div className="mm-denom-price-grid">
+              {chipPriceFields.map(field=><label className="mm-field" key={field.key}>
+                Ficha {field.value} · R$
+                <input type="number" min="0.01" max="1000" step="0.01" required
+                  value={form[field.key]} onChange={e=>setForm({...form,[field.key]:e.target.value})}/>
+              </label>)}
+              <p className="mm-formfoot">Os preços personalizados ficam bloqueados após a primeira compra deste evento.</p>
+            </div>:<p className="mm-formfoot">Padrão: ficha 1 = R$ 1,00 · ficha 5 = R$ 5,00 · ficha 10 = R$ 0,10 · ficha 25 = R$ 0,25 · ficha 50 = R$ 0,50.</p>}
           </div>
           <p className="mm-formfoot">O valor é apenas informativo. Todos os usuários cadastrados poderão ver este evento.</p>
           <div className="mm-form-actions"><button type="button" className="btn" onClick={()=>setModal(null)}>Cancelar</button><button type="submit" className="btn gold" disabled={working}>{working?"Salvando...":"Criar evento →"}</button></div>

@@ -11,7 +11,7 @@ Aplicação web para organizar encontros presenciais de **Poker** e **Blackjack*
 - **Cadastro aberto:** login e senha com Supabase Auth, sem convite obrigatório. Confirmação de e-mail é configurável no dashboard do Supabase.
 - **Perfis:** apelido, avatar, jogo favorito, descrição e histórico de desempenho.
 - **Enquetes** somente dentro dos eventos; um voto por participante, alterável enquanto aberta.
-- **Fichas e financeiro:** compras/recompras, fichas finais, despesas e pessoa que pagou, rateio em centavos e revisão das fichas pelo organizador antes do encerramento.
+- **Fichas e financeiro:** compra e recompra por denominações 1/5/10/25/50, preço unitário próprio para cada ficha, total em reais e pontos calculados no servidor; eventos especiais podem personalizar preços. Despesas, rateio em centavos e revisão pelo organizador antes do encerramento.
 - **Rankings:** Poker e Blackjack separados, ordenados por rendimento percentual médio dos eventos completos e revisados, com saldo de fichas e melhor resultado exibidos.
 - **Segurança:** RLS em todas as tabelas públicas, validação de capacidade e autorizações no Supabase. Não são realizadas apostas, cobranças nem pagamentos pelo aplicativo.
 
