@@ -10,7 +10,7 @@ const features=read("app/painel/v09-features.tsx");
 const icons=read("app/painel/ui-icon.tsx");
 
 for(const section of ["home","calendar","cards","trophy","user","settings","log-out","plus","book-open"]){
-  assert.ok(icons.includes(section+":"), "Missing SVG icon "+section);
+  assert.ok(icons.includes(section+":")||icons.includes('"'+section+'":'), "Missing SVG icon "+section);
 }
 for(const text of [panel,companion,features]){
   assert.ok(!/[▦▤▣↪]/.test(text),"Legacy symbols that display inconsistently remain");
