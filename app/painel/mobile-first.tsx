@@ -596,6 +596,22 @@ export default function PainelPage(){
                 </form>
               </section>
             </div>
+            <section className="panel mm-v09-purchases" style={{marginTop:19}}>
+              <div className="panelhead"><h2>Compras e recompras registradas</h2><span className="tag">{eventBuys.length} lançamentos</span></div>
+              {eventBuys.map(b=><div className="item mm-v09-finance-history" key={b.id}>
+                <div className="itemcontent"><strong>{nameFor(b.user_id)}</strong><small>{Number(b.chips_received).toLocaleString("pt-BR")} fichas · {money(b.amount_brl)}</small></div>
+                {b.user_id===user.id&&selected.status==="scheduled"&&<button type="button"
+                  className="mm-v09-delete-entry" disabled={working} onClick={()=>{
+                    if(!window.confirm("Excluir este lançamento de fichas? Se o resultado já estava aprovado, a aprovação será retirada."))return;
+                    void act(async(db,id)=>{
+                      const {error:deleteError}=await db.from("session_chip_purchases").delete()
+                        .eq("id",b.id).eq("user_id",id);
+                      if(deleteError)throw deleteError;
+                    },"Compra excluída.");
+                  }}>Excluir</button>}
+              </div>)}
+              {!eventBuys.length&&<p>Nenhuma compra ou recompra registrada até agora.</p>}
+            </section>
             <div className="two" style={{marginTop:19}}>
               <section className="panel">
                 <div className="panelhead"><h2>Ranking da noite</h2></div>
@@ -609,7 +625,16 @@ export default function PainelPage(){
               <section className="panel">
                 <div className="panelhead"><h2>Gastos registrados</h2></div>
                 {eventExpenses.map(e=><div className="item" key={e.id}>
-                  <div className="itemcontent"><strong>{e.label}</strong><small>Pago por {nameFor(e.paid_by||e.created_by)} · Registrado por {nameFor(e.created_by)}</small></div><strong>{money(e.amount_brl)}</strong>
+                  <div className="itemcontent"><strong>{e.label}</strong><small>Pago por {nameFor(e.paid_by||e.created_by)} · Registrado por {nameFor(e.created_by)}</small></div>
+                  <strong>{money(e.amount_brl)}</strong>
+                  {e.created_by===user.id&&selected.status==="scheduled"&&<button type="button" className="mm-v09-delete-entry"
+                    disabled={working} onClick={()=>{
+                      if(!window.confirm("Excluir esta despesa? O rateio de todos será recalculado."))return;
+                      void act(async(db,id)=>{
+                        const {error:deleteError}=await db.from("session_expenses").delete().eq("id",e.id).eq("created_by",id);
+                        if(deleteError)throw deleteError;
+                      },"Despesa excluída. Rateio atualizado.");
+                    }}>Excluir</button>}
                 </div>)}
                 {!eventExpenses.length&&<p>Nenhum gasto registrado.</p>}
                 {guests.length>0&&<p className="mm-formfoot" style={{marginTop:15}}>O rateio individual detalhado está abaixo, calculado com precisão de centavos.</p>}
