@@ -53,12 +53,12 @@ function GameBanner({game,name,large=false}:{game:Game;name?:string;large?:boole
   </div>;
 }
 
-function EventTile({value,room,count,confirmed,busy,open,onConfirm}:{value:Event;room?:Room;count:number;confirmed:boolean;busy:boolean;open:()=>void;onConfirm:()=>void}){
+function EventTile({value,room,count,confirmed,live,busy,open,onConfirm}:{value:Event;room?:Room;count:number;confirmed:boolean;live:boolean;busy:boolean;open:()=>void;onConfirm:()=>void}){
   const game=room?.game||"poker";
   return <article className="mm-event-card">
     <GameBanner game={game}/>
     <div className="mm-event-content">
-      <div className="mm-title-actions"><h3>{value.title}</h3><span className={"tag "+(value.status==="scheduled"?game:"archive")}>{value.status==="scheduled"?"Agendado":value.status==="finished"?"Encerrado":"Cancelado"}</span></div>
+      <div className="mm-title-actions"><h3>{value.title}</h3><span className={"tag "+(value.status==="scheduled"?game:"archive")}>{value.status==="scheduled"?(live?"Ao vivo":"Agendado"):value.status==="finished"?"Encerrado":"Cancelado"}</span></div>
       <div className="mm-event-info"><span>◷ {fullDate(value.starts_at)}</span><span>⌖ {value.location}</span></div>
       <div className="mm-event-occupancy"><span>{count} de {value.max_participants} confirmados</span><span>{Math.max(0,value.max_participants-count)} vagas</span></div>
       <div className="mm-progress" aria-hidden="true"><div style={{width:(Math.min(1,count/value.max_participants)*100)+"%"}}/></div>
@@ -467,7 +467,13 @@ export default function PainelPage(){
   }
 
   function openEvent(id:string,sub:DetailTab="visao"){
-    setSelectedId(id);setLiveActivities([]);setDetailTab(sub);setPage("detalhe");setError("");setMessage("");window.scrollTo({top:0,behavior:"smooth"});
+    const active=events.some(ev=>ev.id===id&&ev.status==="scheduled")
+      &&liveStates.some(l=>l.session_id===id)
+      &&Boolean(isAdmin||events.some(e=>e.id===id&&e.organizer_id===user?.id)
+        ||attendances.some(a=>a.session_id===id&&a.user_id===user?.id));
+    setSelectedId(id);setLiveActivities([]);
+    setDetailTab(sub==="visao"&&active?"ao-vivo":sub);
+    setPage("detalhe");setError("");setMessage("");window.scrollTo({top:0,behavior:"smooth"});
   }
   function go(next:View){
     setPage(next);setError("");setMessage("");window.scrollTo({top:0,behavior:"smooth"});
@@ -600,7 +606,7 @@ export default function PainelPage(){
           )}
         </div>
         <div className="mm-eventgrid">
-          {visibleEvents.map(ev=><EventTile key={ev.id} value={ev} room={roomFor(ev.room_id)} count={attendances.filter(a=>a.session_id===ev.id).length} confirmed={attendances.some(a=>a.session_id===ev.id&&a.user_id===user.id)} busy={working} onConfirm={()=>void confirmAttendance(ev.id)} open={()=>openEvent(ev.id)}/>)}
+          {visibleEvents.map(ev=><EventTile key={ev.id} value={ev} room={roomFor(ev.room_id)} count={attendances.filter(a=>a.session_id===ev.id).length} confirmed={attendances.some(a=>a.session_id===ev.id&&a.user_id===user.id)} live={ev.status==="scheduled"&&liveStates.some(l=>l.session_id===ev.id)} busy={working} onConfirm={()=>void confirmAttendance(ev.id)} open={()=>openEvent(ev.id)}/>)}
         </div>
         {!visibleEvents.length&&<div className="panel mm-empty"><span className="mm-empty-symbol">♠</span><h2>Nenhum evento por aqui</h2><p>Que tal organizar a próxima noite?</p><button className="btn gold" onClick={()=>openCreator()}><UiIcon name="plus" size={18}/> Criar evento</button></div>}
       </>}
@@ -731,6 +737,11 @@ export default function PainelPage(){
             </div>
             <div className="mm-event-meta"><span>◷ {fullDate(selected.starts_at)}</span><span>⌖ {selected.location}</span><span>♠ {guests.length}/{selected.max_participants} participantes</span></div>
             <div className="mm-action-row">
+              {organizer&&selected.status==="scheduled"&&!selectedLive&&
+                <button type="button" className="btn gold" disabled={working}
+                  onClick={()=>setDetailTab("ao-vivo")}>
+                  <UiIcon name="spade" size={16}/> Iniciar ao vivo
+                </button>}
               {meConfirmed?
                 <button className="mm-btn-destructive" type="button" disabled={working||selected.status!=="scheduled"} onClick={()=>void act(async(db,id)=>{
                   const {error:leaveError}=await db.from("session_attendance").delete().eq("session_id",selected.id).eq("user_id",id);
