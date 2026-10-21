@@ -1,6 +1,6 @@
 export type Game = "poker" | "blackjack";
 export type View = "inicio" | "eventos" | "mesas" | "mesa" | "ranking" | "perfil" | "detalhe";
-export type DetailTab = "visao" | "enquetes" | "financeiro";
+export type DetailTab = "visao" | "enquetes" | "fichas" | "gastos";
 export type Profile = {id:string;display_name:string;avatar_symbol:string;favorite_game:Game;bio:string;avatar_path:string|null};
 export type Room = {id:string;name:string;game:Game;description:string;status:"active"|"archived";created_by:string};
 export type Event = {id:string;room_id:string;organizer_id:string;title:string;starts_at:string;location:string;min_entry_brl:number;max_participants:number;status:"scheduled"|"finished"|"cancelled";chip_pricing_special:boolean;chip_pricing_locked:boolean;chip_price_1_brl:number;chip_price_5_brl:number;chip_price_10_brl:number;chip_price_25_brl:number;chip_price_50_brl:number};
@@ -11,7 +11,7 @@ export type Vote = {poll_id:string;option_id:string;user_id:string};
 export type Buy = {id:string;session_id:string;user_id:string;chips_received:number;amount_brl:number;payment_status:"paid"|"pending";payment_confirmed_by:string|null;payment_confirmed_at:string|null};
 export type BuyItem = {purchase_id:string;chip_value:1|5|10|25|50;quantity:number;unit_price_brl:number};
 export type ChipResult = {session_id:string;user_id:string;chips_final:number};
-export type Expense = {id:string;session_id:string;created_by:string;paid_by:string|null;label:string;category:string;amount_brl:number};
+export type Expense = {id:string;session_id:string;created_by:string;paid_by:string|null;label:string;category:string;amount_brl:number;split_open:boolean};
 export type Rank = {user_id:string;display_name:string;avatar_symbol:string;game:Game;net_chips:number;sessions_played:number;best_event_chips:number;avg_chips:number;avg_yield_pct:number;last_played_at:string};
 export const money=(n:number|string)=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(n)||0);
 export const date=(s:string)=>new Date(s).toLocaleDateString("pt-BR",{day:"2-digit",month:"short"});

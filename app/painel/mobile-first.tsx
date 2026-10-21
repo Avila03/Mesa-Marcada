@@ -12,6 +12,8 @@ import type {FinanceLine} from "./v09-features";
 import ChipPurchaseForm from "./chip-purchase-form";
 import SiteLogo from "./site-logo";
 import {prepareProfilePhoto} from "./photo-utils";
+import {ExpenseSplitsPanel,MySplitsSummary} from "./expense-splits";
+import type {ExpenseSplitRow,MyExpenseSplitRow} from "./expense-splits";
 
 type ChipPriceKey="chip_price_1_brl"|"chip_price_5_brl"|"chip_price_10_brl"|"chip_price_25_brl"|"chip_price_50_brl";
 const chipPriceFields:{value:number;key:ChipPriceKey}[]=[
@@ -89,6 +91,9 @@ export default function PainelPage(){
   const [chipItems,setChipItems]=useState<BuyItem[]>([]);
   const [results,setResults]=useState<ChipResult[]>([]);
   const [expenses,setExpenses]=useState<Expense[]>([]);
+  const [expenseMembers,setExpenseMembers]=useState<{expense_id:string;session_id:string;user_id:string;joined_at:string}[]>([]);
+  const [expenseShares,setExpenseShares]=useState<ExpenseSplitRow[]>([]);
+  const [mySplits,setMySplits]=useState<MyExpenseSplitRow[]>([]);
   const [ranking,setRanking]=useState<Rank[]>([]);
   const [approvals,setApprovals]=useState<{session_id:string;user_id:string;reviewed_at:string}[]>([]);
   const [rankGame,setRankGame]=useState<Game>("poker");
@@ -118,7 +123,9 @@ export default function PainelPage(){
       db.from("session_chip_results").select("*"),
       db.from("session_expenses").select("*"),
       db.from("session_finance_approvals").select("session_id,user_id,reviewed_at"),
-      db.rpc("get_player_stats",{p_game:null})
+      db.rpc("get_player_stats",{p_game:null}),
+      db.from("expense_split_members").select("expense_id,session_id,user_id,joined_at"),
+      db.rpc("get_my_expense_splits")
     ]);
     requests.forEach(r=>{if(r.error)throw r.error});
     setRooms((requests[0].data||[]) as Room[]);
@@ -148,6 +155,8 @@ export default function PainelPage(){
     setExpenses((requests[10].data||[]) as Expense[]);
     setApprovals((requests[11].data||[]) as {session_id:string;user_id:string;reviewed_at:string}[]);
     setRanking((requests[12].data||[]) as Rank[]);
+    setExpenseMembers((requests[13].data||[]) as {expense_id:string;session_id:string;user_id:string;joined_at:string}[]);
+    setMySplits((requests[14].data||[]) as MyExpenseSplitRow[]);
   },[]);
 
   useEffect(()=>{
@@ -188,21 +197,26 @@ export default function PainelPage(){
   },[user,events]);
 
   useEffect(()=>{
-    if(!user||!selectedId){setFinanceRows([]);return;}
+    if(!user||!selectedId){setFinanceRows([]);setExpenseShares([]);return;}
     const db=getSupabase();
     if(!db)return;
     let active=true;
     setFinanceLoading(true);
-    void db.rpc("get_event_finances",{p_event_id:selectedId}).then(({data,error:financeError})=>{
+    void Promise.all([
+      db.rpc("get_event_finances",{p_event_id:selectedId}),
+      db.rpc("get_expense_split_shares",{p_event_id:selectedId})
+    ]).then(([finance,split])=>{
       if(!active)return;
-      if(financeError){
-        setFinanceRows([]);
-        setError("Não foi possível consultar o resumo financeiro: "+financeError.message);
-      }else setFinanceRows((data||[]) as FinanceLine[]);
-      setFinanceLoading(false);
-    });
+      if(finance.error||split.error){
+        setFinanceRows([]);setExpenseShares([]);
+        setError("Não foi possível atualizar os gastos: "+(finance.error?.message||split.error?.message));
+      }else{
+        setFinanceRows((finance.data||[]) as FinanceLine[]);
+        setExpenseShares((split.data||[]) as ExpenseSplitRow[]);
+      }
+    }).finally(()=>{if(active)setFinanceLoading(false);});
     return()=>{active=false};
-  },[user,selectedId,approvals,attendances,buys,results,expenses]);
+  },[user,selectedId,approvals,attendances,buys,results,expenses,expenseMembers]);
 
   useEffect(()=>{
     if(!modal)return;
@@ -583,7 +597,7 @@ export default function PainelPage(){
           </div>
         </section>
         <div className="mm-detail-tabs" role="tablist" aria-label="Conteúdo deste evento">
-          {([["visao","Visão geral"],["enquetes","Enquetes"],["financeiro","Fichas e gastos"]] as const).map(([id,title])=><button type="button" key={id} className={detailTab===id?"active":""} role="tab" aria-selected={detailTab===id} onClick={()=>setDetailTab(id)}>{title}</button>)}
+          {([["visao","Visão geral"],["enquetes","Enquetes"],["fichas","Fichas"],["gastos","Gastos"]] as const).map(([id,title])=><button type="button" key={id} className={detailTab===id?"active":""} role="tab" aria-selected={detailTab===id} onClick={()=>setDetailTab(id)}>{title}</button>)}
         </div>
 
         {detailTab==="visao"&&<div className="two">
@@ -655,7 +669,7 @@ export default function PainelPage(){
           </section>
         </div>}
 
-        {detailTab==="financeiro"&&<>
+        {detailTab==="fichas"&&<>
           <div className="mm-message" style={{marginBottom:18}}>Cada ficha tem um preço de compra e uma pontuação impressa. Os valores são calculados automaticamente e usados apenas para registros; o Mesa Marcada não processa pagamentos ou apostas.</div>
           {!privateVisible?<div className="panel"><h2>Informações restritas</h2><p>Confirme presença neste evento para consultar ou registrar informações financeiras.</p></div>:<>
             <div className="metrics" style={{gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))"}}>
