@@ -1,5 +1,12 @@
 # Histórico de versões — Mesa Marcada
 
+## v1.5 — Temporadas, desempenho e conquistas
+- Rankings de Poker e Blackjack separados, com filtros mês/ano/histórico.
+- Saldo, percentual médio, melhor noite, participações e sequência positiva.
+- Conquistas desbloqueadas nos perfis com base em noites efetivamente revisadas.
+- Eventos ocultados administrativamente não influenciam os rankings.
+- Validação por resultados completos e aprovados no PostgreSQL.
+
 ## v1.4 — Celular, instalação PWA e avisos
 - Manifesto e Service Worker para instalar o site em tela inicial.
 - Tela offline sem cache de informações financeiras, credenciais ou páginas privadas.

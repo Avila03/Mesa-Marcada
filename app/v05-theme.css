@@ -807,3 +807,41 @@ a{text-decoration:none}
  .sidebar .nav button{font-size:9px}
 }
 @media(max-width:350px){.mm-mobile-next-event-actions{grid-template-columns:1fr}}
+
+/* v1.5 — temporadas, classificação e conquistas premium */
+.mm-advanced-ranking{display:grid;gap:16px}
+.mm-ranking-filter-row{display:flex;gap:15px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.mm-ranking-filter-row .mm-filter-bar{margin:0}
+.mm-ranking-period{display:flex;gap:5px;padding:4px;border:1px solid #34567a;background:#101d2c;border-radius:12px}
+.mm-ranking-period button{background:transparent;border:0;border-radius:8px;color:#acc6e0;font-weight:750;font-size:12px;padding:10px 14px;min-height:40px}
+.mm-ranking-period button.active{background:#246faf;color:#f9fcff;box-shadow:0 3px 14px #007afe26}
+.mm-ranking-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.mm-ranking-metrics>div{min-width:0;border:1px solid #315078;border-radius:13px;padding:15px;background:linear-gradient(145deg,#10263f,#12151e)}
+.mm-ranking-metrics small{font-size:11px;color:#9ab7d2;display:block;margin-bottom:8px}
+.mm-ranking-metrics strong{font-size:23px;color:#f1f8ff}
+.mm-ranking-board>.panelhead{align-items:flex-start}
+.mm-ranking-board>.panelhead h2{font-size:19px}
+.mm-rank-rows{display:grid;gap:7px}
+.mm-rank-entry{display:flex;align-items:center;gap:11px;border:1px solid #283e55;border-radius:13px;padding:13px;text-align:left;color:#ecf7ff;background:#101b29;width:100%;cursor:pointer}
+.mm-rank-entry:hover,.mm-rank-entry:focus-visible{border-color:#3988d2;background:#122842}
+.mm-rank-leader{background:linear-gradient(120deg,#113660,#0b1d32);border-color:#3683c5;box-shadow:0 8px 22px #006acf1c}
+.mm-rank-order{min-width:39px;height:39px;display:grid;place-items:center;border:1px solid #345472;border-radius:11px;background:#18283a;font-size:12px;font-weight:850;color:#c9dff2}
+.mm-rank-podium{background:#1a4c7b;border-color:#3fa2fc;color:#f5fcff}
+.mm-rank-person{flex:1;min-width:0}
+.mm-rank-person strong{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mm-rank-person small{display:block;font-size:11px;color:#9cb6cf;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mm-rank-performance{display:grid;justify-items:end;gap:4px;min-width:80px}
+.mm-rank-performance strong{font-size:20px;font-variant-numeric:tabular-nums}
+.mm-rank-performance small{font-size:10px;color:#9bb6d0}
+.mm-rank-open{font-size:22px;color:#8cbae3}
+.mm-achievements{margin-top:25px}
+.mm-achievement-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.mm-achievement{display:grid;gap:6px;padding:15px;border:1px solid #375675;background:linear-gradient(135deg,#10273f,#11161e);border-radius:14px}
+.mm-achievement.locked{filter:grayscale(.85);opacity:.54}
+.mm-achievement-symbol{font-size:27px;color:#46a0ff}
+.mm-achievement strong{font-size:12px;color:#f0f8ff}
+.mm-achievement small{font-size:10px;color:#a3bad1;line-height:1.5}
+.mm-achievement-status{font-size:10px;color:#7de0ac;margin-top:3px}
+.mm-achievement.locked .mm-achievement-status{color:#c4cad2}
+@media(max-width:920px){.mm-ranking-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.mm-achievement-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.mm-ranking-filter-row{align-items:stretch}.mm-ranking-period{width:100%}.mm-ranking-period button{flex:1;padding:10px 5px}.mm-rank-entry{gap:7px;padding:10px}.mm-rank-entry .mm-player-avatar{width:34px;height:34px;font-size:11px}.mm-rank-order{min-width:30px;width:30px;height:34px}.mm-rank-person strong{font-size:12px}.mm-rank-person small{font-size:10px}.mm-rank-performance strong{font-size:16px}.mm-rank-performance{min-width:70px}.mm-rank-open{display:none}.mm-achievement{padding:12px}.mm-achievement-grid{gap:8px}}
