@@ -10,6 +10,10 @@ import "../v05-theme.css";
 import {AttendeeMiniCard,EventShareActions,FinanceReviewBoard,PlayerAvatar,ProfilePanel,RankingPanel} from "./v09-features";
 import type {FinanceLine} from "./v09-features";
 import ChipPurchaseForm from "./chip-purchase-form";
+import SiteLogo from "./site-logo";
+import {prepareProfilePhoto} from "./photo-utils";
+import {ExpenseSplitsPanel,MySplitsSummary} from "./expense-splits";
+import type {ExpenseSplitRow,MyExpenseSplitRow} from "./expense-splits";
 
 type ChipPriceKey="chip_price_1_brl"|"chip_price_5_brl"|"chip_price_10_brl"|"chip_price_25_brl"|"chip_price_50_brl";
 const chipPriceFields:{value:number;key:ChipPriceKey}[]=[
@@ -78,6 +82,7 @@ export default function PainelPage(){
   const [rooms,setRooms]=useState<Room[]>([]);
   const [events,setEvents]=useState<Event[]>([]);
   const [profiles,setProfiles]=useState<Profile[]>([]);
+  const [photoUrls,setPhotoUrls]=useState<Record<string,string>>({});
   const [attendances,setAttendances]=useState<Attendance[]>([]);
   const [polls,setPolls]=useState<Poll[]>([]);
   const [choices,setChoices]=useState<Choice[]>([]);
@@ -86,6 +91,9 @@ export default function PainelPage(){
   const [chipItems,setChipItems]=useState<BuyItem[]>([]);
   const [results,setResults]=useState<ChipResult[]>([]);
   const [expenses,setExpenses]=useState<Expense[]>([]);
+  const [expenseMembers,setExpenseMembers]=useState<{expense_id:string;session_id:string;user_id:string;joined_at:string}[]>([]);
+  const [expenseShares,setExpenseShares]=useState<ExpenseSplitRow[]>([]);
+  const [mySplits,setMySplits]=useState<MyExpenseSplitRow[]>([]);
   const [ranking,setRanking]=useState<Rank[]>([]);
   const [approvals,setApprovals]=useState<{session_id:string;user_id:string;reviewed_at:string}[]>([]);
   const [rankGame,setRankGame]=useState<Game>("poker");
@@ -105,7 +113,7 @@ export default function PainelPage(){
     const requests=await Promise.all([
       db.from("rooms").select("*").order("created_at",{ascending:false}),
       db.from("sessions").select("*").order("starts_at",{ascending:true}),
-      db.from("profiles").select("id,display_name,avatar_symbol,favorite_game,bio"),
+      db.from("profiles").select("id,display_name,avatar_symbol,favorite_game,bio,avatar_path"),
       db.from("session_attendance").select("session_id,user_id"),
       db.from("session_polls").select("*").order("created_at",{ascending:false}),
       db.from("session_poll_options").select("*").order("position"),
@@ -115,12 +123,28 @@ export default function PainelPage(){
       db.from("session_chip_results").select("*"),
       db.from("session_expenses").select("*"),
       db.from("session_finance_approvals").select("session_id,user_id,reviewed_at"),
-      db.rpc("get_player_stats",{p_game:null})
+      db.rpc("get_player_stats",{p_game:null}),
+      db.from("expense_split_members").select("expense_id,session_id,user_id,joined_at"),
+      db.rpc("get_my_expense_splits")
     ]);
     requests.forEach(r=>{if(r.error)throw r.error});
     setRooms((requests[0].data||[]) as Room[]);
     setEvents((requests[1].data||[]) as Event[]);
-    setProfiles((requests[2].data||[]) as Profile[]);
+    const currentProfiles=(requests[2].data||[]) as Profile[];
+    setProfiles(currentProfiles);
+    const withPhotos=currentProfiles.filter(profile=>Boolean(profile.avatar_path));
+    if(withPhotos.length){
+      const {data:signed,error:signError}=await db.storage.from("player-avatars")
+        .createSignedUrls(withPhotos.map(profile=>profile.avatar_path as string),3600);
+      if(!signError&&signed){
+        const urls:Record<string,string>={};
+        for(let i=0;i<withPhotos.length;i++){
+          const signedUrl=signed[i]?.signedUrl;
+          if(signedUrl)urls[withPhotos[i].id]=signedUrl;
+        }
+        setPhotoUrls(urls);
+      }else setPhotoUrls({});
+    }else setPhotoUrls({});
     setAttendances((requests[3].data||[]) as Attendance[]);
     setPolls((requests[4].data||[]) as Poll[]);
     setChoices((requests[5].data||[]) as Choice[]);
@@ -131,6 +155,8 @@ export default function PainelPage(){
     setExpenses((requests[10].data||[]) as Expense[]);
     setApprovals((requests[11].data||[]) as {session_id:string;user_id:string;reviewed_at:string}[]);
     setRanking((requests[12].data||[]) as Rank[]);
+    setExpenseMembers((requests[13].data||[]) as {expense_id:string;session_id:string;user_id:string;joined_at:string}[]);
+    setMySplits((requests[14].data||[]) as MyExpenseSplitRow[]);
   },[]);
 
   useEffect(()=>{
@@ -171,21 +197,26 @@ export default function PainelPage(){
   },[user,events]);
 
   useEffect(()=>{
-    if(!user||!selectedId){setFinanceRows([]);return;}
+    if(!user||!selectedId){setFinanceRows([]);setExpenseShares([]);return;}
     const db=getSupabase();
     if(!db)return;
     let active=true;
     setFinanceLoading(true);
-    void db.rpc("get_event_finances",{p_event_id:selectedId}).then(({data,error:financeError})=>{
+    void Promise.all([
+      db.rpc("get_event_finances",{p_event_id:selectedId}),
+      db.rpc("get_expense_split_shares",{p_event_id:selectedId})
+    ]).then(([finance,split])=>{
       if(!active)return;
-      if(financeError){
-        setFinanceRows([]);
-        setError("Não foi possível consultar o resumo financeiro: "+financeError.message);
-      }else setFinanceRows((data||[]) as FinanceLine[]);
-      setFinanceLoading(false);
-    });
+      if(finance.error||split.error){
+        setFinanceRows([]);setExpenseShares([]);
+        setError("Não foi possível atualizar os gastos: "+(finance.error?.message||split.error?.message));
+      }else{
+        setFinanceRows((finance.data||[]) as FinanceLine[]);
+        setExpenseShares((split.data||[]) as ExpenseSplitRow[]);
+      }
+    }).finally(()=>{if(active)setFinanceLoading(false);});
     return()=>{active=false};
-  },[user,selectedId,approvals,attendances,buys,results,expenses]);
+  },[user,selectedId,approvals,attendances,buys,results,expenses,expenseMembers]);
 
   useEffect(()=>{
     if(!modal)return;
@@ -235,6 +266,43 @@ export default function PainelPage(){
       return {id:g.user_id,acquired,total,difference:total===null?null:total-acquired};
     }).sort((a,b)=>(b.difference??-Infinity)-(a.difference??-Infinity));
   },[guests,buys,results,selected]);
+
+  async function uploadProfilePhoto(original:File):Promise<void>{
+    const db=getSupabase();
+    if(!db||!user)throw new Error("Entre novamente na sua conta para enviar a foto.");
+    const photo=await prepareProfilePhoto(original);
+    const path=user.id+"/"+photo.name;
+    const previous=profiles.find(profile=>profile.id===user.id)?.avatar_path;
+    setWorking(true);
+    try{
+      const {error:uploadError}=await db.storage.from("player-avatars").upload(path,photo,{
+        cacheControl:"3600",upsert:false,contentType:photo.type
+      });
+      if(uploadError)throw uploadError;
+      const {error:updateError}=await db.from("profiles").update({avatar_path:path}).eq("id",user.id);
+      if(updateError){
+        await db.storage.from("player-avatars").remove([path]);
+        throw updateError;
+      }
+      await reload();
+      if(previous&&previous!==path){
+        void db.storage.from("player-avatars").remove([previous]);
+      }
+    }finally{setWorking(false);}
+  }
+
+  async function removeProfilePhoto():Promise<void>{
+    const db=getSupabase();
+    if(!db||!user)throw new Error("Entre novamente para remover a foto.");
+    const previous=profiles.find(profile=>profile.id===user.id)?.avatar_path;
+    setWorking(true);
+    try{
+      const {error:updateError}=await db.from("profiles").update({avatar_path:null}).eq("id",user.id);
+      if(updateError)throw updateError;
+      await reload();
+      if(previous)void db.storage.from("player-avatars").remove([previous]);
+    }finally{setWorking(false);}
+  }
 
   async function recordPurchase(quantities:number[]):Promise<boolean>{
     const db=getSupabase();
@@ -318,24 +386,23 @@ export default function PainelPage(){
     (eventFilter==="agendados"?e.status==="scheduled":e.status!=="scheduled"));
 
   if(loading)return <main className="mm-login-shell"><p className="mm-loading">Preparando sua mesa...</p></main>;
-  if(!user)return <main className="mm-login-shell"><div className="mm-login-card"><div className="brand"><span className="brandmark">♠</span><span className="brandname">Mesa <em>Marcada</em></span></div><p className="mm-message">{error||"Redirecionando para login..."}</p><a href="/login" className="btn gold">Ir para o login</a></div></main>;
+  if(!user)return <main className="mm-login-shell"><div className="mm-login-card"><SiteLogo kind="mobile"/><p className="mm-message">{error||"Redirecionando para login..."}</p><a href="/login" className="btn gold">Ir para o login</a></div></main>;
 
-  const navEntries:[View,string,string][]=[["inicio","Início","▦"],["eventos","Eventos","▤"],["mesas","Mesas","♠"],["ranking","Ranking","★"],["perfil","Perfil","☺"]];
+  const navEntries:[View,string,string][]=[["inicio","Início","▦"],["eventos","Eventos","▤"],["mesas","Mesas","♠"],["ranking","Ranking","★"],["perfil","Perfil",""]];
   const activePage=page==="detalhe"?"eventos":page==="mesa"?"mesas":page;
   return <div className="layout">
     <aside className="sidebar">
-      <div className="brand">
-        <span className="brandmark">♠</span>
-        <div className="brandname">Mesa <em>Marcada</em><span className="brandsub">CLUBE DE JOGOS</span></div>
-      </div>
+      <SiteLogo kind="sidebar"/>
       <nav className="nav" aria-label="Navegação principal">
         <div className="navlabel">NAVEGAÇÃO</div>
         {navEntries.map(([id,label,icon])=><button className={"mm-nav-btn "+(activePage===id?"active":"")} key={id} type="button" onClick={()=>{if(id==="perfil")setProfileId(user.id);go(id)}} aria-current={activePage===id?"page":undefined}>
-          <span className="ico" aria-hidden="true">{icon}</span>{label}
+          <span className="ico" aria-hidden="true">
+            {id==="perfil"?<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.8"/><path d="M4.2 20c.3-4.1 3.2-6.2 7.8-6.2s7.5 2.1 7.8 6.2"/></svg>:icon}
+          </span>{label}
         </button>)}
       </nav>
       <div className="mm-side-profile">
-        <PlayerAvatar symbol={ownProfile?.avatar_symbol} name={nickname}/>
+        <PlayerAvatar photoUrl={photoUrls[user.id]} name={nickname}/>
         <div className="person"><strong>{nickname}</strong><small>{isAdmin?"Administrador geral":"Jogador"}</small></div>
         <button type="button" aria-label="Sair" title="Sair" onClick={async()=>{await getSupabase()?.auth.signOut();window.location.replace("/login")}}>↪</button>
       </div>
@@ -343,8 +410,8 @@ export default function PainelPage(){
 
     <main className="main" id="main-content">
       <div className="mm-mobile-head">
-        <div className="brand"><span className="brandmark">♠</span><span className="brandname">Mesa <em>Marcada</em></span></div>
-        <div className="mm-mobile-account"><button type="button" className="mm-v09-profile-link" aria-label="Abrir meu perfil" onClick={()=>{setProfileId(user.id);go("perfil")}}><PlayerAvatar symbol={ownProfile?.avatar_symbol} name={nickname}/></button><button type="button" aria-label="Sair" onClick={async()=>{await getSupabase()?.auth.signOut();window.location.replace("/login")}}>↪</button></div>
+        <SiteLogo kind="mobile"/>
+        <div className="mm-mobile-account"><button type="button" className="mm-v09-profile-link" aria-label="Abrir meu perfil" onClick={()=>{setProfileId(user.id);go("perfil")}}><PlayerAvatar photoUrl={photoUrls[user.id]} name={nickname}/></button><button type="button" aria-label="Sair" onClick={async()=>{await getSupabase()?.auth.signOut();window.location.replace("/login")}}>↪</button></div>
       </div>
       <div className="mm-breadcrumb-row">
         <div className="breadcrumb">Mesa Marcada　/　{page==="inicio"?"Visão geral":page==="detalhe"?"Evento":page==="mesa"?"Mesa de "+gameName(gameView):page==="eventos"?"Eventos":page==="mesas"?"Mesas":page==="perfil"?"Perfil":"Ranking"}</div>
@@ -470,12 +537,14 @@ export default function PainelPage(){
         {gameTab==="tutorial"&&<TableTutorial game={gameView}/>}
       </>}
 
-      {page==="ranking"&&<RankingPanel game={rankGame} onGameChange={setRankGame} ranking={ranking}
+      {page==="ranking"&&<RankingPanel game={rankGame} onGameChange={setRankGame} ranking={ranking} photoUrls={photoUrls}
         onPlayer={id=>{setProfileReturn("ranking");setProfileId(id);go("perfil")}}/>}
 
-      {page==="perfil"&&<ProfilePanel
+      {page==="perfil"&&<><ProfilePanel
         profile={profiles.find(p=>p.id===(profileId||user.id))}
         userId={user.id} events={events} attendances={attendances} stats={ranking}
+        photoUrl={photoUrls[profileId||user.id]}
+        onUploadPhoto={uploadProfilePhoto} onRemovePhoto={removeProfilePhoto}
         busy={working} onBack={profileId&&profileId!==user.id?()=>go(profileReturn):undefined}
         onSave={async details=>{
           const db=getSupabase();
@@ -487,7 +556,12 @@ export default function PainelPage(){
             await reload();setMessage("Perfil atualizado!");
           }finally{setWorking(false);}
         }}
+      />
+      {(profileId||user.id)===user.id&&<MySplitsSummary
+        splits={mySplits} userId={user.id} nameFor={nameFor}
+        onOpenEvent={eventId=>openEvent(eventId,"gastos")}
       />}
+      </>}
 
       {page==="detalhe"&&selected&&<>
         <button type="button" className="back" onClick={()=>go("eventos")}>← Voltar aos eventos</button>
@@ -528,7 +602,7 @@ export default function PainelPage(){
           </div>
         </section>
         <div className="mm-detail-tabs" role="tablist" aria-label="Conteúdo deste evento">
-          {([["visao","Visão geral"],["enquetes","Enquetes"],["financeiro","Fichas e gastos"]] as const).map(([id,title])=><button type="button" key={id} className={detailTab===id?"active":""} role="tab" aria-selected={detailTab===id} onClick={()=>setDetailTab(id)}>{title}</button>)}
+          {([["visao","Visão geral"],["enquetes","Enquetes"],["fichas","Fichas"],["gastos","Gastos"]] as const).map(([id,title])=><button type="button" key={id} className={detailTab===id?"active":""} role="tab" aria-selected={detailTab===id} onClick={()=>setDetailTab(id)}>{title}</button>)}
         </div>
 
         {detailTab==="visao"&&<div className="two">
@@ -537,7 +611,7 @@ export default function PainelPage(){
             <div className="mm-progress"><div style={{width:(Math.min(1,guests.length/selected.max_participants)*100)+"%"}}/></div>
             <div className="mm-chipgroup">{guests.map(g=><button className="mm-v09-attendee-link" type="button" key={g.user_id}
               onClick={()=>{setProfileReturn("detalhe");setProfileId(g.user_id);go("perfil")}}>
-              <AttendeeMiniCard symbol={profiles.find(p=>p.id===g.user_id)?.avatar_symbol} name={nameFor(g.user_id)}/>
+              <AttendeeMiniCard photoUrl={photoUrls[g.user_id]} name={nameFor(g.user_id)}/>
             </button>)}</div>
             {!guests.length&&<p>Ainda não há presenças confirmadas. Convide seus amigos!</p>}
             {organizer&&!meConfirmed&&<p className="mm-formfoot">Como organizador, você também pode confirmar sua presença para votar e registrar fichas.</p>}
@@ -552,7 +626,7 @@ export default function PainelPage(){
             <p style={{marginTop:16}}>Organizado por {nameFor(selected.organizer_id)}.</p>
             <div className="mm-action-row" style={{marginTop:15}}>
               <button type="button" className="btn" onClick={()=>setDetailTab("enquetes")}>Ver enquetes →</button>
-              <button type="button" className="btn" onClick={()=>setDetailTab("financeiro")}>Fichas e gastos →</button>
+              <button type="button" className="btn" onClick={()=>setDetailTab("fichas")}>Ver fichas →</button>
             </div>
           </section>
         </div>}
@@ -600,13 +674,12 @@ export default function PainelPage(){
           </section>
         </div>}
 
-        {detailTab==="financeiro"&&<>
-          <div className="mm-message" style={{marginBottom:18}}>Cada ficha tem um preço de compra e uma pontuação impressa. Os valores são calculados automaticamente e usados apenas para registros; o Mesa Marcada não processa pagamentos ou apostas.</div>
+        {detailTab==="fichas"&&<>
+          <div className="mm-message" style={{marginBottom:18}}>Registre apenas as fichas adquiridas e seus resultados. Para organizar as despesas com comida e bebidas, abra a aba Gastos.</div>
           {!privateVisible?<div className="panel"><h2>Informações restritas</h2><p>Confirme presença neste evento para consultar ou registrar informações financeiras.</p></div>:<>
             <div className="metrics" style={{gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))"}}>
               <div className="metric"><div className="mhead">Fichas distribuídas <span className="micon">♠</span></div><strong>{eventBuys.reduce((n,b)=>n+Number(b.chips_received),0).toLocaleString("pt-BR")}</strong><small>Compras e recompras</small></div>
               <div className="metric"><div className="mhead">Entradas registradas <span className="micon">▤</span></div><strong>{money(eventBuys.reduce((n,b)=>n+Number(b.amount_brl),0))}</strong><small>Valor informativo</small></div>
-              <div className="metric"><div className="mhead">Despesas <span className="micon">♦</span></div><strong>{money(eventExpenses.reduce((n,b)=>n+Number(b.amount_brl),0))}</strong><small>Gastos compartilhados</small></div>
             </div>
             <div className="mm-denom-layout">
               <ChipPurchaseForm key={selected.id} eventId={selected.id}
@@ -629,25 +702,7 @@ export default function PainelPage(){
                   <button className="btn gold" disabled={working||!meConfirmed||selected.status!=="scheduled"}>Salvar resultado</button>
                 </form>
               </section>
-              <section className="panel">
-                <h2>Adicionar despesa</h2><p style={{margin:"9px 0 16px"}}>Comidas, bebidas e materiais da noite.</p>
-                <form className="mm-form-stack" onSubmit={e=>{e.preventDefault();void act(async(db,id)=>{
-                  const {error:expenseError}=await db.from("session_expenses").insert({session_id:selected.id,created_by:id,paid_by:organizer&&guests.some(g=>g.user_id===expensePayer)?expensePayer:id,label:expenseName.trim(),category:expenseCategory,amount_brl:Number(expenseAmount)});
-                  if(expenseError)throw expenseError;setExpenseName("");setExpenseAmount("");
-                },"Despesa registrada!")}}>
-                  <label className="mm-field">Descrição<input minLength={2} required value={expenseName} onChange={e=>setExpenseName(e.target.value)} placeholder="Pizza e bebidas"/></label>
-                  <div className="mm-form-grid">
-                    <label className="mm-field">Valor (R$)<input type="number" min="0.01" step="0.01" required value={expenseAmount} onChange={e=>setExpenseAmount(e.target.value)}/></label>
-                    <label className="mm-field">Categoria<select value={expenseCategory} onChange={e=>setExpenseCategory(e.target.value)}><option value="food">Comida</option><option value="drinks">Bebidas</option><option value="materials">Materiais</option><option value="other">Outros</option></select></label>
-                  </div>
-                  <label className="mm-field">Quem pagou?
-                    {organizer?<select value={expensePayer||user.id} onChange={e=>setExpensePayer(e.target.value)}>
-                      {guests.map(g=><option key={g.user_id} value={g.user_id}>{nameFor(g.user_id)}{g.user_id===user.id?" (eu)":""}</option>)}
-                    </select>:<input disabled readOnly value={nickname+" (eu)"}/>}
-                  </label>
-                  <button className="btn gold" disabled={working||!meConfirmed||selected.status!=="scheduled"}>Salvar despesa</button>
-                </form>
-              </section>
+
               </div>
             </div>
             <section className="panel mm-v09-purchases" style={{marginTop:19}}>
@@ -687,7 +742,7 @@ export default function PainelPage(){
               </div>)}
               {!eventBuys.length&&<p>Nenhuma compra ou recompra registrada até agora.</p>}
             </section>
-            <div className="two" style={{marginTop:19}}>
+            <div className="mm-v11-night-ranking" style={{marginTop:19}}>
               <section className="panel">
                 <div className="panelhead"><h2>Ranking da noite</h2></div>
                 {nightRank.map((r,i)=><div className="item" key={r.id}>
@@ -697,25 +752,9 @@ export default function PainelPage(){
                 </div>)}
                 {!nightRank.length&&<p>Os resultados aparecerão conforme a participação.</p>}
               </section>
-              <section className="panel">
-                <div className="panelhead"><h2>Gastos registrados</h2></div>
-                {eventExpenses.map(e=><div className="item" key={e.id}>
-                  <div className="itemcontent"><strong>{e.label}</strong><small>Pago por {nameFor(e.paid_by||e.created_by)} · Registrado por {nameFor(e.created_by)}</small></div>
-                  <strong>{money(e.amount_brl)}</strong>
-                  {e.created_by===user.id&&selected.status==="scheduled"&&<button type="button" className="mm-v09-delete-entry"
-                    disabled={working} onClick={()=>{
-                      if(!window.confirm("Excluir esta despesa? O rateio de todos será recalculado."))return;
-                      void act(async(db,id)=>{
-                        const {error:deleteError}=await db.from("session_expenses").delete().eq("id",e.id).eq("created_by",id);
-                        if(deleteError)throw deleteError;
-                      },"Despesa excluída. Rateio atualizado.");
-                    }}>Excluir</button>}
-                </div>)}
-                {!eventExpenses.length&&<p>Nenhum gasto registrado.</p>}
-                {guests.length>0&&<p className="mm-formfoot" style={{marginTop:15}}>O rateio individual detalhado está abaixo, calculado com precisão de centavos.</p>}
-              </section>
+
             </div>
-            <FinanceReviewBoard lines={financeRows} loading={financeLoading} organizer={organizer} pendingPaymentsByUser={pendingByUser}
+            <FinanceReviewBoard lines={financeRows} loading={financeLoading} organizer={organizer} pendingPaymentsByUser={pendingByUser} photoUrls={photoUrls}
               scheduled={selected.status==="scheduled"} busy={working}
               onApprove={userId=>void act(async(db,id)=>{
                 const {error:approveError}=await db.from("session_finance_approvals").insert({
@@ -731,6 +770,51 @@ export default function PainelPage(){
             />
           </>}
         </>}
+
+        {detailTab==="gastos"&&(!privateVisible?
+          <div className="panel"><h2>Gastos restritos</h2><p>Confirme sua presença para consultar e participar dos rachas deste evento.</p></div>:
+          <ExpenseSplitsPanel
+            expenses={eventExpenses} shares={expenseShares}
+            userId={user.id} canJoin={meConfirmed} canManage={organizer}
+            scheduled={selected.status==="scheduled"} busy={working}
+            nameFor={nameFor} photoUrls={photoUrls}
+            onJoin={(expenseId,join)=>void act(async(db)=>{
+              const {error:splitError}=await db.rpc("set_expense_split_membership",{p_expense_id:expenseId,p_join:join});
+              if(splitError)throw splitError;
+            },join?"Você entrou no racha.":"Você saiu do racha.")}
+            onToggleOpen={(expenseId,open)=>void act(async(db)=>{
+              const {error:splitError}=await db.rpc("set_expense_split_open",{p_expense_id:expenseId,p_open:open});
+              if(splitError)throw splitError;
+            },open?"Racha reaberto.":"Racha fechado.")}
+            onDelete={expenseId=>{
+              if(!window.confirm("Excluir esta despesa? O racha e as dívidas calculadas deixarão de existir."))return;
+              void act(async(db,id)=>{
+                const {error:deleteError}=await db.from("session_expenses").delete()
+                  .eq("id",expenseId).eq("created_by",id);
+                if(deleteError)throw deleteError;
+              },"Gasto e racha excluídos.");
+            }}
+            createForm={              <section className="panel">
+                <h2>Adicionar despesa</h2><p style={{margin:"9px 0 16px"}}>Comidas, bebidas e materiais da noite.</p>
+                <form className="mm-form-stack" onSubmit={e=>{e.preventDefault();void act(async(db,id)=>{
+                  const {error:expenseError}=await db.from("session_expenses").insert({session_id:selected.id,created_by:id,paid_by:organizer&&guests.some(g=>g.user_id===expensePayer)?expensePayer:id,label:expenseName.trim(),category:expenseCategory,amount_brl:Number(expenseAmount)});
+                  if(expenseError)throw expenseError;setExpenseName("");setExpenseAmount("");
+                },"Despesa registrada!")}}>
+                  <label className="mm-field">Descrição<input minLength={2} required value={expenseName} onChange={e=>setExpenseName(e.target.value)} placeholder="Pizza e bebidas"/></label>
+                  <div className="mm-form-grid">
+                    <label className="mm-field">Valor (R$)<input type="number" min="0.01" step="0.01" required value={expenseAmount} onChange={e=>setExpenseAmount(e.target.value)}/></label>
+                    <label className="mm-field">Categoria<select value={expenseCategory} onChange={e=>setExpenseCategory(e.target.value)}><option value="food">Comida</option><option value="drinks">Bebidas</option><option value="materials">Materiais</option><option value="other">Outros</option></select></label>
+                  </div>
+                  <label className="mm-field">Quem pagou?
+                    {organizer?<select value={expensePayer||user.id} onChange={e=>setExpensePayer(e.target.value)}>
+                      {guests.map(g=><option key={g.user_id} value={g.user_id}>{nameFor(g.user_id)}{g.user_id===user.id?" (eu)":""}</option>)}
+                    </select>:<input disabled readOnly value={nickname+" (eu)"}/>}
+                  </label>
+                  <button className="btn gold" disabled={working||!meConfirmed||selected.status!=="scheduled"}>Salvar despesa</button>
+                </form>
+              </section>}
+          />
+        )}
       </>}
 
       <footer className="mm-formfoot" style={{marginTop:35}}>Mesa Marcada · Organize seus encontros. Valores em reais são apenas registros informativos.</footer>

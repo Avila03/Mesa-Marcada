@@ -3,9 +3,8 @@
 import {useEffect,useMemo,useState} from "react";
 import type {FormEvent, ReactNode} from "react";
 import type {Game,Profile,Rank,Attendance,Event} from "@/lib/mesa-types";
-import {money,fullDate} from "@/lib/mesa-types";
+import {fullDate} from "@/lib/mesa-types";
 
-const avatarOptions=["♠","♥","♦","♣","★","🎲","🃏","🎯"] as const;
 const favoriteOptions:Game[]=["poker","blackjack"];
 const number=(n:unknown)=>new Intl.NumberFormat("pt-BR",{maximumFractionDigits:1}).format(Number(n)||0);
 
@@ -23,9 +22,13 @@ export type FinanceLine={
   reviewed_at:string|null;
 };
 
-export function PlayerAvatar({symbol,name,large=false}:{symbol?:string;name:string;large?:boolean}){
-  return <span className={"mm-player-avatar "+(large?"large":"")} aria-label={"Avatar de "+name}>
-    {symbol||name.trim().slice(0,1).toUpperCase()||"♠"}
+export function PlayerAvatar({name,photoUrl,large=false}:{name:string;photoUrl?:string;large?:boolean}){
+  const [failed,setFailed]=useState(false);
+  useEffect(()=>setFailed(false),[photoUrl]);
+  const initials=name.trim().split(/\s+/).filter(Boolean).slice(0,2).map(word=>word[0].toUpperCase()).join("")||"MM";
+  return <span className={"mm-player-avatar "+(large?"large":"")} aria-label={"Foto de "+name}>
+    {photoUrl&&!failed?<img className="mm-player-photo" src={photoUrl} alt=""
+      loading={large?"eager":"lazy"} referrerPolicy="no-referrer" onError={()=>setFailed(true)}/>:initials}
   </span>;
 }
 
@@ -53,27 +56,38 @@ function ProfileStats({stats}:{stats:Rank[]}){
 }
 
 export function ProfilePanel({
-  profile,userId,events,attendances,stats,onSave,busy,onBack
+  profile,userId,events,attendances,stats,photoUrl,onSave,onUploadPhoto,onRemovePhoto,busy,onBack
 }:{
-  profile:Profile|undefined;userId:string;events:Event[];attendances:Attendance[];stats:Rank[];
-  onSave:(data:{display_name:string;avatar_symbol:string;favorite_game:Game;bio:string})=>Promise<void>;
+  profile:Profile|undefined;userId:string;events:Event[];attendances:Attendance[];stats:Rank[];photoUrl?:string;
+  onSave:(data:{display_name:string;favorite_game:Game;bio:string})=>Promise<void>;
+  onUploadPhoto:(file:File)=>Promise<void>;
+  onRemovePhoto:()=>Promise<void>;
   busy:boolean;onBack?:()=>void;
 }){
   const own=profile?.id===userId;
   const [edit,setEdit]=useState(false);
   const [name,setName]=useState(profile?.display_name||"");
-  const [avatar,setAvatar]=useState(profile?.avatar_symbol||"♠");
+  const [imageFile,setImageFile]=useState<File|null>(null);
+  const [preview,setPreview]=useState<string>("");
+  const [uploading,setUploading]=useState(false);
+  const [uploadNotice,setUploadNotice]=useState("");
   const [favorite,setFavorite]=useState<Game>(profile?.favorite_game||"poker");
   const [bio,setBio]=useState(profile?.bio||"");
   const [error,setError]=useState("");
 
   useEffect(()=>{
     setName(profile?.display_name||"");
-    setAvatar(profile?.avatar_symbol||"♠");
     setFavorite(profile?.favorite_game||"poker");
     setBio(profile?.bio||"");
+    setImageFile(null);
     setEdit(false);
-  },[profile?.id,profile?.display_name,profile?.avatar_symbol,profile?.favorite_game,profile?.bio]);
+  },[profile?.id,profile?.display_name,profile?.favorite_game,profile?.bio,profile?.avatar_path]);
+  useEffect(()=>{
+    if(!imageFile){setPreview("");return;}
+    const previewUrl=URL.createObjectURL(imageFile);
+    setPreview(previewUrl);
+    return()=>URL.revokeObjectURL(previewUrl);
+  },[imageFile]);
   const nameShown=profile?.display_name||"Jogador";
   const allConfirmations=attendances.filter(a=>a.user_id===profile?.id);
   const upcoming=allConfirmations.filter(a=>events.some(e=>e.id===a.session_id&&e.status==="scheduled"));
@@ -82,26 +96,59 @@ export function ProfilePanel({
   async function save(e:FormEvent<HTMLFormElement>){
     e.preventDefault();setError("");
     if(name.trim().length<2){setError("O apelido precisa ter pelo menos 2 caracteres.");return;}
-    try{await onSave({display_name:name.trim(),avatar_symbol:avatar,favorite_game:favorite,bio:bio.trim()});setEdit(false);}
+    try{await onSave({display_name:name.trim(),favorite_game:favorite,bio:bio.trim()});setEdit(false);}
     catch(e){setError(e instanceof Error?e.message:"Não foi possível salvar o perfil.");}
+  }
+
+  async function upload(){
+    if(!imageFile)return;
+    setError("");setUploadNotice("");setUploading(true);
+    try{
+      await onUploadPhoto(imageFile);
+      setImageFile(null);
+      setUploadNotice("Foto do perfil atualizada.");
+    }catch(e){setError(e instanceof Error?e.message:"Falha ao enviar a foto.");}
+    finally{setUploading(false);}
+  }
+  async function remove(){
+    setError("");setUploadNotice("");setUploading(true);
+    try{await onRemovePhoto();setImageFile(null);setUploadNotice("Foto removida.");}
+    catch(e){setError(e instanceof Error?e.message:"Não foi possível remover a foto.");}
+    finally{setUploading(false);}
   }
 
   return <div className="mm-v09-profile">
     {onBack&&<button className="back" type="button" onClick={onBack}>← Voltar ao ranking</button>}
     <div className="heading"><div><div className="eyebrow">JOGADORES DA MESA</div><h1>{own?"Meu perfil":"Perfil do jogador"}</h1><p>Apelido, avatar e histórico das suas noites.</p></div></div>
     <section className="mm-v09-profile-hero">
-      <PlayerAvatar symbol={profile?.avatar_symbol} name={nameShown} large/>
+      <PlayerAvatar photoUrl={photoUrl} name={nameShown} large/>
       <div className="mm-v09-profile-name"><h2>{nameShown}</h2><span className={"tag "+(profile?.favorite_game||"poker")}>Jogo favorito: {profile?.favorite_game==="blackjack"?"Blackjack":"Poker"}</span>
       {profile?.bio&&<p>{profile.bio}</p>}</div>
       {own&&<button type="button" className="btn" onClick={()=>setEdit(v=>!v)}>{edit?"Cancelar":"✎ Editar perfil"}</button>}
     </section>
 
+    {uploadNotice&&<p className="mm-message" role="status">{uploadNotice}</p>}
     {edit&&own&&<section className="panel mm-v09-edit-profile">
       <div className="panelhead"><h2>Personalizar perfil</h2></div>
       <form className="mm-form-stack" onSubmit={save}>
         <label className="mm-field">Apelido<input required minLength={2} maxLength={64} value={name} onChange={e=>setName(e.target.value)} placeholder="Como seus amigos te conhecem"/></label>
-        <div className="mm-field">Escolha um avatar
-          <div className="mm-v09-avatar-picker">{avatarOptions.map(s=><button key={s} type="button" className={"mm-v09-avatar-option "+(avatar===s?"active":"")} aria-pressed={avatar===s} aria-label={"Selecionar avatar "+s} onClick={()=>setAvatar(s)}>{s}</button>)}</div>
+        <div className="mm-field">
+          <span className="mm-profile-upload-label">Foto de perfil</span>
+          <div className="mm-profile-upload">
+            <PlayerAvatar photoUrl={preview||photoUrl} name={name||nameShown} large/>
+            <div className="mm-profile-upload-input">
+              <label htmlFor="mm-avatar-upload">Escolher foto do aparelho</label>
+              <input id="mm-avatar-upload" type="file" accept="image/*"
+                onChange={e=>{setError("");setImageFile(e.target.files?.[0]||null)}} disabled={busy||uploading}/>
+              <small>JPG, PNG, WebP ou foto compatível · até 8 MB. Ajuste automático para formato quadrado.</small>
+              <div className="mm-profile-upload-actions">
+                {imageFile&&<button type="button" className="btn gold" disabled={busy||uploading}
+                  onClick={()=>void upload()}>{uploading?"Enviando...":"Enviar foto"}</button>}
+                {profile?.avatar_path&&<button type="button" className="btn mm-profile-remove" disabled={busy||uploading}
+                  onClick={()=>void remove()}>Remover foto</button>}
+              </div>
+            </div>
+          </div>
         </div>
         <label className="mm-field">Jogo favorito<select value={favorite} onChange={e=>setFavorite(e.target.value as Game)}>
           {favoriteOptions.map(g=><option value={g} key={g}>{g==="poker"?"♠ Poker":"♦ Blackjack"}</option>)}
@@ -124,9 +171,9 @@ export function ProfilePanel({
 }
 
 export function RankingPanel({
-  game,onGameChange,ranking,onPlayer
+  game,onGameChange,ranking,onPlayer,photoUrls
 }:{
-  game:Game;onGameChange:(g:Game)=>void;ranking:Rank[];onPlayer:(id:string)=>void;
+  game:Game;onGameChange:(g:Game)=>void;ranking:Rank[];onPlayer:(id:string)=>void;photoUrls:Record<string,string>;
 }){
   const ordered=useMemo(()=>ranking.filter(r=>r.game===game).slice()
     .sort((a,b)=>Number(b.avg_yield_pct)-Number(a.avg_yield_pct)||Number(b.net_chips)-Number(a.net_chips)),[ranking,game]);
@@ -141,7 +188,7 @@ export function RankingPanel({
       <p className="mm-formfoot" style={{marginBottom:15}}>Ordenado pelo rendimento médio (%) para comparar eventos que utilizem quantidades diferentes de fichas. O saldo absoluto aparece separadamente.</p>
       {ordered.map((r,i)=><button className="mm-v09-rank-player" type="button" key={r.user_id} onClick={()=>onPlayer(r.user_id)}>
         <span className={"mm-v09-medal "+(i<3?"podium":"")}>{i+1}º</span>
-        <PlayerAvatar symbol={r.avatar_symbol} name={r.display_name}/>
+        <PlayerAvatar photoUrl={photoUrls[r.user_id]} name={r.display_name}/>
         <span className="mm-v09-rank-name"><strong>{r.display_name}</strong><small>{r.sessions_played} noites · Melhor: {Number(r.best_event_chips)>0?"+":""}{number(r.best_event_chips)} fichas</small></span>
         <span className="mm-v09-rank-result"><strong>{Number(r.avg_yield_pct)>0?"+":""}{number(r.avg_yield_pct)}%</strong><small>{Number(r.net_chips)>0?"+":""}{number(r.net_chips)} fichas</small></span>
         <span aria-hidden="true">›</span>
@@ -203,7 +250,7 @@ export function EventShareActions({id,title,date,room}:{id:string;title:string;d
 }
 
 export function FinanceReviewBoard({
-  lines,organizer,scheduled,loading,busy,pendingPaymentsByUser,onApprove,onReopen
+  lines,organizer,scheduled,loading,busy,pendingPaymentsByUser,photoUrls,onApprove,onReopen
 }:{
   lines:FinanceLine[];
   organizer:boolean;
@@ -211,27 +258,26 @@ export function FinanceReviewBoard({
   loading:boolean;
   busy:boolean;
   pendingPaymentsByUser:Record<string,number>;
+  photoUrls:Record<string,string>;
   onApprove:(userId:string)=>void;
   onReopen:(userId:string)=>void;
 }){
-  const total=lines.reduce((s,r)=>s+Number(r.share_brl),0);
   const approved=lines.filter(l=>l.approved).length;
   const ready=lines.length>0&&lines.every(l=>l.approved&&l.chips_final!==null&&l.chips_bought!==null&&(pendingPaymentsByUser[l.user_id]||0)===0);
   return <section className="panel mm-v09-finance-review">
     <div className="panelhead">
-      <div><h2>Conferência da noite</h2><p className="mm-formfoot">O organizador revisa as fichas de cada jogador antes de encerrar o evento.</p></div>
+      <div><h2>Conferência das fichas</h2><p className="mm-formfoot">O Anfitrião confere compras, pagamentos presenciais e fichas finais antes de encerrar o evento.</p></div>
       <span className={"tag "+(ready?"poker":"archive")}>{approved}/{lines.length} aprovados</span>
     </div>
-    {loading&&<p className="mm-formfoot">Calculando o rateio de despesas...</p>}
+    {loading&&<p className="mm-formfoot">Atualizando a conferência...</p>}
     <div className="mm-v09-finance-summary">
-      <Stat name="Despesas compartilhadas" value={money(total)}/>
       <Stat name="Registros aprovados" value={approved+" de "+lines.length}/>
       <Stat name="Encerramento" value={ready?"Pronto":"Pendente"}/>
     </div>
     <div className="mm-v09-finance-rows">
       {lines.map(line=><div className="mm-v09-finance-line" key={line.user_id}>
         <div className="mm-v09-finance-person">
-          <PlayerAvatar symbol={line.avatar_symbol} name={line.display_name}/>
+          <PlayerAvatar photoUrl={photoUrls[line.user_id]} name={line.display_name}/>
           <div><strong>{line.display_name}</strong><small className={line.approved?"mm-v09-good":"mm-v09-pending"}>{line.approved?"✓ Revisado":"● Aguardando revisão"}</small>
           {(pendingPaymentsByUser[line.user_id]||0)>0&&<small className="mm-v09-pending">● {pendingPaymentsByUser[line.user_id]} compras aguardando recebimento</small>}</div>
         </div>
@@ -240,11 +286,6 @@ export function FinanceReviewBoard({
           <span><small>Fichas finais</small><strong>{line.chips_final===null?"Pendente":number(line.chips_final)}</strong></span>
           <span><small>Saldo de fichas</small><strong>{line.delta_chips===null?"—":(line.delta_chips>0?"+":"")+number(line.delta_chips)}</strong></span>
         </div>
-        <div className="mm-v09-finance-numbers">
-          <span><small>Quota de despesas</small><strong>{money(line.share_brl)}</strong></span>
-          <span><small>Despesas pagas</small><strong>{money(line.paid_brl)}</strong></span>
-          <span><small>Diferença informativa</small><strong className={line.balance_brl>=0?"mm-v09-good":"mm-v09-pending"}>{money(line.balance_brl)}</strong></span>
-        </div>
         {organizer&&scheduled&&<div className="mm-v09-review-action">
           {line.approved?
             <button className="btn" disabled={busy} type="button" onClick={()=>onReopen(line.user_id)}>Reabrir revisão</button>:
@@ -252,13 +293,13 @@ export function FinanceReviewBoard({
               type="button" onClick={()=>onApprove(line.user_id)}>✓ Aprovar fichas</button>}
         </div>}
       </div>)}
-      {!lines.length&&!loading&&<p className="mm-empty">Confirme jogadores no evento para gerar o rateio e revisar os resultados.</p>}
+      {!lines.length&&!loading&&<p className="mm-empty">Confirme jogadores no evento para registrar e revisar as fichas.</p>}
     </div>
-    <p className="mm-formfoot">Rateio igualitário entre confirmados, calculado no banco de dados com precisão de centavos. Diferença positiva significa que a pessoa informou ter pago mais do que sua quota; este aplicativo não realiza cobranças, transferências ou liquidações.</p>
+    <p className="mm-formfoot">O controle de dívidas de comida, bebidas e outros gastos fica exclusivamente na aba Gastos.</p>
     {organizer&&scheduled&&!ready&&<p className="mm-message">Para encerrar o evento, todos os confirmados precisam registrar suas compras, ter os pagamentos marcados como recebidos e receber aprovação do Anfitrião. Alterações posteriores cancelam automaticamente a aprovação anterior.</p>}
   </section>;
 }
 
-export function AttendeeMiniCard({symbol,name}:{symbol?:string;name:string}){
-  return <span className="mm-v09-attendee"><PlayerAvatar symbol={symbol} name={name}/><span>{name}</span></span>;
+export function AttendeeMiniCard({name,photoUrl}:{name:string;photoUrl?:string}){
+  return <span className="mm-v09-attendee"><PlayerAvatar photoUrl={photoUrl} name={name}/><span>{name}</span></span>;
 }
