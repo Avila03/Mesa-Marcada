@@ -340,3 +340,50 @@ a{text-decoration:none}
  .mm-detail-tabs button{font-size:12px;padding:10px 11px}
 }
 @media(max-width:365px){.mm-login-card{padding:25px 18px}.mm-mobile-head .brandname{font-size:16px}}
+
+/* v0.8 — duas mesas permanentes: use as cores e texturas Dark Cards originais. */
+.mm-permanent-tables{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+.mm-fixed-roomcard .roombanner{min-height:180px}
+.mm-fixed-roomcard .mm-room-suit{font-size:105px}
+.mm-fixed-roomcard .mm-room-card-content{padding:24px;gap:12px}
+.mm-fixed-roomcard .mm-room-card-content h2{font-size:24px;line-height:1.2}
+.mm-fixed-roomcard .mm-room-card-content>p{max-width:445px;min-height:40px}
+.mm-room-facts{display:flex;gap:9px 20px;flex-wrap:wrap;font-size:12px;color:#97badc}
+.mm-room-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:auto;padding-top:12px}
+.mm-room-actions .btn{min-height:46px}
+.mm-table-hero{background:linear-gradient(145deg,#131a24,#0d121a);border:1px solid #2b3e54;border-radius:17px;overflow:hidden;box-shadow:0 15px 40px #0004}
+.mm-table-hero .mm-event-banner{min-height:130px}
+.mm-table-hero .mm-event-banner .mm-symbol{font-size:105px}
+.mm-table-hero-content{padding:25px}
+.mm-table-hero-content h1{font-size:clamp(30px,4vw,44px);margin:8px 0}
+.mm-table-hero-content p{max-width:650px;margin-bottom:19px}
+.mm-table-hero-content .btn{min-height:44px}
+.mm-table-guide{margin-top:13px}
+.mm-tutorial-blackjack{background:radial-gradient(circle at 88% 22%,#531a27,transparent 54%),linear-gradient(135deg,#211018,#0d1119);border-color:#793544}
+.mm-tutorial-blackjack .deco{color:#ff4956}
+.mm-tutorial-blackjack .tut-label{color:#ff7c86}
+.mm-table-guide .playingcard{min-width:30px;padding:0 2px}
+.mm-table-guide .rankrow .rankcards{max-width:100%}
+.mm-table-guide .rankrow .playingcards{flex-wrap:nowrap;gap:3px}
+.mm-table-guide .rankrow .playingcard{width:clamp(25px,2.5vw,31px);height:clamp(37px,3.5vw,43px);font-size:clamp(10px,1vw,13px)}
+.mm-table-guide .tut-label{font-weight:800}
+.mm-table-guide .bj-calc-controls select{min-width:55px}
+@media(max-width:980px){
+ .mm-permanent-tables{grid-template-columns:1fr}
+ .mm-fixed-roomcard .roombanner{min-height:148px}
+ .mm-fixed-roomcard .mm-room-card-content>p{min-height:0}
+}
+@media(max-width:750px){
+ .mm-fixed-roomcard .roombanner{min-height:133px}
+ .mm-fixed-roomcard .mm-room-suit{font-size:85px}
+ .mm-fixed-roomcard .mm-room-card-content{padding:18px}
+ .mm-fixed-roomcard .mm-room-card-content h2{font-size:21px}
+ .mm-table-hero-content{padding:18px}
+ .mm-table-hero .mm-event-banner{min-height:110px}
+ .mm-table-hero .mm-event-banner .mm-symbol{font-size:84px}
+ .mm-room-actions{grid-template-columns:1fr}
+ .mm-room-actions .btn{width:100%}
+ .mm-table-guide .rankrow{gap:8px}
+ .mm-table-guide .rankcards{padding-left:0;max-width:100%;width:100%}
+ .mm-table-guide .playingcards{max-width:100%}
+}

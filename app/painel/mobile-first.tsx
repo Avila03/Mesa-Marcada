@@ -4,12 +4,13 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { getSupabase } from "@/lib/supabase/browser";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Game, View, DetailTab, Profile, Room, Event, Attendance, Poll, Choice, Vote, Buy, ChipResult, Expense, Rank } from "@/lib/mesa-types";
-import { money, date, fullDate, eventTime, gameName, errText } from "@/lib/mesa-types";
+import { money, fullDate, eventTime, gameName, errText } from "@/lib/mesa-types";
+import TableTutorial from "./table-tutorial";
 import "../v05-theme.css";
 
 type CreateEvent = {room_id:string;name:string;starts_at:string;location:string;min_entry_brl:string;max_participants:string};
-const defaultEvent:CreateEvent={room_id:"__new",name:"",starts_at:"",location:"",min_entry_brl:"0",max_participants:"10"};
-type Modal = "evento" | "mesa" | null;
+const defaultEvent:CreateEvent={room_id:"",name:"",starts_at:"",location:"",min_entry_brl:"0",max_participants:"10"};
+type Modal = "evento" | null;
 const MONTHS=["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 
 function DateTile({value}:{value:string}){
@@ -46,6 +47,8 @@ export default function PainelPage(){
   const [page,setPage]=useState<View>("inicio");
   const [detailTab,setDetailTab]=useState<DetailTab>("visao");
   const [selectedId,setSelectedId]=useState("");
+  const [gameView,setGameView]=useState<Game>("poker");
+  const [gameTab,setGameTab]=useState<"eventos"|"tutorial">("eventos");
   const [modal,setModal]=useState<Modal>(null);
   const [loading,setLoading]=useState(true);
   const [working,setWorking]=useState(false);
@@ -65,8 +68,6 @@ export default function PainelPage(){
   const [rankGame,setRankGame]=useState<Game>("poker");
   const [eventFilter,setEventFilter]=useState<"todos"|"agendados"|"encerrados">("agendados");
   const [form,setForm]=useState<CreateEvent>(defaultEvent);
-  const [newRoomName,setNewRoomName]=useState("");
-  const [newRoomGame,setNewRoomGame]=useState<Game>("poker");
   const [pollQuestion,setPollQuestion]=useState("");
   const [pollOptions,setPollOptions]=useState("Pizza\nHambúrguer\nChurrasco");
   const [chipCount,setChipCount]=useState("");
@@ -75,8 +76,6 @@ export default function PainelPage(){
   const [expenseName,setExpenseName]=useState("");
   const [expenseAmount,setExpenseAmount]=useState("");
   const [expenseCategory,setExpenseCategory]=useState("food");
-  const [newTableName,setNewTableName]=useState("");
-  const [newTableGame,setNewTableGame]=useState<Game>("poker");
 
   const reload=useCallback(async()=>{
     const db=getSupabase();
@@ -154,7 +153,7 @@ export default function PainelPage(){
   const roomTitle=(id:string)=>roomFor(id)?.name||"Mesa";
   const nickname=user?nameFor(user.id):"Jogador";
   const firstName=nickname.split(" ")[0];
-  const activeRooms=rooms.filter(r=>r.status==="active");
+  const activeRooms=(["poker","blackjack"] as Game[]).map(g=>rooms.find(r=>r.game===g&&r.status==="active")).filter((r):r is Room=>Boolean(r));
   const upcoming=events.filter(e=>e.status==="scheduled").sort((a,b)=>new Date(a.starts_at).getTime()-new Date(b.starts_at).getTime());
   const myUpcoming=upcoming.filter(e=>attendances.some(a=>a.session_id===e.id&&a.user_id===user?.id));
   const selected=events.find(e=>e.id===selectedId);
@@ -182,38 +181,29 @@ export default function PainelPage(){
   function go(next:View){
     setPage(next);setError("");setMessage("");window.scrollTo({top:0,behavior:"smooth"});
   }
+  function openGame(game:Game,tab:"eventos"|"tutorial"="eventos"){
+    setGameView(game);setGameTab(tab);setPage("mesa");setError("");setMessage("");
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
   function openCreator(roomId?:string){
-    setForm({...defaultEvent,room_id:roomId||activeRooms[0]?.id||"__new"});
-    setNewRoomName("");setNewRoomGame("poker");setModal("evento");setError("");setMessage("");
+    const room=(roomId?activeRooms.find(r=>r.id===roomId):undefined)||activeRooms.find(r=>r.game==="poker")||activeRooms[0];
+    setForm({...defaultEvent,room_id:room?.id||""});
+    setModal("evento");setError("");setMessage("");
   }
   async function addEvent(e:FormEvent<HTMLFormElement>){
     e.preventDefault();
     await act(async(db,id)=>{
-      let target=form.room_id;
-      if(target==="__new"){
-        if(newRoomName.trim().length<2)throw new Error("Dê um nome à nova mesa.");
-        const {data,error:roomError}=await db.from("rooms").insert({name:newRoomName.trim(),game:newRoomGame,created_by:id}).select("id").single();
-        if(roomError)throw roomError;
-        target=data.id;
-      }
-      if(!target||target==="__new")throw new Error("Selecione uma mesa para o evento.");
+      const room=activeRooms.find(r=>r.id===form.room_id);
+      if(!room)throw new Error("Selecione Poker ou Blackjack para criar o evento.");
       if(!form.starts_at)throw new Error("Informe data e horário.");
       const {data,error:eventError}=await db.from("sessions").insert({
-        room_id:target,organizer_id:id,title:form.name.trim(),
+        room_id:room.id,organizer_id:id,title:form.name.trim(),
         starts_at:new Date(form.starts_at).toISOString(),location:form.location.trim(),
         min_entry_brl:Number(form.min_entry_brl),max_participants:Number(form.max_participants)
       }).select("id").single();
       if(eventError)throw eventError;
       setModal(null);openEvent(data.id);
     },"Evento criado! Seus amigos já podem confirmar presença.");
-  }
-  async function addTable(e:FormEvent<HTMLFormElement>){
-    e.preventDefault();
-    await act(async(db,id)=>{
-      const {error:roomError}=await db.from("rooms").insert({name:newTableName.trim(),game:newTableGame,created_by:id});
-      if(roomError)throw roomError;
-      setNewTableName("");setModal(null);
-    },"Mesa criada!");
   }
   async function createPoll(e:FormEvent<HTMLFormElement>){
     e.preventDefault();
@@ -236,7 +226,7 @@ export default function PainelPage(){
   if(!user)return <main className="mm-login-shell"><div className="mm-login-card"><div className="brand"><span className="brandmark">♠</span><span className="brandname">Mesa <em>Marcada</em></span></div><p className="mm-message">{error||"Redirecionando para login..."}</p><a href="/login" className="btn gold">Ir para o login</a></div></main>;
 
   const navEntries:[View,string,string][]=[["inicio","Início","▦"],["eventos","Eventos","▤"],["mesas","Mesas","♠"],["ranking","Ranking","★"]];
-  const activePage=page==="detalhe"?"eventos":page;
+  const activePage=page==="detalhe"?"eventos":page==="mesa"?"mesas":page;
   return <div className="layout">
     <aside className="sidebar">
       <div className="brand">
@@ -262,7 +252,7 @@ export default function PainelPage(){
         <div className="mm-mobile-account"><span className="avatar">{firstName.slice(0,1).toUpperCase()}</span><button type="button" aria-label="Sair" onClick={async()=>{await getSupabase()?.auth.signOut();window.location.replace("/login")}}>↪</button></div>
       </div>
       <div className="mm-breadcrumb-row">
-        <div className="breadcrumb">Mesa Marcada　/　{page==="inicio"?"Visão geral":page==="detalhe"?"Evento":page==="eventos"?"Eventos":page==="mesas"?"Mesas":"Ranking"}</div>
+        <div className="breadcrumb">Mesa Marcada　/　{page==="inicio"?"Visão geral":page==="detalhe"?"Evento":page==="mesa"?"Mesa de "+gameName(gameView):page==="eventos"?"Eventos":page==="mesas"?"Mesas":"Ranking"}</div>
         <span className="pill">♠ {firstName}</span>
       </div>
       {error&&<p className="mm-message error" role="alert" style={{marginBottom:16}}>{error}</p>}
@@ -276,7 +266,7 @@ export default function PainelPage(){
         <div className="metrics">
           <div className="metric"><div className="mhead">Eventos agendados <span className="micon">▤</span></div><strong>{upcoming.length}</strong><small>Próximas noites</small></div>
           <div className="metric"><div className="mhead">Minhas presenças <span className="micon">♠</span></div><strong>{myUpcoming.length}</strong><small>Confirmações ativas</small></div>
-          <div className="metric"><div className="mhead">Mesas disponíveis <span className="micon">♦</span></div><strong>{activeRooms.length}</strong><small>Poker e Blackjack</small></div>
+          <div className="metric"><div className="mhead">Mesas de jogos <span className="micon">♦</span></div><strong>{activeRooms.length}</strong><small>Poker e Blackjack</small></div>
           <div className="metric"><div className="mhead">Jogadores cadastrados <span className="micon">♣</span></div><strong>{profiles.length}</strong><small>Na comunidade</small></div>
         </div>
         <div className="two">
@@ -297,13 +287,15 @@ export default function PainelPage(){
               <span className="mm-hero-symbol" aria-hidden="true">♠ <em>♦</em></span>
             </section>
             <section className="panel">
-              <div className="panelhead"><h2>Suas mesas</h2><button type="button" className="link" onClick={()=>go("mesas")}>Explorar →</button></div>
-              {rooms.slice(0,3).map(r=><div className="item" key={r.id}>
-                <span className="datebox" style={{fontSize:23}}>{r.game==="poker"?"♠":"♦"}</span>
-                <div className="itemcontent"><strong>{r.name}</strong><small>{gameName(r.game)}</small></div>
-                <span className={"tag "+(r.status==="archived"?"archive":r.game)}>{r.status==="active"?"Ativa":"Arquivada"}</span>
-              </div>)}
-              {!rooms.length&&<p>As mesas poderão ser criadas ao agendar um evento.</p>}
+              <div className="panelhead"><h2>As duas mesas</h2><button type="button" className="link" onClick={()=>go("mesas")}>Explorar →</button></div>
+              {(["poker","blackjack"] as Game[]).map(g=>{
+                const room=activeRooms.find(r=>r.game===g);
+                return <div className="item" key={g}>
+                  <span className="datebox" style={{fontSize:23,color:g==="poker"?"#439fff":"#ff4653"}}>{g==="poker"?"♠":"♦"}</span>
+                  <div className="itemcontent"><strong>{gameName(g)}</strong><small>{events.filter(e=>room&&e.room_id===room.id).length} eventos · Guia de regras</small></div>
+                  <button type="button" className="link" onClick={()=>openGame(g)}>Abrir →</button>
+                </div>;
+              })}
             </section>
           </div>
         </div>
@@ -323,19 +315,64 @@ export default function PainelPage(){
       </>}
 
       {page==="mesas"&&<>
-        <div className="heading"><div><div className="eyebrow">SEUS JOGOS</div><h1>Mesas</h1><p>Mesas de Poker e Blackjack que reúnem a galera.</p></div><button type="button" className="btn" onClick={()=>setModal("mesa")}>＋ Nova mesa</button></div>
-        <div className="mm-rooms">{rooms.map(r=><article className="roomcard" key={r.id}>
-          <div className={"roombanner mm-room-banner "+(r.game==="blackjack"?"blackjack":"")}>
-            <span className={"tag "+r.game}>{gameName(r.game)}</span><span className="mm-room-suit">{r.game==="poker"?"♠":"♦"}</span>
+        <div className="heading">
+          <div><div className="eyebrow">ESCOLHA SEU JOGO</div><h1>Mesas</h1><p>Dois jogos, um lugar para organizar cada rodada. Escolha uma mesa para ver os eventos e aprender as regras.</p></div>
+        </div>
+        <div className="mm-rooms mm-permanent-tables">
+          {(["poker","blackjack"] as Game[]).map(game=>{
+            const room=activeRooms.find(r=>r.game===game);
+            const count=events.filter(e=>room&&e.room_id===room.id).length;
+            return <article className="roomcard mm-fixed-roomcard" key={game}>
+              <div className={"roombanner mm-room-banner "+(game==="blackjack"?"blackjack":"")}>
+                <span className={"tag "+game}>{gameName(game)}</span>
+                <span className="mm-room-suit" aria-hidden="true">{game==="poker"?"♠":"♦"}</span>
+              </div>
+              <div className="mm-room-card-content">
+                <h2>{game==="poker"?"Poker · Texas Hold’em":"Blackjack · 21"}</h2>
+                <p>{game==="poker"?"Combine suas cartas, domine as mãos e organize uma noite de Poker.":"Aprenda a chegar perto de 21 sem estourar e desafie o dealer."}</p>
+                <div className="mm-room-facts"><span>▤ {count} {count===1?"evento":"eventos"}</span><span>▣ Tutorial completo</span></div>
+                <div className="mm-room-actions">
+                  <button type="button" className="btn gold" onClick={()=>openGame(game)}>Abrir mesa →</button>
+                  <button type="button" className="btn" onClick={()=>openGame(game,"tutorial")}>Aprender a jogar</button>
+                </div>
+              </div>
+            </article>;
+          })}
+        </div>
+      </>}
+
+      {page==="mesa"&&<>
+        <button className="back" type="button" onClick={()=>go("mesas")}>← Voltar às mesas</button>
+        <div className="mm-table-hero">
+          <GameBanner game={gameView} large/>
+          <div className="mm-table-hero-content">
+            <div className="eyebrow">MESA FIXA · {gameView==="poker"?"TEXAS HOLD’EM":"JOGO DO 21"}</div>
+            <h1>{gameName(gameView)}</h1>
+            <p>{gameView==="poker"?"Escolha as melhores cartas, organize eventos e consulte o ranking das mãos.":"Organize um encontro, consulte as regras e calcule o valor das suas cartas."}</p>
+            <button type="button" className="btn gold" onClick={()=>openCreator(activeRooms.find(r=>r.game===gameView)?.id)} disabled={!activeRooms.some(r=>r.game===gameView)}>
+              ＋ Criar evento de {gameName(gameView)}
+            </button>
           </div>
-          <div className="mm-room-card-content">
-            <div className="mm-title-actions"><h3>{r.name}</h3><span className={"tag "+(r.status==="archived"?"archive":r.game)}>{r.status==="archived"?"Arquivada":"Ativa"}</span></div>
-            <p>{r.description||"Sua mesa de "+gameName(r.game)+"."}</p>
-            <p className="mm-note">{events.filter(e=>e.room_id===r.id).length} eventos registrados</p>
-            <button className="btn" type="button" onClick={()=>openCreator(r.id)} disabled={r.status!=="active"}>＋ Criar evento nesta mesa</button>
+        </div>
+        <div className="mm-detail-tabs" role="tablist" aria-label="Seções da mesa">
+          <button type="button" role="tab" aria-selected={gameTab==="eventos"} className={gameTab==="eventos"?"active":""} onClick={()=>setGameTab("eventos")}>▤ Eventos</button>
+          <button type="button" role="tab" aria-selected={gameTab==="tutorial"} className={gameTab==="tutorial"?"active":""} onClick={()=>setGameTab("tutorial")}>▣ Tutorial e regras</button>
+        </div>
+        {gameTab==="eventos"&&<>
+          <div className="mm-section-title"><h2>Eventos de {gameName(gameView)}</h2><span className={"tag "+gameView}>{events.filter(e=>roomFor(e.room_id)?.game===gameView).length} registrados</span></div>
+          <div className="mm-eventgrid">
+            {events.filter(e=>roomFor(e.room_id)?.game===gameView)
+              .sort((a,b)=>new Date(a.starts_at).getTime()-new Date(b.starts_at).getTime())
+              .map(ev=><EventTile key={ev.id} value={ev} room={roomFor(ev.room_id)} count={attendances.filter(a=>a.session_id===ev.id).length} open={()=>openEvent(ev.id)}/>)}
           </div>
-        </article>)}</div>
-        {!rooms.length&&<div className="panel mm-empty"><span className="mm-empty-symbol">♠</span><h2>Nenhuma mesa criada</h2><p>Você pode criar uma agora ou durante o agendamento.</p><button className="btn gold" type="button" onClick={()=>openCreator()}>Criar meu primeiro evento</button></div>}
+          {events.filter(e=>roomFor(e.room_id)?.game===gameView).length===0&&<div className="panel mm-empty">
+            <span className="mm-empty-symbol">{gameView==="poker"?"♠":"♦"}</span>
+            <h2>Nenhum evento de {gameName(gameView)} ainda</h2>
+            <p>Crie um evento nesta mesa e convide seus amigos.</p>
+            <button type="button" className="btn gold" onClick={()=>openCreator(activeRooms.find(r=>r.game===gameView)?.id)}>＋ Criar evento</button>
+          </div>}
+        </>}
+        {gameTab==="tutorial"&&<TableTutorial game={gameView}/>}
       </>}
 
       {page==="ranking"&&<>
@@ -531,17 +568,15 @@ export default function PainelPage(){
       <div className="mm-modal" role="dialog" aria-modal="true" aria-labelledby="new-event-title">
         <header><div><div className="eyebrow">ORGANIZAR UMA NOITE</div><h2 id="new-event-title">Criar evento</h2></div><button className="mm-close" type="button" aria-label="Fechar" onClick={()=>setModal(null)}>×</button></header>
         <form className="mm-form-stack" onSubmit={addEvent}>
-          <label className="mm-field">Qual mesa será utilizada?
+          <label className="mm-field">Escolha a mesa
             <select value={form.room_id} onChange={e=>setForm({...form,room_id:e.target.value})} required>
-              {activeRooms.map(r=><option value={r.id} key={r.id}>{r.name} · {gameName(r.game)}</option>)}
-              <option value="__new">＋ Criar uma nova mesa</option>
+              <option value="" disabled>Selecione Poker ou Blackjack</option>
+              {(["poker","blackjack"] as Game[]).map(g=>{
+                const table=activeRooms.find(r=>r.game===g);
+                return <option key={g} value={table?.id||""} disabled={!table}>{g==="poker"?"♠ Poker":"♦ Blackjack"}</option>;
+              })}
             </select>
           </label>
-          {form.room_id==="__new"&&<div className="mm-create-room">
-            <h3>Nova mesa</h3>
-            <label className="mm-field">Nome da mesa<input required minLength={2} maxLength={90} placeholder="Ex.: Mesa de Sexta" value={newRoomName} onChange={e=>setNewRoomName(e.target.value)}/></label>
-            <label className="mm-field">Modalidade<select value={newRoomGame} onChange={e=>setNewRoomGame(e.target.value as Game)}><option value="poker">♠ Poker</option><option value="blackjack">♦ Blackjack</option></select></label>
-          </div>}
           <label className="mm-field">Nome do evento<input required minLength={2} maxLength={100} placeholder="Ex.: Poker de Sexta" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label>
           <div className="mm-form-grid">
             <label className="mm-field">Data e horário<input type="datetime-local" required value={form.starts_at} onChange={e=>setForm({...form,starts_at:e.target.value})}/></label>
@@ -558,16 +593,5 @@ export default function PainelPage(){
       </div>
     </div>}
 
-    {modal==="mesa"&&<div className="mm-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setModal(null)}}>
-      <div className="mm-modal" role="dialog" aria-modal="true" aria-labelledby="new-table-title">
-        <header><div><div className="eyebrow">NOVO GRUPO DE JOGO</div><h2 id="new-table-title">Criar mesa</h2></div><button className="mm-close" type="button" aria-label="Fechar" onClick={()=>setModal(null)}>×</button></header>
-        <form className="mm-form-stack" onSubmit={addTable}>
-          <label className="mm-field">Nome da mesa<input required minLength={2} maxLength={90} value={newTableName} onChange={e=>setNewTableName(e.target.value)} placeholder="Ex.: Mesa de Sábado"/></label>
-          <label className="mm-field">Modalidade<select value={newTableGame} onChange={e=>setNewTableGame(e.target.value as Game)}><option value="poker">♠ Poker</option><option value="blackjack">♦ Blackjack</option></select></label>
-          <div className="mm-form-actions"><button className="btn" type="button" onClick={()=>setModal(null)}>Cancelar</button><button className="btn gold" type="submit" disabled={working}>{working?"Criando...":"Criar mesa →"}</button></div>
-          {error&&<p className="mm-message error" role="alert">{error}</p>}
-        </form>
-      </div>
-    </div>}
   </div>;
 }

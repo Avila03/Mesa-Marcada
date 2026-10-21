@@ -1,5 +1,5 @@
 export type Game = "poker" | "blackjack";
-export type View = "inicio" | "eventos" | "mesas" | "ranking" | "detalhe";
+export type View = "inicio" | "eventos" | "mesas" | "mesa" | "ranking" | "detalhe";
 export type DetailTab = "visao" | "enquetes" | "financeiro";
 export type Profile = {id:string;display_name:string};
 export type Room = {id:string;name:string;game:Game;description:string;status:"active"|"archived";created_by:string};
