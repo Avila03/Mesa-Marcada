@@ -26,6 +26,16 @@ assert.ok(styles.includes("safe-area-inset-top"),"iOS PWA status bar safe area m
 assert.ok(panel.includes('getTime()>=Date.now()'),"Old events shown as upcoming");
 assert.ok(panel.includes('className="nav mm-bottom-nav"'),"Mobile bottom nav missing");
 assert.ok(panel.includes('className="nav mm-desktop-nav"'),"Desktop nav must remain");
+/* Desktop regression: os itens devem ficar empilhados, nunca em linha.
+   O mobile usa sua própria barra inferior com quatro abas. */
+const desktopNavCss=styles.match(/\.sidebar \.mm-desktop-nav\{[^}]+\}/)?.[0]||"";
+assert.ok(/flex-direction:\s*column/.test(desktopNavCss),
+  "Desktop navigation must stack vertically, not overflow sideways");
+assert.ok(/align-items:\s*stretch/.test(desktopNavCss),
+  "Desktop navigation must stretch menu buttons inside sidebar");
+assert.ok(/\.sidebar \.mm-desktop-nav \.mm-nav-btn\{[^}]*width:100%/.test(styles),
+  "Desktop buttons must fit the sidebar width");
+
 const mobileNav=panel.slice(
   panel.indexOf("const mobileNavEntries="),
   panel.indexOf("const mobileActivePage")

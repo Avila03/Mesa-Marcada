@@ -887,8 +887,32 @@ a{text-decoration:none}
    Mobile-first, mantendo Dark Cards e a marca existente.
    ======================================================= */
 
-/* Navegação desktop preserva todos os destinos administrativos. */
-.sidebar .mm-desktop-nav{display:flex}
+/* Navegação desktop: itens em coluna. O .nav original usa flex sem
+   direção e acabava colocando todos os botões lado a lado, cortados
+   pelo overflow da sidebar. Escopo só no desktop; mobile permanece intacto. */
+.sidebar .mm-desktop-nav{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  width:100%;
+  min-width:0;
+}
+.sidebar .mm-desktop-nav .navlabel{flex:none}
+.sidebar .mm-desktop-nav .mm-nav-btn{
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  justify-content:flex-start;
+  flex:none;
+  width:100%;
+  min-width:0;
+  text-align:left;
+}
+.sidebar .mm-desktop-nav .mm-nav-label{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
 .sidebar .mm-bottom-nav{display:none}
 
 .mm-home-v16{display:grid;gap:19px;min-width:0}
