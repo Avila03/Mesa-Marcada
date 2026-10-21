@@ -3,7 +3,7 @@
 import {useEffect,useMemo,useState} from "react";
 import type {FormEvent, ReactNode} from "react";
 import type {Game,Profile,Rank,Attendance,Event} from "@/lib/mesa-types";
-import {money,fullDate} from "@/lib/mesa-types";
+import {fullDate} from "@/lib/mesa-types";
 
 const favoriteOptions:Game[]=["poker","blackjack"];
 const number=(n:unknown)=>new Intl.NumberFormat("pt-BR",{maximumFractionDigits:1}).format(Number(n)||0);
@@ -262,17 +262,15 @@ export function FinanceReviewBoard({
   onApprove:(userId:string)=>void;
   onReopen:(userId:string)=>void;
 }){
-  const total=lines.reduce((s,r)=>s+Number(r.share_brl),0);
   const approved=lines.filter(l=>l.approved).length;
   const ready=lines.length>0&&lines.every(l=>l.approved&&l.chips_final!==null&&l.chips_bought!==null&&(pendingPaymentsByUser[l.user_id]||0)===0);
   return <section className="panel mm-v09-finance-review">
     <div className="panelhead">
-      <div><h2>Conferência da noite</h2><p className="mm-formfoot">O organizador revisa as fichas de cada jogador antes de encerrar o evento.</p></div>
+      <div><h2>Conferência das fichas</h2><p className="mm-formfoot">O Anfitrião confere compras, pagamentos presenciais e fichas finais antes de encerrar o evento.</p></div>
       <span className={"tag "+(ready?"poker":"archive")}>{approved}/{lines.length} aprovados</span>
     </div>
-    {loading&&<p className="mm-formfoot">Calculando o rateio de despesas...</p>}
+    {loading&&<p className="mm-formfoot">Atualizando a conferência...</p>}
     <div className="mm-v09-finance-summary">
-      <Stat name="Despesas compartilhadas" value={money(total)}/>
       <Stat name="Registros aprovados" value={approved+" de "+lines.length}/>
       <Stat name="Encerramento" value={ready?"Pronto":"Pendente"}/>
     </div>
@@ -288,11 +286,6 @@ export function FinanceReviewBoard({
           <span><small>Fichas finais</small><strong>{line.chips_final===null?"Pendente":number(line.chips_final)}</strong></span>
           <span><small>Saldo de fichas</small><strong>{line.delta_chips===null?"—":(line.delta_chips>0?"+":"")+number(line.delta_chips)}</strong></span>
         </div>
-        <div className="mm-v09-finance-numbers">
-          <span><small>Quota de despesas</small><strong>{money(line.share_brl)}</strong></span>
-          <span><small>Despesas pagas</small><strong>{money(line.paid_brl)}</strong></span>
-          <span><small>Diferença informativa</small><strong className={line.balance_brl>=0?"mm-v09-good":"mm-v09-pending"}>{money(line.balance_brl)}</strong></span>
-        </div>
         {organizer&&scheduled&&<div className="mm-v09-review-action">
           {line.approved?
             <button className="btn" disabled={busy} type="button" onClick={()=>onReopen(line.user_id)}>Reabrir revisão</button>:
@@ -300,9 +293,9 @@ export function FinanceReviewBoard({
               type="button" onClick={()=>onApprove(line.user_id)}>✓ Aprovar fichas</button>}
         </div>}
       </div>)}
-      {!lines.length&&!loading&&<p className="mm-empty">Confirme jogadores no evento para gerar o rateio e revisar os resultados.</p>}
+      {!lines.length&&!loading&&<p className="mm-empty">Confirme jogadores no evento para registrar e revisar as fichas.</p>}
     </div>
-    <p className="mm-formfoot">Rateio igualitário entre confirmados, calculado no banco de dados com precisão de centavos. Diferença positiva significa que a pessoa informou ter pago mais do que sua quota; este aplicativo não realiza cobranças, transferências ou liquidações.</p>
+    <p className="mm-formfoot">O controle de dívidas de comida, bebidas e outros gastos fica exclusivamente na aba Gastos.</p>
     {organizer&&scheduled&&!ready&&<p className="mm-message">Para encerrar o evento, todos os confirmados precisam registrar suas compras, ter os pagamentos marcados como recebidos e receber aprovação do Anfitrião. Alterações posteriores cancelam automaticamente a aprovação anterior.</p>}
   </section>;
 }
