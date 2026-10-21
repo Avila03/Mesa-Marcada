@@ -124,11 +124,12 @@ export default function PainelPage(){
   const [form,setForm]=useState<CreateEvent>(defaultEvent);
   const [pollQuestion,setPollQuestion]=useState("");
   const [pollOptions,setPollOptions]=useState("Pizza\nHambúrguer\nChurrasco");
-  const [finalChips,setFinalChips]=useState("");
-  const [liveSubtab,setLiveSubtab]=useState<LiveSubtab>("resumo");
-  const [finalQuantities,setFinalQuantities]=useState<number[]>([0,0,0,0,0]);
+    const [liveSubtab,setLiveSubtab]=useState<LiveSubtab>("resumo");
+  const [cashoutFor,setCashoutFor]=useState("");
+  const [cashoutDraft,setCashoutDraft]=useState("");
   const [purchaseFor,setPurchaseFor]=useState("");
   const [finalItems,setFinalItems]=useState<{session_id:string;user_id:string;chip_value:number;quantity:number}[]>([]);
+  const [chipCashouts,setChipCashouts]=useState<{session_id:string;user_id:string;final_brl:number;updated_at:string}[]>([]);
   const [chipPayouts,setChipPayouts]=useState<{session_id:string;user_id:string;confirmed_at:string}[]>([]);
   const [expenseName,setExpenseName]=useState("");
   const [expenseAmount,setExpenseAmount]=useState("");
@@ -160,7 +161,8 @@ export default function PainelPage(){
       db.rpc("get_player_stats_period",{p_game:null,p_period:"ano"}),
       db.from("session_live_state").select("session_id,started_at,started_by"),
       db.from("session_chip_final_items").select("session_id,user_id,chip_value,quantity"),
-      db.from("session_chip_payouts").select("session_id,user_id,confirmed_at")
+      db.from("session_chip_payouts").select("session_id,user_id,confirmed_at"),
+      db.from("session_chip_cashouts").select("session_id,user_id,final_brl,updated_at")
     ]);
     requests.forEach(r=>{if(r.error)throw r.error});
     setRooms((requests[0].data||[]) as Room[]);
@@ -168,6 +170,7 @@ export default function PainelPage(){
     setLiveStates((requests[19].data||[]) as LiveState[]);
     setFinalItems((requests[20].data||[]) as {session_id:string;user_id:string;chip_value:number;quantity:number}[]);
     setChipPayouts((requests[21].data||[]) as {session_id:string;user_id:string;confirmed_at:string}[]);
+    setChipCashouts((requests[22].data||[]) as {session_id:string;user_id:string;final_brl:number;updated_at:string}[]);
     const currentProfiles=(requests[2].data||[]) as Profile[];
     setProfiles(currentProfiles);
     const withPhotos=currentProfiles.filter(profile=>Boolean(profile.avatar_path));
@@ -386,6 +389,7 @@ export default function PainelPage(){
   const privateVisible=meConfirmed||organizer||isAdmin;
   const eventBuys=selected?buys.filter(b=>b.session_id===selected.id):[];
   const eventFinalItems=selected?finalItems.filter(f=>f.session_id===selected.id):[];
+  const eventCashouts=selected?chipCashouts.filter(c=>c.session_id===selected.id):[];
   const eventPayouts=selected?chipPayouts.filter(p=>p.session_id===selected.id):[];
   const chipValues=[1,5,10,25,50] as const;
   const chipPrices=selected?[selected.chip_price_1_brl,selected.chip_price_5_brl,selected.chip_price_10_brl,selected.chip_price_25_brl,selected.chip_price_50_brl]:[1,5,0.1,0.25,0.5];
@@ -393,16 +397,32 @@ export default function PainelPage(){
   const finishedByDenom=chipValues.map(value=>eventFinalItems.filter(i=>i.chip_value===value).reduce((sum,i)=>sum+i.quantity,0));
   const stockBalanced=soldByDenom.every((n,i)=>n===finishedByDenom[i])&&eventBuys.length>0&&guests.every(g=>eventFinalItems.some(x=>x.user_id===g.user_id));
   const totalBoughtBRL=eventBuys.reduce((n,b)=>n+Number(b.amount_brl),0);
-  const playerSettlement=(id:string)=>{const purchased=eventBuys.filter(b=>b.user_id===id).reduce((n,b)=>n+Number(b.amount_brl),0);const returned=eventFinalItems.filter(f=>f.user_id===id).reduce((n,f)=>n+f.quantity*Number(chipPrices[chipValues.indexOf(f.chip_value as (typeof chipValues)[number])]||0),0);return {purchased,returned,net:returned-purchased};};
+  const totalFinalBRL=eventCashouts.reduce((n,c)=>n+Number(c.final_brl),0);
+  const cashBalanced=eventBuys.length>0&&guests.length>0&&guests.every(g=>eventCashouts.some(c=>c.user_id===g.user_id))
+    &&eventCashouts.every(c=>guests.some(g=>g.user_id===c.user_id))
+    &&Math.round(totalFinalBRL*100)===Math.round(totalBoughtBRL*100);
+  const cashoutTarget=(organizer||isAdmin)?(cashoutFor||guests[0]?.user_id||user?.id):(user?.id);
+  const buyingTarget=(organizer||isAdmin)?(purchaseFor||guests[0]?.user_id||user?.id):(user?.id);
+  const playerSettlement=(id:string)=>{
+    const purchased=eventBuys.filter(b=>b.user_id===id).reduce((n,b)=>n+Number(b.amount_brl),0);
+    const returned=selected?.chip_settlement_brl
+      ?Number(eventCashouts.find(c=>c.user_id===id)?.final_brl||0)
+      :eventFinalItems.filter(f=>f.user_id===id).reduce((n,f)=>n+f.quantity*Number(chipPrices[chipValues.indexOf(f.chip_value as (typeof chipValues)[number])]||0),0);
+    return {purchased,returned,net:returned-purchased};
+  };
   const unpaid=eventBuys.filter(b=>b.payment_status!=="paid");
-  const myPurchasedTotal=eventBuys.filter(b=>b.user_id===user?.id).reduce((total,b)=>total+Number(b.amount_brl),0);
+  const myPurchasedTotal=eventBuys.filter(b=>b.user_id===buyingTarget).reduce((total,b)=>total+Number(b.amount_brl),0);
   const minToComplete=Math.max(0,Number(selected?.min_entry_brl||0)-myPurchasedTotal);
   const pendingByUser=Object.fromEntries(guests.map(a=>[a.user_id,eventBuys.filter(b=>b.user_id===a.user_id&&b.payment_status!=="paid").length]));
-  const canFinish=(!selected?.live_start_required||Boolean(selectedLive))&&unpaid.length===0
-    &&(selected?.chip_stock_legacy!==false || (stockBalanced&&guests.every(g=>{const p=playerSettlement(g.user_id);return p.returned===0||eventPayouts.some(x=>x.user_id===g.user_id);})))
-    &&guests.length>0&&financeRows.length===guests.length
-    &&financeRows.every(r=>r.approved&&r.chips_bought!==null&&r.chips_final!==null);
-  const checkedCount=financeRows.filter(r=>r.approved&&r.chips_bought!==null&&r.chips_final!==null).length;
+  const canFinish=(!selected?.live_start_required||Boolean(selectedLive))&&unpaid.length===0&&(
+    selected?.chip_settlement_brl
+      ?cashBalanced&&guests.every(g=>{const p=playerSettlement(g.user_id);return p.returned===0||eventPayouts.some(x=>x.user_id===g.user_id)})
+      :(selected?.chip_stock_legacy!==false||(stockBalanced&&guests.every(g=>{const p=playerSettlement(g.user_id);return p.returned===0||eventPayouts.some(x=>x.user_id===g.user_id)})))
+         &&guests.length>0&&financeRows.length===guests.length
+         &&financeRows.every(r=>r.approved&&r.chips_bought!==null&&r.chips_final!==null)
+  );
+  const checkedCount=selected?.chip_settlement_brl?guests.filter(g=>eventCashouts.some(c=>c.user_id===g.user_id)).length:
+    financeRows.filter(r=>r.approved&&r.chips_bought!==null&&r.chips_final!==null).length;
   const paidCount=eventBuys.filter(b=>b.payment_status==="paid").length;
   const eventResults=selected?results.filter(r=>r.session_id===selected.id):[];
   const eventExpenses=selected?expenses.filter(e=>e.session_id===selected.id):[];
@@ -464,7 +484,7 @@ export default function PainelPage(){
     setWorking(true);setError("");setMessage("");
     try{
       const {error:purchaseError}=await db.rpc("record_chip_purchase_for",{
-        p_event_id:selected.id,p_quantities:quantities,p_user_id:organizer||isAdmin?(purchaseFor||user.id):user.id
+        p_event_id:selected.id,p_quantities:quantities,p_user_id:organizer||isAdmin?(purchaseFor||attendances.find(a=>a.session_id===selected.id)?.user_id||user.id):user.id
       });
       if(purchaseError)throw purchaseError;
       await reload();
@@ -888,7 +908,7 @@ export default function PainelPage(){
         </div>}
 
         {detailTab==="ao-vivo"&&selectedLive&&privateVisible&&(liveSubtab==="compra"||liveSubtab==="encerrar")&&<>
-          <div className="mm-message" style={{marginBottom:18}}>Controle de fichas da partida. As despesas de consumo continuam na aba Gastos.</div>
+          <div className="mm-message" style={{marginBottom:18}}>Compras em fichas são convertidas automaticamente em reais. O acerto final acontece apenas em reais.</div>
           {!privateVisible?<div className="panel"><h2>Informações restritas</h2><p>Confirme presença neste evento para consultar ou registrar informações financeiras.</p></div>:<>
             {liveSubtab==="compra"&&<><div className="metrics" style={{gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))"}}>
               <div className="metric"><div className="mhead">Fichas distribuídas <span className="micon"><UiIcon name="check" size={22}/></span></div><strong>{eventBuys.reduce((n,b)=>n+Number(b.chips_received),0).toLocaleString("pt-BR")}</strong><small>Compras e recompras</small></div>
@@ -896,7 +916,7 @@ export default function PainelPage(){
             </div>
             <div className="mm-denom-layout">
               {(organizer||isAdmin)&&<label className="mm-field" style={{marginBottom:14}}>Registrar compra para o jogador
-                <select value={purchaseFor||user.id} onChange={e=>setPurchaseFor(e.target.value)}>
+                <select value={buyingTarget||""} onChange={e=>setPurchaseFor(e.target.value)}>
                   {guests.map(g=><option key={g.user_id} value={g.user_id}>{nameFor(g.user_id)}</option>)}
                 </select>
               </label>}
@@ -905,7 +925,7 @@ export default function PainelPage(){
                   selected.chip_price_10_brl,selected.chip_price_25_brl,selected.chip_price_50_brl]}
                 special={selected.chip_pricing_special}
                 locked={selected.chip_pricing_locked}
-                disabled={!(meConfirmed||(organizer||isAdmin)&&guests.length>0)||selected.status!=="scheduled"} busy={working}
+                disabled={!(meConfirmed||(organizer||isAdmin)&&guests.length>0)||selected.status!=="scheduled"||(selected.chip_settlement_brl&&eventCashouts.length>0)} busy={working}
                 available={chipValues.map((v,i)=>Math.max(0,Math.max(40,selected.chip_stock_legacy?soldByDenom[i]:40)-soldByDenom[i]))}
                 maxStock={chipValues.map((v,i)=>Math.max(40,selected.chip_stock_legacy?soldByDenom[i]:40))}
                 minToComplete={minToComplete} entryMinimum={Number(selected.min_entry_brl)}
@@ -914,22 +934,59 @@ export default function PainelPage(){
               </div>
             </>}
             {liveSubtab==="encerrar"&&<section className="panel mm-live-checkout">
-              <h2>Conferência final por denominação</h2>
-              <p>Informe quantas fichas físicas restaram com você. Todas as cinco denominações precisam fechar com as compras da mesa.</p>
-              <div className="mm-live-final-grid">{chipValues.map((v,i)=><label className="mm-field" key={v}>Ficha {v}
-                <input type="number" min={0} max={soldByDenom[i]} step={1} value={finalQuantities[i]} onChange={e=>setFinalQuantities(old=>old.map((n,j)=>j===i?Math.max(0,Number(e.target.value)||0):n))}/>
-              </label>)}</div>
-              <button className="btn gold" type="button" disabled={!meConfirmed||working||selected.status!=="scheduled"}
-                onClick={()=>void act(async db=>{const {error:e}=await db.rpc("record_chip_final",{p_event_id:selected.id,p_quantities:finalQuantities});if(e)throw e;},"Contagem registrada.")}>Salvar minha contagem</button>
-              <div className="mm-live-balance">{chipValues.map((v,i)=><div key={v}>Ficha {v}: <strong>{finishedByDenom[i]} / {soldByDenom[i]}</strong> conferidas</div>)}</div>
-              <p className={stockBalanced?"mm-message":"mm-message error"}>{stockBalanced?"Todas as denominações estão conciliadas.":"Ainda há fichas não conferidas ou quantidades divergentes."}</p>
+              <div className="panelhead"><h2>Acerto final em reais</h2><span className="tag">R$</span></div>
+              <p>As compras já foram convertidas em reais. Informe somente o valor final que cada jogador deve receber do Anfitrião.</p>
+              <div className="mm-cash-summary">
+                <div><small>Total comprado</small><strong>{money(totalBoughtBRL)}</strong></div>
+                <div><small>Valores informados</small><strong>{money(totalFinalBRL)}</strong></div>
+                <div><small>{Math.round((totalBoughtBRL-totalFinalBRL)*100)>=0?"Falta distribuir":"Valor excedente"}</small>
+                  <strong>{money(Math.abs(Math.round((totalBoughtBRL-totalFinalBRL)*100))/100)}</strong></div>
+              </div>
+              {selected.status==="scheduled"&&<div className="mm-cash-form">
+                {(organizer||isAdmin)&&<label className="mm-field">Jogador
+                  <select value={cashoutTarget||""} onChange={e=>{setCashoutFor(e.target.value);setCashoutDraft("");}}>
+                    {guests.map(g=><option value={g.user_id} key={g.user_id}>{nameFor(g.user_id)}</option>)}
+                  </select>
+                </label>}
+                <label className="mm-field">Valor final a receber (R$)
+                  <input type="number" min={0} max={totalBoughtBRL} step="0.01" inputMode="decimal" value={cashoutDraft}
+                    placeholder="Ex.: 25,00" onChange={e=>setCashoutDraft(e.target.value)}/>
+                </label>
+                <button type="button" className="btn gold" disabled={working||!cashoutDraft.trim()||!(meConfirmed||organizer||isAdmin)}
+                  onClick={()=>void act(async db=>{
+                    const finalValue=Number(cashoutDraft);
+                    if(!Number.isFinite(finalValue)||finalValue<0||Math.abs(finalValue*100-Math.round(finalValue*100))>0.00001)
+                      throw new Error("Informe um valor válido em reais com até duas casas decimais.");
+                    if(!cashoutTarget)throw new Error("Selecione um jogador.");
+                    const {error:e}=await db.rpc("record_chip_cashout",{p_event_id:selected.id,p_user_id:cashoutTarget,p_final_brl:finalValue});
+                    if(e)throw e;
+                    setCashoutDraft("");
+                  },"Valor final em reais registrado!")}>Salvar valor final</button>
+                {cashoutTarget&&eventCashouts.some(c=>c.user_id===cashoutTarget)&&
+                  <p className="mm-formfoot">Valor salvo para {nameFor(cashoutTarget)}: <strong>{money(Number(eventCashouts.find(c=>c.user_id===cashoutTarget)?.final_brl||0))}</strong>. Você pode atualizar o valor antes de confirmar qualquer repasse.</p>}
+                {eventCashouts.length>0&&<p className="mm-formfoot">A conferência financeira começou: novas compras ficam bloqueadas para evitar diferenças no caixa.</p>}
+              </div>}
+              <p className={cashBalanced?"mm-message":"mm-message error"}>
+                {cashBalanced?"Caixa conciliado: o total dos repasses é igual ao das compras.":
+                checkedCount<guests.length?`Valores informados por ${checkedCount} de ${guests.length} jogadores.`:
+                "O total final precisa ser exatamente igual ao valor das compras."}
+              </p>
               <h3>Acerto com o Anfitrião</h3>
-              <p>Total das compras: <strong>{money(totalBoughtBRL)}</strong>. Repasse calculado pelas denominações finais; a soma dos repasses deve ser igual ao total comprado.</p>
-              {guests.map(g=>{const v=playerSettlement(g.user_id);const payout=eventPayouts.some(p=>p.user_id===g.user_id);return <div className="mm-live-settle-row" key={g.user_id}>
-                <div><strong>{nameFor(g.user_id)}</strong><small>Compras {money(v.purchased)} · Recebe {money(v.returned)} · Saldo {v.net>=0?"+":""}{money(v.net)}</small></div>
-                {v.returned>0&&(organizer||isAdmin)&&<button className="btn" disabled={!stockBalanced||unpaid.length>0||working||selected.status!=="scheduled"} onClick={()=>void act(async db=>{const {error:e}=await db.rpc("set_chip_payout",{p_event_id:selected.id,p_user_id:g.user_id,p_confirmed:!payout});if(e)throw e;},payout?"Repasse reaberto.":"Repasse confirmado.")}>{payout?"✓ Repassado":"Marcar repassado"}</button>}
-              </div>})}
-              {(organizer||isAdmin)&&<button className="btn gold" disabled={!canFinish||working} onClick={()=>void finishLiveEvent(selected.id,organizer)}>Encerrar partida</button>}
+              <p>Primeiro o Anfitrião confirma os recebimentos na área Compra. Depois registra os repasses abaixo.</p>
+              {guests.map(g=>{const v=playerSettlement(g.user_id);const payout=eventPayouts.some(p=>p.user_id===g.user_id);
+                const submitted=eventCashouts.some(c=>c.user_id===g.user_id);
+                return <div className="mm-live-settle-row" key={g.user_id}>
+                  <div><strong>{nameFor(g.user_id)}</strong>
+                    <small>Compras: {money(v.purchased)} · A receber: {submitted?money(v.returned):"Pendente"}</small>
+                    <small>Lucro / prejuízo: {submitted?(v.net>0?"+":"")+money(v.net):"—"}</small>
+                  </div>
+                  {submitted&&v.returned>0&&(organizer||isAdmin)&&<button className="btn" disabled={!cashBalanced||unpaid.length>0||working||selected.status!=="scheduled"}
+                    onClick={()=>void act(async db=>{const {error:e}=await db.rpc("set_chip_payout",{p_event_id:selected.id,p_user_id:g.user_id,p_confirmed:!payout});
+                      if(e)throw e;},payout?"Repasse reaberto.":"Repasse confirmado.")}>{payout?"✓ Repassado":"Marcar repassado"}</button>}
+                  {submitted&&v.returned===0&&<span className="mm-cash-zero">Sem repasse</span>}
+                </div>})}
+              {(organizer||isAdmin)&&selected.status==="scheduled"&&<button className="btn gold" disabled={!canFinish||working}
+                onClick={()=>void finishLiveEvent(selected.id,organizer)}>Encerrar partida</button>}
             </section>}
             {liveSubtab==="compra"&&<><section className="panel mm-v09-purchases" style={{marginTop:19}}>
               <div className="panelhead"><h2>Compras e recompras registradas</h2><span className="tag">{eventBuys.length} lançamentos</span></div>
@@ -956,7 +1013,7 @@ export default function PainelPage(){
                       if(paymentError)throw paymentError;
                     },paid?"Recebimento confirmado!":"Recebimento voltou para pendente.");
                   }}>{b.payment_status==="paid"?"Marcar pendente":"✓ Marcar recebido"}</button>}
-                {b.user_id===user.id&&selected.status==="scheduled"&&<button type="button"
+                {b.user_id===user.id&&selected.status==="scheduled"&&(!selected.chip_settlement_brl||eventCashouts.length===0)&&<button type="button"
                   className="mm-v09-delete-entry" disabled={working} onClick={()=>{
                     if(!window.confirm("Excluir este lançamento de fichas? Se o resultado já estava aprovado, a aprovação será retirada."))return;
                     void act(async(db,id)=>{
@@ -969,32 +1026,32 @@ export default function PainelPage(){
               {!eventBuys.length&&<p>Nenhuma compra ou recompra registrada até agora.</p>}
             </section>
 </>}
-            {liveSubtab==="encerrar"&&<><div className="mm-v11-night-ranking" style={{marginTop:19}}>
-              <section className="panel">
-                <div className="panelhead"><h2>Ranking da noite</h2></div>
-                {nightRank.map((r,i)=><div className="item" key={r.id}>
-                  <span className="datebox">{i+1}º</span>
-                  <div className="itemcontent"><strong>{nameFor(r.id)}</strong><small>{r.acquired} fichas adquiridas · {r.total??"Pendente"} finais</small></div>
-                  <strong style={{color:r.difference===null?"#b2becc":r.difference>=0?"#71baff":"#ff737d"}}>{r.difference===null?"—":(r.difference>0?"+":"")+r.difference}</strong>
-                </div>)}
-                {!nightRank.length&&<p>Os resultados aparecerão conforme a participação.</p>}
-              </section>
-
-            </div>
-            <FinanceReviewBoard lines={financeRows} loading={financeLoading} organizer={organizer||isAdmin} pendingPaymentsByUser={pendingByUser} photoUrls={photoUrls}
-              scheduled={selected.status==="scheduled"} busy={working}
-              onApprove={userId=>void act(async(db,id)=>{
-                const {error:approveError}=await db.from("session_finance_approvals").insert({
-                  session_id:selected.id,user_id:userId,reviewed_by:id
-                });
-                if(approveError)throw approveError;
-              },"Fichas e resultado aprovados!")}
-              onReopen={userId=>void act(async(db)=>{
-                const {error:revokeError}=await db.from("session_finance_approvals").delete()
-                  .eq("session_id",selected.id).eq("user_id",userId);
-                if(revokeError)throw revokeError;
-              },"Revisão reaberta.")}
-            />
+            {liveSubtab==="encerrar"&&<>
+              {selected.chip_settlement_brl?<section className="panel" style={{marginTop:19}}>
+                <div className="panelhead"><h2>Resultado da noite em reais</h2><span className="tag">R$</span></div>
+                {guests.map(g=>{const v=playerSettlement(g.user_id);const reported=eventCashouts.some(c=>c.user_id===g.user_id);return <div className="item" key={g.user_id}>
+                  <div className="itemcontent"><strong>{nameFor(g.user_id)}</strong>
+                    <small>Comprou {money(v.purchased)} · Recebe {reported?money(v.returned):"Pendente"}</small></div>
+                  <strong>{reported?(v.net>0?"+":"")+money(v.net):"—"}</strong>
+                </div>})}
+              </section>:<><div className="mm-v11-night-ranking" style={{marginTop:19}}>
+                <section className="panel"><div className="panelhead"><h2>Ranking da noite</h2></div>
+                  {nightRank.map((r,i)=><div className="item" key={r.id}><span className="datebox">{i+1}º</span>
+                    <div className="itemcontent"><strong>{nameFor(r.id)}</strong><small>{r.acquired} fichas adquiridas · {r.total??"Pendente"} finais</small></div>
+                    <strong>{r.difference===null?"—":(r.difference>0?"+":"")+r.difference}</strong></div>)}
+                </section>
+              </div>
+              <FinanceReviewBoard lines={financeRows} loading={financeLoading} organizer={organizer||isAdmin} pendingPaymentsByUser={pendingByUser} photoUrls={photoUrls}
+                scheduled={selected.status==="scheduled"} busy={working}
+                onApprove={userId=>void act(async(db,id)=>{
+                  const {error:approveError}=await db.from("session_finance_approvals").insert({session_id:selected.id,user_id:userId,reviewed_by:id});
+                  if(approveError)throw approveError;
+                },"Resultado aprovado!")}
+                onReopen={userId=>void act(async(db)=>{
+                  const {error:revokeError}=await db.from("session_finance_approvals").delete().eq("session_id",selected.id).eq("user_id",userId);
+                  if(revokeError)throw revokeError;
+                },"Revisão reaberta.")}
+              /></>}
             </>}
           </>}
         </>}

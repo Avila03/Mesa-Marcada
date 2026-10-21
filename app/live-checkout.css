@@ -1,1 +1,10 @@
 .mm-live-subnav{display:flex;gap:7px;overflow-x:auto;margin:12px 0 19px;padding:3px 0}.mm-live-subnav button{min-height:43px;border-radius:10px;padding:10px 14px;border:1px solid #2a3543;background:#111923;color:#afc0d2;white-space:nowrap;font-weight:650}.mm-live-subnav button.active{border-color:#258bff;background:#103459;color:#f1f5fb}.mm-live-final-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:17px 0}.mm-live-final-grid input{min-width:0}.mm-live-balance{display:flex;gap:9px;flex-wrap:wrap;margin:18px 0}.mm-live-balance>div{border:1px solid #34455a;border-radius:9px;background:#101d2b;padding:9px;font-size:12px}.mm-live-settle-row{display:flex;justify-content:space-between;gap:15px;align-items:center;padding:14px 0;border-bottom:1px solid #293544}.mm-live-settle-row small{display:block;margin-top:5px;color:#9eb4c9}.mm-live-checkout>h3{margin:25px 0 12px}@media(max-width:740px){.mm-live-final-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mm-live-settle-row{align-items:flex-start;flex-direction:column}.mm-live-settle-row .btn{width:100%}}
+/* Encerramento simplificado em reais (v1.8.2) */
+.mm-cash-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0}
+.mm-cash-summary>div{display:grid;gap:7px;padding:15px;background:#0e1d2b;border:1px solid #273f58;border-radius:13px;min-width:0}
+.mm-cash-summary small{font-size:11px;color:#a6bad1}
+.mm-cash-summary strong{font-size:clamp(18px,2.8vw,24px);font-weight:800;color:#f1f5fb}
+.mm-cash-form{display:flex;flex-wrap:wrap;align-items:end;gap:12px;border:1px solid #344c66;border-radius:14px;padding:16px;margin:18px 0;background:#0b1623}
+.mm-cash-form .mm-field{min-width:170px;flex:1}.mm-cash-form>button{min-height:46px}
+.mm-cash-form .mm-formfoot{flex-basis:100%}.mm-cash-zero{font-size:12px;color:#a0afc0}
+@media(max-width:740px){.mm-cash-summary{grid-template-columns:1fr 1fr}.mm-cash-summary>div:last-child{grid-column:1/-1}.mm-cash-form{display:grid}.mm-cash-form>.btn{width:100%}}

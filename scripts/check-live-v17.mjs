@@ -42,3 +42,13 @@ for(const term of ["v_limit:=CASE", "record_chip_final", "set_chip_payout", "chi
 }
 assert.ok(!panel.includes('["fichas","Fichas"]'),"Fichas must not remain a top-level event tab");
 assert.ok(panel.includes('liveSubtab==="compra"')&&panel.includes('liveSubtab==="encerrar"'),"Checkout must live inside Ao vivo");
+
+// v1.8.2: o fechamento é um livro-caixa em reais, não uma segunda maleta.
+const cashSql=read("supabase/migrations/20261022030000_cashout_brl.sql");
+for(const term of ["session_chip_cashouts","record_chip_cashout","cashout_balanced","chip_settlement_brl","set_chip_payout"]){
+  assert.ok(cashSql.includes(term),"Missing cash reconciliation requirement: "+term);
+}
+assert.ok(panel.includes('Acerto final em reais'),"Closing screen must ask for reais");
+assert.ok(panel.includes('db.rpc("record_chip_cashout"'),"Closing must save final BRL amount");
+assert.ok(!panel.includes('Conferência final por denominação'),"Closing must not ask for quantities per denomination");
+assert.ok(panel.includes('cashBalanced')&&panel.includes('totalBoughtBRL'),"Cash totals must be reconciled before finish");

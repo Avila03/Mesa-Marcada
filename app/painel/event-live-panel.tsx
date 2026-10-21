@@ -89,7 +89,7 @@ export default function EventLivePanel({
         <div className="mm-live-awaiting"><UiIcon name="clock" size={19}/>
           Aguardando o Anfitrião iniciar a partida</div>}
       {status==="scheduled"&&startedAt&&
-        <p className="mm-live-note">A partida está acontecendo. Fichas e pagamentos são registrados na aba <strong>Fichas</strong>; despesas e rachas ficam em <strong>Gastos</strong>.</p>}
+        <p className="mm-live-note">A partida está acontecendo. Registre as fichas em <strong>Compra</strong> e faça os repasses em reais em <strong>Encerrar</strong>. Gastos e rachas ficam separados.</p>}
       {status==="finished"&&<p className="mm-live-good">Partida encerrada após conferência financeira das fichas.</p>}
       {status==="cancelled"&&<p className="mm-live-note">Evento cancelado. Os registros existentes continuam preservados.</p>}
     </section>
@@ -97,10 +97,10 @@ export default function EventLivePanel({
     {(active||status==="finished"&&Boolean(startedAt))&&
       <section className="mm-live-review">
         <div className="mm-live-review-title">
-          <h3>Conferência das fichas</h3>
+          <h3>Conferência financeira</h3>
           <span className="tag">{canFinish||status==="finished"?"Pronto":"Em revisão"}</span>
         </div>
-        <p>Somente fichas e pagamentos de fichas contam para o encerramento da partida.</p>
+        <p>O fechamento depende dos valores em reais, das compras recebidas e dos repasses confirmados.</p>
         <div className="mm-live-steps">
           <div className={guestCount>0?"done":"todo"}>
             <UiIcon name={guestCount>0?"check":"users"} size={18}/>
@@ -108,7 +108,7 @@ export default function EventLivePanel({
           </div>
           <div className={purchaseCount>0&&paidCount===purchaseCount?"done":"todo"}>
             <UiIcon name={purchaseCount>0&&paidCount===purchaseCount?"check":"credit-card"} size={18}/>
-            <span><strong>Pagamentos de fichas</strong><small>{paidCount} de {purchaseCount} compras recebidas</small></span>
+            <span><strong>Pagamentos das compras</strong><small>{paidCount} de {purchaseCount} compras recebidas</small></span>
           </div>
           <div className={guestCount>0&&checkedCount===guestCount?"done":"todo"}>
             <UiIcon name={guestCount>0&&checkedCount===guestCount?"check":"clipboard"} size={18}/>
@@ -117,7 +117,7 @@ export default function EventLivePanel({
         </div>
         <div className="mm-live-actions">
           <button type="button" className="btn" onClick={onFichas}>
-            <UiIcon name="cards" size={17}/> Conferir fichas
+            <UiIcon name="cards" size={17}/> Conferir valores
           </button>
           {active&&(host||admin)&&<button type="button" className="btn gold"
             disabled={busy||!canFinish||!completed} onClick={onFinish}>
