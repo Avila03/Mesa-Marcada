@@ -8,10 +8,11 @@ const types=read("lib/mesa-types.ts");
 const component=read("app/painel/event-live-panel.tsx");
 const sql=read("supabase/migrations/20261022010000_mesa_marcada_evento_ao_vivo.sql");
 const styles=read("app/event-live.css");
+const newSql=read("supabase/migrations/20261022020000_live_chips_inventory_settlements.sql");
 
 for(const piece of [
-  '["ao-vivo","Ao vivo"]','["fichas","Fichas"]','["gastos","Gastos"]',
-  'db.rpc("start_live_event"','<EventLivePanel','setDetailTab("fichas")',
+  '["ao-vivo","Ao vivo"]','["compra","Compra"]','["gastos","Gastos"]',
+  'db.rpc("start_live_event"','<EventLivePanel','setLiveSubtab("encerrar")',
   'canSee={privateVisible}','const canFinish=(!selected?.live_start_required||Boolean(selectedLive))',
   'db.from("session_live_activity")','window.setInterval(tick,15000)'
 ]){
@@ -35,3 +36,9 @@ assert.ok(!sql.includes("expense_split_settlements")&&!sql.includes("expense_spl
 assert.ok(styles.includes("@media(max-width:760px)"),"Live layout lacks mobile styling");
 assert.ok(styles.includes("#258bff"),"Dark Cards electric-blue design token missing");
 console.log("✓ v1.7 Event Live: manual host start, private timeline, chips-only finish and separate optional expense splits");
+
+for(const term of ["v_limit:=CASE", "record_chip_final", "set_chip_payout", "chip_final_balanced", "session_chip_final_items", "session_chip_payouts"]){
+ assert.ok(newSql.includes(term),"v1.8 live chip invariant missing: "+term);
+}
+assert.ok(!panel.includes('["fichas","Fichas"]'),"Fichas must not remain a top-level event tab");
+assert.ok(panel.includes('liveSubtab==="compra"')&&panel.includes('liveSubtab==="encerrar"'),"Checkout must live inside Ao vivo");
