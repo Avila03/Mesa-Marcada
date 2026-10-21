@@ -626,7 +626,7 @@ export default function PainelPage(){
             <p style={{marginTop:16}}>Organizado por {nameFor(selected.organizer_id)}.</p>
             <div className="mm-action-row" style={{marginTop:15}}>
               <button type="button" className="btn" onClick={()=>setDetailTab("enquetes")}>Ver enquetes →</button>
-              <button type="button" className="btn" onClick={()=>setDetailTab("financeiro")}>Fichas e gastos →</button>
+              <button type="button" className="btn" onClick={()=>setDetailTab("fichas")}>Ver fichas →</button>
             </div>
           </section>
         </div>}
