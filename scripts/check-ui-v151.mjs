@@ -51,7 +51,7 @@ assert.ok(styles.includes("safe-area-inset-bottom"),"iPhone bottom safe area mis
 assert.ok(panel.includes("<DashboardV16"),"Action-oriented dashboard missing");
 assert.ok(!panel.includes("A próxima rodada<br/>começa aqui"),"Old oversized homepage hero still present");
 for(const anchor of [
-  "PRÓXIMO EVENTO","Confirmar presença","Próximas noites","Meus rachas",
+  "PRÓXIMO EVENTO","Escolher assento","Próximas noites","Meus rachas",
   "Poker","Blackjack","onGame(game)","onAdmin","onProfile"
 ])assert.ok(dashboard.includes(anchor),"Dashboard action or information missing: "+anchor);
 assert.ok(panel.includes("mm-profile-admin-link"),
