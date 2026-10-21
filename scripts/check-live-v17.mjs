@@ -87,7 +87,7 @@ const newFinanceSql=read("supabase/migrations/20261022050000_simplified_cashout_
 const recap=read("app/painel/night-summary.tsx");
 const expenseUi=read("app/painel/expense-splits.tsx");
 const movements=read("app/painel/event-live-panel.tsx");
-for(const token of ['["visao","Visão geral"]','["gastos","Despesas"]','["compra","Compra"]',
+for(const token of ['["visao","Visão geral"]','id="event-expenses"','["compra","Compra"]',
  '["resumo","Resumo"]','["encerrar","Encerrar"]','<SeatingTable','openPolls.length',
  'showPastPolls','showCreatePoll','<NightSummary','setDetailTab("resumo-evento")']){
  assert.ok(panel.includes(token),"Expected simplified event workflow: "+token);
