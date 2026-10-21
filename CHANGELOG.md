@@ -1,5 +1,15 @@
 # Histórico de versões — Mesa Marcada
 
+## v1.7 — Evento ao Vivo
+- Início **manual e exclusivo do Anfitrião**, sem iniciar automaticamente no horário marcado.
+- Nova aba **Ao vivo** com linha do tempo visível somente a participantes confirmados, Anfitrião e Administrador.
+- Eventos ao vivo aparecem identificados nas páginas de eventos; participantes podem abrir direto a linha do tempo.
+- Linha do tempo gerada pelo banco a partir de presenças, compras/recompras, recebimentos, fichas finais e revisões.
+- Encerramento após conferência completa dos pagamentos e resultados de **fichas**, sem depender de despesas de comida, bebida ou materiais.
+- **Fichas** e **Gastos** continuam áreas independentes e os rachas são opcionais.
+- Eventos antigos preservados sem início obrigatório retroativo; novos eventos precisam de início manual.
+- UI mobile-first com Dark Cards, atualização da linha do tempo a cada 15 segundos durante visualização.
+
 ## v1.6.1 — Ranking anual consolidado
 - Remove os filtros Mês e Histórico da interface; avaliação exclusivamente pelo ano em curso.
 - Todos os resultados válidos do ano aparecem consolidados em um único saldo por jogador.
