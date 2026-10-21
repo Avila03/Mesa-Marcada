@@ -11,7 +11,7 @@ const styles=read("app/event-live.css");
 const newSql=read("supabase/migrations/20261022020000_live_chips_inventory_settlements.sql");
 
 for(const piece of [
-  '["ao-vivo","Ao vivo"]','["compra","Compra"]','["gastos","Despesas"]',
+  '["ao-vivo","Ao vivo"]','["compra","Compra"]','id="event-expenses"',
   'db.rpc("start_live_event"','<EventLivePanel','setLiveSubtab("encerrar")',
   'canSee={privateVisible}','const canFinish=(!selected?.live_start_required||Boolean(selectedLive))',
   'db.from("session_live_activity")','window.setInterval(tick,15000)'
