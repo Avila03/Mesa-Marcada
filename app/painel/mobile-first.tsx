@@ -326,7 +326,7 @@ export default function PainelPage(){
         <div className="heading"><div><div className="eyebrow">SEUS JOGOS</div><h1>Mesas</h1><p>Mesas de Poker e Blackjack que reúnem a galera.</p></div><button type="button" className="btn" onClick={()=>setModal("mesa")}>＋ Nova mesa</button></div>
         <div className="mm-rooms">{rooms.map(r=><article className="roomcard" key={r.id}>
           <div className={"roombanner mm-room-banner "+(r.game==="blackjack"?"blackjack":"")}>
-            <span className="tag "+r.game}>{gameName(r.game)}</span><span className="mm-room-suit">{r.game==="poker"?"♠":"♦"}</span>
+            <span className={"tag "+r.game}>{gameName(r.game)}</span><span className="mm-room-suit">{r.game==="poker"?"♠":"♦"}</span>
           </div>
           <div className="mm-room-card-content">
             <div className="mm-title-actions"><h3>{r.name}</h3><span className={"tag "+(r.status==="archived"?"archive":r.game)}>{r.status==="archived"?"Arquivada":"Ativa"}</span></div>
