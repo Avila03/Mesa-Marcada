@@ -1,5 +1,14 @@
 # Histórico de versões — Mesa Marcada
 
+## v1.0 — entrada mínima, Anfitrião e recebimentos
+- Entrada mínima validada no banco e sinalizada na compra do celular.
+- Compras anteriores abaixo do mínimo exigem completar a diferença na próxima compra.
+- Anfitrião identificado no evento; pode cancelar seu evento preservando histórico.
+- Anfitrião registra recebimento de compras em dinheiro e pode reabrir como pendente.
+- Pagamentos pendentes bloqueiam aprovação de fichas e encerramento da partida.
+- Conta em `app_admins` aparece identificada como Administrador geral; permissões globais seguem pendentes.
+- Testes SQL de compras/recompras e aprovação de recibos, com rollback.
+
 ## v0.9.1 — Compras por denominação (21/10/2026)
 - Tela de compra/recompra no evento com fichas físicas de 1, 5, 10, 25 e 50.
 - Tabela padrão do grupo: R$ 1,00; R$ 5,00; R$ 0,10; R$ 0,25; R$ 0,50 por ficha.
