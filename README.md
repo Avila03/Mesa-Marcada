@@ -1,8 +1,17 @@
-# ♠ Mesa Marcada — v0.9
+# Mesa Marcada — v1.6
 
 Aplicação web para organizar encontros presenciais de **Poker** e **Blackjack** entre amigos. Construída com **Next.js 16, React 19 e Supabase Auth/PostgreSQL**, publicada na Vercel. Visual **Dark Cards** inspirado no protótipo HTML v0.5, com prioridade para smartphones.
 
 **[Abrir Mesa Marcada](https://mesa-marcada.vercel.app)** · [Versão demonstrativa original](https://mesa-marcada.vercel.app/demo.html)
+
+## Dashboard e navegação mobile
+
+Na tela inicial, o jogador encontra seu **próximo evento**, confirmação de presença,
+próximas noites, valores de rachas pendentes e atalhos para Poker, Blackjack e seus tutoriais.
+A barra inferior do smartphone apresenta **quatro destinos**: **Início**, **Eventos**, **Ranking** e **Perfil**.
+**Mesas** ficam acessíveis pelo Dashboard; a **Administração geral** é acessível pelo
+Dashboard e pelo próprio Perfil somente para administradores. No desktop, a navegação
+lateral mantém todos os destinos.
 
 ## Funcionalidades principais
 
@@ -48,13 +57,13 @@ npm run build
 npm run smoke
 ```
 
-O GitHub Actions executa essas verificações em PRs e pushes. A Vercel publica automaticamente a branch `main`. Documentação por versão: [v1.5](README-v1.5.md), [v1.4](README-v1.4.md), [v1.3](README-v1.3.md), [v1.2](README-v1.2.md), [v1.1](README-v1.1.md), [v1.0](README-v1.0.md), [v0.9](README-v0.9.md), [histórico](CHANGELOG.md) e [testes](docs/TESTES-v0.9.md).
+O GitHub Actions executa essas verificações em PRs e pushes. A Vercel publica automaticamente a branch `main`. Documentação por versão: [v1.6](README-v1.6.md), [v1.5](README-v1.5.md), [v1.4](README-v1.4.md), [v1.3](README-v1.3.md), [v1.2](README-v1.2.md), [v1.1](README-v1.1.md), [v1.0](README-v1.0.md), [v0.9](README-v0.9.md), [histórico](CHANGELOG.md) e [testes](docs/TESTES-v0.9.md).
 
 ## Privacidade e limitações
 
 **Cadastro aberto significa que qualquer usuário autenticado pode visualizar títulos, horários e locais dos eventos.** Não inclua endereços pessoais detalhados. Links de convite exigem login, mas não oferecem acesso restrito a convidados.
 
-Os resultados financeiros são **registros informativos**. O rateio atual é igualitário, não representa obrigação legal ou transferência automática. O arquivo iCalendar usa duração estimada de quatro horas.
+Os resultados financeiros são **registros informativos**. O racha é opcional por despesa, dividido igualmente entre os participantes que aderiram, não representando obrigação legal ou transferência automática. O arquivo iCalendar usa duração estimada de quatro horas.
 
 Testes automáticos de compilação, rotas e regras financeiras do banco não substituem uma homologação **com duas contas reais em celulares diferentes**. Há uma lista dos cenários pendentes em `docs/TESTES-v0.9.md`.
 

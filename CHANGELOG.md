@@ -1,5 +1,15 @@
 # Histórico de versões — Mesa Marcada
 
+## v1.6 — Dashboard de jogo e quatro destinos no celular
+- Novo Dashboard compacto, orientado à próxima partida e à confirmação de presença.
+- Resumo de eventos, presenças e valores próprios pendentes nos rachas.
+- Próximos eventos acessíveis em um toque; mesas Poker e Blackjack com tutoriais por atalhos.
+- Navegação inferior do smartphone exclusivamente com Início, Eventos, Ranking e Perfil.
+- Mesas permanecem acessíveis por atalhos; Administração geral mantém entrada no Dashboard e Perfil do administrador.
+- Menu lateral completo preservado no desktop; PWA e orientação de instalação permanecem no final.
+- Cartões, botões e barra inferior ajustados para iPhone (áreas seguras e telas pequenas), com SVGs e Dark Cards v0.5.
+- Check automatizado garante que os quatro destinos e os acessos secundários continuem disponíveis.
+
 ## v1.5.1 — Ícones consistentes no iPhone e Dashboard mais limpo
 - Move orientações de instalação e avisos para o fim do Dashboard. Quando o PWA já está instalado, o cartão mostra somente preferências relevantes.
 - Substitui símbolos inconsistentes do menu Início, Eventos, Mesas, Ranking, Perfil e Administração por SVGs com desenho e alinhamento padronizados.

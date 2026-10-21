@@ -8,6 +8,7 @@ const companion=read("app/painel/mobile-app-companion.tsx");
 const styles=read("app/v05-theme.css");
 const features=read("app/painel/v09-features.tsx");
 const icons=read("app/painel/ui-icon.tsx");
+const dashboard=read("app/painel/dashboard-v16.tsx");
 
 for(const section of ["home","calendar","cards","trophy","user","settings","log-out","plus","book-open"]){
   assert.ok(icons.includes(section+":")||icons.includes('"'+section+'":'), "Missing SVG icon "+section);
@@ -23,4 +24,29 @@ assert.ok(card<panel.indexOf("<footer"),"Install settings must precede the foote
 assert.ok(companion.includes("appInstalled?\"Avisos de eventos\""),"Installed PWA tutorial not compact");
 assert.ok(styles.includes("safe-area-inset-top"),"iOS PWA status bar safe area missing");
 assert.ok(panel.includes('getTime()>=Date.now()'),"Old events shown as upcoming");
-console.log("✓ UI check: SVG navigation, logoff, tutorial below dashboard, iOS safe area, upcoming events");
+assert.ok(panel.includes('className="nav mm-bottom-nav"'),"Mobile bottom nav missing");
+assert.ok(panel.includes('className="nav mm-desktop-nav"'),"Desktop nav must remain");
+const mobileNav=panel.slice(
+  panel.indexOf("const mobileNavEntries="),
+  panel.indexOf("const mobileActivePage")
+);
+for(const key of ['id==="inicio"','id==="eventos"','id==="ranking"','id==="perfil"']){
+  assert.ok(mobileNav.includes(key),"Missing mobile tab: "+key);
+}
+assert.ok(!mobileNav.includes('id==="mesas"')&&!mobileNav.includes('id==="admin"'),
+  "Mobile tabs should be exactly four; extra screens need shortcuts");
+assert.ok(styles.includes("grid-template-columns:repeat(4,minmax(0,1fr))"),
+  "Mobile bottom bar must have four equally sized columns");
+assert.ok(styles.includes("safe-area-inset-bottom"),"iPhone bottom safe area missing");
+assert.ok(panel.includes("<DashboardV16"),"Action-oriented dashboard missing");
+assert.ok(!panel.includes("A próxima rodada<br/>começa aqui"),"Old oversized homepage hero still present");
+for(const anchor of [
+  "PRÓXIMO EVENTO","Confirmar presença","Próximas noites","Meus rachas",
+  "Poker","Blackjack","onGame(game)","onAdmin","onProfile"
+])assert.ok(dashboard.includes(anchor),"Dashboard action or information missing: "+anchor);
+assert.ok(panel.includes("mm-profile-admin-link"),
+  "Admin must remain accessible with only four mobile tabs");
+assert.ok(panel.includes('onTables={()=>go("mesas")}'),
+  "Mesas must remain accessible without a mobile tab");
+assert.ok(dashboard.includes("settled.has("),"Debt totals must exclude settled expenses");
+console.log("✓ v1.6 UI: Dashboard, 4 mobile tabs, desktop + admin shortcuts, personal debts");
