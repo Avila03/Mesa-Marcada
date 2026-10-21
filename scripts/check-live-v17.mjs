@@ -77,7 +77,7 @@ for(const token of ["<SeatingTable","db.rpc(\"choose_table_seat\"","detailTab===
   assert.ok(panel.includes(token),"Event seat integration missing: "+token);
 }
 assert.ok(seatsUi.includes("mm-seat-dealer")&&seatsUi.includes("CRUPIÊ"),"Blackjack dealer marker missing");
-assert.ok(seatsUi.includes("disabled={!canChange||!confirmed||busy"),"Guests cannot sit before confirming");
+assert.ok(seatsUi.includes("disabled={!canChange||busy"),"Seat action must work without prior confirmation");
 assert.ok(seatsCss.includes("@media(max-width:490px)"),"Seats need compact mobile sizing");
 assert.ok(duoCss.includes("#258bff")&&duoCss.includes("#ff424d"),"Keep coequal Dark Cards Duo accents");
 assert.ok(duoCss.includes(".mm-game-blackjack .btn.gold"),"Blackjack must use red primary action");
@@ -114,3 +114,19 @@ assert.ok(panel.includes('createForm={showAddExpense?<section'),"Expense create 
 assert.ok(panel.includes('sub==="gastos"?"visao"')||panel.includes('sub==="gastos"'),"Keep old profile expense links working");
 assert.ok(panel.includes('Ver despesas e rachas →'),"Link to expenses from event summary");
 console.log("✓ v2.1: assentos, enquetes e despesas dentro da Visão geral");
+
+const seatAutoSql=read("supabase/migrations/20261022060000_seat_auto_attendance.sql");
+const homeV16=read("app/painel/dashboard-v16.tsx");
+for(const token of [
+  "FOR UPDATE","INSERT INTO public.session_attendance(session_id,user_id)",
+  "DELETE FROM public.session_attendance","NOT EXISTS(SELECT 1 FROM public.session_attendance",
+  "CREATE POLICY seating_read_event","app_private.is_event_hidden(s.id)"
+]){
+ assert.ok(seatAutoSql.includes(token),"Atomic seat confirmation rule missing: "+token);
+}
+assert.ok(!panel.includes("confirmAttendance("),"Standalone confirmation API must not be used in UI");
+assert.ok(!panel.includes("Confirmar minha presença"),"No confirmation buttons inside events");
+assert.ok(!homeV16.includes("onConfirm"),"No confirmation action on dashboard");
+assert.ok(panel.includes("Escolher assento →"),"Cards must offer seats directly");
+assert.ok(seatsUi.includes("participação será confirmada automaticamente"),"Seat onboarding explanation missing");
+console.log("✓ v2.2: seat selection automatically confirms attendance, no extra buttons");
