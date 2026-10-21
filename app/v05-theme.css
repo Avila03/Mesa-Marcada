@@ -170,7 +170,7 @@ td{border-color:#26303d;color:#edf2f9}
 
 
 /* V0.7: alterações funcionais mobile-first; preservar a identidade visual v0.5 */
-html {scroll-behavior:smooth}
+html {scroll-behavior:auto}
 body{min-width:320px}
 a{text-decoration:none}
 .brandname em{color:#258bff;font-style:normal}
@@ -1077,4 +1077,121 @@ a{text-decoration:none}
   .mm-advanced-ranking .mm-ranking-filter-row .mm-filter-bar button{flex:1;min-height:44px}
   .mm-advanced-ranking .mm-rank-performance strong{font-size:15px}
   .mm-annual-unit{font-size:10px}
+}
+
+/* v1.7.1 — estabilidade visual e da rolagem em todas as telas.
+   A página só deve rolar quando não existe um diálogo ativo. */
+html{
+  scroll-behavior:auto;
+  -webkit-text-size-adjust:100%;
+  overflow-x:clip;
+  overscroll-behavior-y:none;
+}
+body{
+  overflow-x:clip;
+  overscroll-behavior-y:none;
+  min-height:100svh;
+}
+.layout,.main{min-width:0}
+@media(min-width:751px){
+  html{scrollbar-gutter:stable}
+}
+
+/* Quando o usuário abre Criar evento, mantém o fundo imóvel e só permite
+   rolagem dentro do formulário, mesmo com teclado virtual no iPhone. */
+.mm-overlay{
+  position:fixed;
+  inset:auto 0 auto;
+  top:var(--mm-dialog-viewport-top,0px);
+  height:var(--mm-dialog-viewport-height,100dvh);
+  z-index:100;
+  overflow:hidden;
+  overscroll-behavior:none;
+  touch-action:pan-y;
+  padding:18px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+.mm-modal{
+  width:min(590px,100%);
+  max-width:100%;
+  max-height:min(calc(var(--mm-dialog-viewport-height,100dvh) - 36px),900px);
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:clip;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
+  scrollbar-gutter:stable;
+  scroll-behavior:auto;
+  outline:none;
+}
+.mm-modal>header{
+  position:sticky;
+  top:-25px;
+  z-index:2;
+  padding:10px 0 13px;
+  margin:-10px 0 13px;
+  border-bottom:1px solid #2d455f;
+  background:linear-gradient(145deg,#151e2a,#0c141e);
+}
+.mm-modal .mm-form-actions{
+  position:sticky;
+  bottom:-25px;
+  z-index:2;
+  padding:12px 0 16px;
+  margin:0 0 -12px;
+  background:#0c131d;
+  border-top:1px solid #2d455f;
+}
+.mm-modal .mm-form-grid,.mm-modal .mm-denom-price-grid{min-width:0}
+.mm-modal .mm-field{min-width:0}
+.mm-modal input,.mm-modal select,.mm-modal textarea{max-width:100%}
+
+/* Evita o zoom de foco do Safari quando o campo usa fontes menores que 16px.
+   Aplica-se a login, perfil, gastos, fichas, filtros e demais formulários. */
+@media(max-width:900px){
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,textarea{
+    font-size:16px;
+  }
+}
+@media(max-width:750px){
+  .mm-overlay{
+    padding:0;
+    justify-content:stretch;
+    align-items:flex-end;
+  }
+  .mm-modal{
+    width:100%;
+    max-width:100%;
+    max-height:calc(var(--mm-dialog-viewport-height,100dvh) - 8px);
+    align-self:flex-end;
+    border-radius:20px 20px 0 0;
+    border-bottom:0;
+    padding:19px 17px calc(16px + env(safe-area-inset-bottom,0px));
+  }
+  .mm-modal>header{
+    top:-19px;
+    margin:-7px 0 13px;
+    padding:10px 0 14px;
+  }
+  .mm-modal .mm-form-grid{
+    grid-template-columns:minmax(0,1fr);
+    gap:13px;
+  }
+  .mm-modal .mm-form-actions{
+    bottom:calc(-16px - env(safe-area-inset-bottom,0px));
+    padding:11px 0 calc(15px + env(safe-area-inset-bottom,0px));
+    margin:0 0 calc(-13px - env(safe-area-inset-bottom,0px));
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .mm-modal .mm-form-actions .btn{min-height:48px}
+}
+@media(max-height:520px){
+  .mm-modal{max-height:calc(var(--mm-dialog-viewport-height,100dvh) - 4px)}
+}
+@media(prefers-reduced-motion:reduce){
+  .mm-overlay,.mm-modal{scroll-behavior:auto;transition:none!important}
 }

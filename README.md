@@ -1,4 +1,4 @@
-# Mesa Marcada — v1.6.1
+# Mesa Marcada — v1.7.1
 
 Aplicação web para organizar encontros presenciais de **Poker** e **Blackjack** entre amigos. Construída com **Next.js 16, React 19 e Supabase Auth/PostgreSQL**, publicada na Vercel. Visual **Dark Cards** inspirado no protótipo HTML v0.5, com prioridade para smartphones.
 
