@@ -212,8 +212,7 @@ BEGIN
  THEN RAISE EXCEPTION 'Reabra a conferência antes de excluir compras'; END IF;
  RETURN OLD;
 END; $$;
-CREATE TRIGGER chip_purchase_delete_during_live BEFORE DELETE ON public.session_chip_purchases
- FOR EACH ROW EXECUTE FUNCTION app_private.guard_chip_purchase_delete();
+-- Trigger chip_purchase_delete_during_live já existe; somente a função foi atualizada.
 
 -- Repasses em reais, autorizados e protegidos por conferência 100% equilibrada.
 CREATE OR REPLACE FUNCTION app_private.set_chip_payout(p_event_id uuid,p_user_id uuid,p_confirmed boolean)
