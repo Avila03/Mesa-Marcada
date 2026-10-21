@@ -880,3 +880,180 @@ a{text-decoration:none}
   .sidebar .nav .mm-nav-label{font-size:9px}
   .sidebar .nav .ico svg{width:20px;height:20px}
 }
+
+
+/* =======================================================
+   Mesa Marcada v1.6 — dashboard de ação + quatro abas móveis
+   Mobile-first, mantendo Dark Cards e a marca existente.
+   ======================================================= */
+
+/* Navegação desktop preserva todos os destinos administrativos. */
+.sidebar .mm-desktop-nav{display:flex}
+.sidebar .mm-bottom-nav{display:none}
+
+.mm-home-v16{display:grid;gap:19px;min-width:0}
+.mm-home-v16 button{cursor:pointer}
+.mm-home-v16 button:disabled{cursor:wait;opacity:.6}
+.mm-home-head{display:flex;align-items:center;justify-content:space-between;gap:18px;min-width:0}
+.mm-home-kicker{display:inline-flex;align-items:center;gap:7px;letter-spacing:1.65px;font-size:10px;font-weight:850;color:#399cff}
+.mm-home-head h1{font-size:clamp(28px,3.5vw,42px);letter-spacing:-1.45px;line-height:1.13;color:#f3f7ff;margin:7px 0 8px}
+.mm-home-head h1 span{color:#58adff}
+.mm-home-head p{font-size:13px;color:#a4b5ca;line-height:1.5;max-width:600px;margin:0}
+.mm-home-create,.mm-home-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+ border:1px solid #4ca9ff;background:linear-gradient(105deg,#1079ec,#389fff);
+ color:#fff;font:800 13px/1.2 Arial,Helvetica,sans-serif;border-radius:11px;min-height:46px;padding:12px 17px;
+ box-shadow:0 7px 22px #006ee829;white-space:nowrap}
+.mm-home-create svg,.mm-home-primary svg{flex-shrink:0}
+.mm-home-create:hover,.mm-home-primary:hover{background:#3a9fff}
+.mm-home-create:focus-visible,.mm-home-primary:focus-visible{outline:3px solid #b6dfff;outline-offset:3px}
+
+.mm-home-featured{position:relative;overflow:hidden;min-width:0;padding:25px 27px;
+ border:1px solid #3474a7;background:radial-gradient(ellipse at 100% 7%,#134572 0,transparent 52%),linear-gradient(140deg,#111e30 6%,#0d1521 84%);
+ border-radius:18px;box-shadow:0 12px 40px #0005}
+.mm-home-featured:before{content:"";position:absolute;inset:0 0 auto;height:2px;
+ background:linear-gradient(90deg,#238dff,transparent 62%);pointer-events:none}
+.mm-home-featured-meta{display:flex;justify-content:space-between;gap:9px;align-items:center;flex-wrap:wrap}
+.mm-home-label{color:#63b6ff;letter-spacing:1.45px;font-weight:850;font-size:11px;display:inline-flex;align-items:center;gap:7px}
+.mm-home-presence{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:750;
+ border-radius:100px;padding:7px 10px;white-space:normal;text-align:center}
+.mm-home-presence.yes{background:#153d32;color:#8be8b9;border:1px solid #2e745a}
+.mm-home-presence.waiting{background:#3d2730;color:#ffc6b7;border:1px solid #815763}
+.mm-home-featured h2{font-size:clamp(24px,3vw,34px);line-height:1.18;letter-spacing:-.9px;color:#f4f8ff;margin:17px 0 15px}
+.mm-home-event-info{display:flex;align-items:center;gap:17px;flex-wrap:wrap;color:#c5dbf3}
+.mm-home-event-info span{display:inline-flex;align-items:center;gap:7px;font-size:12px;line-height:1.45}
+.mm-home-event-info svg{color:#65b5ff;flex-shrink:0}
+.mm-home-location{border-top:1px solid #294a68;padding-top:13px;margin-top:13px;color:#a0bbd7}
+.mm-home-featured-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:20px}
+.mm-home-secondary{display:inline-flex;gap:8px;align-items:center;justify-content:center;
+ padding:11px 16px;min-height:46px;border:1px solid #446888;background:#1a2c40;color:#dbedff;
+ border-radius:11px;font-weight:750;font-size:13px}
+.mm-home-secondary:hover{border-color:#69b6f8;background:#243c55}
+.mm-home-no-event h2{max-width:650px}
+.mm-home-no-event p{font-size:13px;color:#b7cee2;margin:0 0 20px}
+.mm-home-statgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.mm-home-statgrid button{display:flex;align-items:center;gap:13px;min-width:0;border:1px solid #2b3e53;background:#101821;
+ color:#e6f2ff;border-radius:13px;padding:16px;text-align:left;min-height:80px}
+.mm-home-statgrid button:hover{background:#15283d;border-color:#397bc0}
+.mm-home-statgrid svg{color:#5dacf6;flex-shrink:0}
+.mm-home-statgrid button>span{display:grid;gap:5px;min-width:0}
+.mm-home-statgrid strong{font-size:20px;line-height:1.13;font-weight:850;overflow-wrap:anywhere}
+.mm-home-statgrid small{font-size:11px;color:#95acc4;line-height:1.4}
+.mm-home-statgrid button.has-debt strong{color:#ffbdab}
+
+.mm-home-columns{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:14px;align-items:stretch}
+.mm-home-panel,.mm-home-tables{background:linear-gradient(160deg,#111820,#0d1219);
+ border:1px solid #2b3f56;border-radius:16px;padding:20px;min-width:0}
+.mm-home-panel>header,.mm-home-tables>header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:13px}
+.mm-home-panel h2,.mm-home-tables h2{color:#f0f5fc;font-size:19px;line-height:1.2;margin:6px 0 0}
+.mm-home-textlink{display:inline-flex;align-items:center;gap:5px;background:none;border:0;color:#74bcff;
+ font-weight:750;font-size:12px;white-space:nowrap;padding:10px 0}
+.mm-home-textlink:hover{color:#c0e3ff}
+.mm-home-event-row{display:flex;gap:12px;align-items:center;width:100%;border:0;border-top:1px solid #253647;
+ background:transparent;color:#e2ecf7;padding:13px 0;text-align:left}
+.mm-home-event-row:hover{background:#132239}
+.mm-home-datebox{width:50px;min-width:50px;height:52px;display:grid;place-content:center;gap:2px;text-align:center;
+ color:#7bc2ff;background:#112b45;border:1px solid #2b628f;border-radius:11px}
+.mm-home-datebox strong{font-weight:850;font-size:19px;line-height:1}
+.mm-home-datebox small{font-size:9px;letter-spacing:1px;font-weight:800}
+.mm-home-rowtext{display:grid;gap:5px;min-width:0;flex:1}
+.mm-home-rowtext strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mm-home-rowtext small{font-size:11px;color:#99afc8}
+.mm-home-rowstatus{font-size:10px;color:#ffc6b6;padding:6px 8px;border-radius:20px;background:#34242a;white-space:nowrap}
+.mm-home-rowstatus.joined{color:#7de3ac;background:#123527}
+.mm-home-empty{padding:18px 0;color:#a1b6cd;font-size:13px}
+.mm-home-money-stat{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.mm-home-money-stat>div{border:1px solid #2e4a64;border-radius:11px;background:#101e2d;padding:14px}
+.mm-home-money-stat small{display:block;font-size:11px;color:#9fb7cd;margin-bottom:7px}
+.mm-home-money-stat strong{display:block;font-size:clamp(18px,2vw,22px);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.mm-home-money-stat .outgoing{color:#ffc0b6}
+.mm-home-money-stat .incoming{color:#84e6b4}
+.mm-home-debt-list{margin-top:11px}
+.mm-home-debt-row{display:flex;align-items:center;justify-content:space-between;gap:8px;border:0;border-top:1px solid #263b4f;
+ background:transparent;color:#b8cfe5;padding:11px 0;width:100%;font-size:11px;text-align:left}
+.mm-home-debt-row strong{white-space:nowrap;color:#ffd0c2}
+.mm-home-money-empty{display:flex;align-items:center;gap:8px;color:#83d8b3;font-size:12px;margin:15px 0 2px;line-height:1.45}
+.mm-home-tables{display:grid;gap:2px}
+.mm-home-tablegrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.mm-home-table{display:flex;align-items:center;gap:12px;min-width:0;padding:15px;border-radius:13px;
+ text-align:left;color:#f1f8ff;background:linear-gradient(125deg,#102d4a,#0c1726);border:1px solid #2566a2}
+.mm-home-table.blackjack{background:linear-gradient(125deg,#351922,#131018);border-color:#7e3442}
+.mm-home-table:hover{filter:brightness(1.2)}
+.mm-home-table-icon{height:48px;width:48px;flex-shrink:0;border-radius:12px;display:grid;place-items:center;background:#154e80;color:#4eafff}
+.mm-home-table.blackjack .mm-home-table-icon{background:#51232e;color:#ff535f}
+.mm-home-table-description{flex:1;min-width:0;display:grid;gap:4px}
+.mm-home-table-description strong{font-size:16px}
+.mm-home-table-description small{font-size:11px;color:#a2c4df;line-height:1.45}
+.mm-home-table.blackjack .mm-home-table-description small{color:#c8a5ae}
+.mm-home-table>svg:last-child{color:#87caff;flex-shrink:0}
+.mm-home-shortcuts{display:flex;flex-wrap:wrap;gap:11px}
+.mm-home-shortcuts button,.mm-profile-admin-link{display:inline-flex;align-items:center;gap:10px;
+ border:1px solid #30577d;background:#132336;color:#d9efff;border-radius:12px;padding:13px 16px;
+ min-height:47px;font-weight:750;font-size:12px}
+.mm-home-shortcuts button:hover,.mm-profile-admin-link:hover{border-color:#3997e9;background:#15365b}
+.mm-home-shortcuts button svg:last-child{margin-left:auto}
+.mm-profile-admin-link{width:100%;text-align:left;justify-content:flex-start;margin-bottom:17px}
+.mm-profile-admin-link>span{display:grid;gap:5px;flex:1}
+.mm-profile-admin-link>span strong{font-size:13px}
+.mm-profile-admin-link>span small{font-size:11px;color:#9fbbd4}
+.mm-profile-admin-link svg:last-child{margin-left:auto}
+
+/* Somente quatro destinos na barra inferior do smartphone. */
+@media(max-width:750px){
+ .sidebar{height:calc(66px + env(safe-area-inset-bottom,0px))!important;min-height:0!important;
+  padding:0 7px env(safe-area-inset-bottom,0px)!important;box-sizing:border-box!important;
+  background:#0b131e!important;border-top:1px solid #274663!important}
+ .sidebar .mm-desktop-nav{display:none!important}
+ .sidebar .mm-bottom-nav{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));
+  align-items:stretch;justify-content:stretch;height:65px;gap:5px}
+ .sidebar .mm-bottom-nav .mm-nav-btn{width:100%;min-width:0;display:flex!important;flex-direction:column;
+  align-items:center;justify-content:center;gap:5px;margin:0!important;padding:7px 2px!important;
+  min-height:56px!important;height:63px;max-width:none;box-sizing:border-box;
+  border:1px solid transparent;border-radius:12px}
+ .sidebar .mm-bottom-nav .mm-nav-btn.active{border-color:#267cc5;background:#132943;color:#eef8ff}
+ .sidebar .mm-bottom-nav .ico{display:grid;place-items:center;line-height:1;color:inherit}
+ .sidebar .mm-bottom-nav .ico svg{display:block;width:23px;height:23px}
+ .sidebar .mm-bottom-nav .mm-nav-label{font-size:11px!important;letter-spacing:0;line-height:1.1;
+  font-weight:700;white-space:nowrap;display:block}
+ .main{padding-bottom:calc(101px + env(safe-area-inset-bottom,0px))!important}
+ .mm-home-head{align-items:stretch}
+ .mm-home-head h1{font-size:clamp(25px,6.5vw,34px)}
+ .mm-home-columns{grid-template-columns:1fr}
+ .mm-home-statgrid{gap:8px}
+ .mm-home-statgrid button{padding:11px;gap:7px;flex-direction:column;align-items:flex-start;min-height:85px}
+ .mm-home-statgrid svg{width:19px;height:19px}
+ .mm-home-statgrid strong{font-size:17px}
+ .mm-home-statgrid small{font-size:10px}
+ .mm-home-featured{padding:19px}
+ .mm-home-featured h2{font-size:26px}
+ .mm-home-panel,.mm-home-tables{padding:16px}
+}
+@media(max-width:530px){
+ .mm-home-head{flex-direction:column;align-items:flex-start;gap:12px}
+ .mm-home-head h1{font-size:30px;margin:4px 0 7px}
+ .mm-home-head p{font-size:12px}
+ .mm-home-create{width:100%;min-height:44px}
+ .mm-home-featured-meta{align-items:flex-start}
+ .mm-home-featured h2{margin:14px 0 13px;font-size:24px}
+ .mm-home-event-info{gap:10px}
+ .mm-home-event-info span{font-size:11px}
+ .mm-home-featured-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .mm-home-featured-actions button{padding:10px 7px;min-width:0;white-space:normal}
+ .mm-home-featured-actions button:only-child{grid-column:1/-1}
+ .mm-home-featured-actions button svg{width:16px;flex-shrink:0}
+ .mm-home-statgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .mm-home-statgrid button:last-child{grid-column:span 2;flex-direction:row;align-items:center;min-height:60px}
+ .mm-home-statgrid button:last-child strong{font-size:20px}
+ .mm-home-tablegrid{grid-template-columns:1fr}
+ .mm-home-table{padding:12px}
+ .mm-home-money-stat strong{font-size:19px}
+ .mm-home-rowstatus{font-size:9px}
+ .mm-home-panel>header,.mm-home-tables>header{align-items:flex-start}
+ .mm-home-textlink{font-size:11px}
+}
+@media(max-width:360px){
+ .sidebar .mm-bottom-nav .mm-nav-label{font-size:10px!important}
+ .mm-home-featured-actions{grid-template-columns:1fr}
+ .mm-home-event-row{gap:7px}
+ .mm-home-datebox{width:43px;min-width:43px}
+ .mm-home-rowstatus{display:none}
+}
