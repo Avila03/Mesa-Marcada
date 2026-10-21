@@ -17,7 +17,7 @@ function installed(){
 }
 function isIphone(){return typeof navigator!=="undefined"&&/iphone|ipad|ipod/i.test(navigator.userAgent);}
 
-export default function MobileAppCompanion({onUpdate}:{onUpdate:()=>Promise<void>}){
+export default function MobileAppCompanion({onUpdate,visible}:{onUpdate:()=>Promise<void>;visible:boolean}){
   const [installPrompt,setInstallPrompt]=useState<InstallEvent|null>(null);
   const [appInstalled,setInstalled]=useState(false);
   const [notice,setNotice]=useState("");
@@ -72,10 +72,11 @@ export default function MobileAppCompanion({onUpdate}:{onUpdate:()=>Promise<void
             return isNew?"Novo evento: "+event.title:"Evento atualizado: "+event.title;
           });
           setAlerts(labels);
-          await onUpdateRef.current();
+          try{await onUpdateRef.current()}catch{/* Sincronização volta na próxima consulta */}
           if(localStorage.getItem("mm-realtime-alerts")==="yes"&&
             "Notification" in window&&Notification.permission==="granted"&&!document.hasFocus()){
-            new Notification("Mesa Marcada",{body:labels[0],icon:"/mesa-marcada-logo.webp"});
+            try{new Notification("Mesa Marcada",{body:labels[0],icon:"/mesa-marcada-logo.webp"});}
+            catch{/* Em iOS alguns navegadores exigem Web Push de PWA instalado */}
           }
         }
       }
@@ -115,6 +116,11 @@ export default function MobileAppCompanion({onUpdate}:{onUpdate:()=>Promise<void
     setNotifyEnabled(false);
     setNotice("Avisos opcionais desativados.");
   }
+  if(!visible)return alerts.length>0?<div className="mm-app-live-alerts mm-app-live-compact" role="status">
+    <strong>Agenda atualizada</strong>
+    {alerts.map((label,i)=><p key={i}>{label}</p>)}
+    <button type="button" onClick={()=>setAlerts([])}>Dispensar</button>
+  </div>:null;
   return <section className="mm-app-companion" aria-label="Mesa Marcada no smartphone">
     <div className="mm-app-companion-head">
       <div><span className="eyebrow">MESAS SEM COMPLICAÇÃO</span><h2>Seu clube no celular</h2>

@@ -15,6 +15,7 @@ import {prepareProfilePhoto} from "./photo-utils";
 import {ExpenseSplitsPanel,MySplitsSummary} from "./expense-splits";
 import type {ExpenseSplitRow,MyExpenseSplitRow,ExpenseSettlement} from "./expense-splits";
 import AdminPanel from "./admin-panel";
+import MobileAppCompanion from "./mobile-app-companion";
 import type {HiddenEvent,AdminAudit} from "./admin-panel";
 
 type ChipPriceKey="chip_price_1_brl"|"chip_price_5_brl"|"chip_price_10_brl"|"chip_price_25_brl"|"chip_price_50_brl";
@@ -445,12 +446,29 @@ export default function PainelPage(){
       </div>
       {error&&<p className="mm-message error" role="alert" style={{marginBottom:16}}>{error}</p>}
       {message&&<p className="mm-message" role="status" style={{marginBottom:16}}>{message}</p>}
+      <MobileAppCompanion onUpdate={reload} visible={page==="inicio"}/>
 
       {page==="inicio"&&<>
         <div className="heading">
           <div><div className="eyebrow">BEM-VINDO DE VOLTA</div><h1>A próxima rodada<br/>começa aqui, {firstName}.</h1><p className="mm-page-intro">Encontre sua próxima noite e reúna todo mundo na mesa.</p></div>
           <button type="button" className="btn gold mm-create" onClick={()=>openCreator()}><span>＋</span> Criar evento</button>
         </div>
+        {(myUpcoming[0]||upcoming[0])&&(()=>{
+          const next=myUpcoming[0]||upcoming[0];
+          const attending=attendances.some(a=>a.session_id===next.id&&a.user_id===user.id);
+          return <section className="mm-mobile-next-event">
+            <div><span className="eyebrow">SUA PRÓXIMA NOITE</span>
+              <h2>{next.title}</h2>
+              <p>{fullDate(next.starts_at)} · {eventTime(next.starts_at)} · {roomTitle(next.room_id)}</p>
+              <small>{attending?"✓ Você confirmou presença":"Sua presença ainda não foi confirmada"}</small>
+            </div>
+            <div className="mm-mobile-next-event-actions">
+              {!attending&&<button type="button" className="btn gold" disabled={working}
+                onClick={()=>void confirmAttendance(next.id)}>✓ Confirmar</button>}
+              <button type="button" className="btn" onClick={()=>openEvent(next.id)}>Ver evento →</button>
+            </div>
+          </section>;
+        })()}
         <div className="metrics">
           <div className="metric"><div className="mhead">Eventos agendados <span className="micon">▤</span></div><strong>{upcoming.length}</strong><small>Próximas noites</small></div>
           <div className="metric"><div className="mhead">Minhas presenças <span className="micon">♠</span></div><strong>{myUpcoming.length}</strong><small>Confirmações ativas</small></div>
