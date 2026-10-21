@@ -382,13 +382,19 @@ export default function PainelPage(){
 
   async function finishLiveEvent(eventId:string,isHost:boolean){
     if(!window.confirm("Encerrar a partida e abrir o Resumo da noite? Confira se o valor final de todos os jogadores soma o total comprado."))return;
-    await act(async db=>{
+    const db=getSupabase();
+    if(!db)return;
+    setWorking(true);setError("");setMessage("");
+    try{
       const {error:finishError}=isHost
         ?await db.from("sessions").update({status:"finished"}).eq("id",eventId)
         :await db.rpc("admin_manage_event",{p_event_id:eventId,p_action:"finish"});
       if(finishError)throw finishError;
-    },"Partida encerrada! Resumo da noite disponível.");
-    setDetailTab("resumo-evento");
+      await reload();
+      setDetailTab("resumo-evento");
+      setMessage("Partida encerrada! Resumo da noite disponível.");
+      window.scrollTo({top:0,behavior:"auto"});
+    }catch(e){setError(errText(e));}finally{setWorking(false);}
   }
 
   async function act(fn:(db:SupabaseClient,id:string)=>Promise<void>,success:string){
@@ -882,6 +888,13 @@ export default function PainelPage(){
         />}
 
         {detailTab==="visao"&&<>
+        <SeatingTable game={selectedGame}
+          capacity={selected.max_participants} seats={seatedGuests}
+          myId={user.id} confirmed={meConfirmed}
+          canChange={selected.status==="scheduled"&&!Boolean(selectedLive)}
+          busy={working} nameFor={nameFor}
+          onChoose={seatNo=>void chooseSeat(seatNo)}/>}
+
           <div className="two">
           <section className="panel">
             <div className="panelhead"><h2>Participantes</h2><span className="tag">{guests.length}/{selected.max_participants}</span></div>
@@ -894,7 +907,7 @@ export default function PainelPage(){
             {organizer&&!meConfirmed&&<p className="mm-formfoot">Como organizador, você também pode confirmar sua presença para votar e registrar fichas.</p>}
           </section>
           <section className="panel">
-            <div className="panelhead"><h2>Resumo da noite</h2></div>
+            <div className="panelhead"><h2>Informações do evento</h2></div>
             <div className="mm-detail-stats">
               <div><small>Entrada mínima</small><strong>{money(selected.min_entry_brl)}</strong></div>
               <div><small>Enquetes</small><strong>{eventPolls.length}</strong></div>
@@ -907,12 +920,6 @@ export default function PainelPage(){
             </div>
           </section>
         </div>
-        {detailTab==="visao"&&<SeatingTable game={selectedGame}
-          capacity={selected.max_participants} seats={seatedGuests}
-          myId={user.id} confirmed={meConfirmed}
-          canChange={selected.status==="scheduled"&&!Boolean(selectedLive)}
-          busy={working} nameFor={nameFor}
-          onChoose={seatNo=>void chooseSeat(seatNo)}/>}
 
 
         <div id="event-polls" className="mm-overview-polls">
