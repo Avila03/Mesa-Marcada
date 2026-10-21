@@ -1,5 +1,13 @@
 # Histórico de versões — Mesa Marcada
 
+## v1.4 — Celular, instalação PWA e avisos
+- Manifesto e Service Worker para instalar o site em tela inicial.
+- Tela offline sem cache de informações financeiras, credenciais ou páginas privadas.
+- Próximo evento no Dashboard, com confirmação de presença e acesso em um toque.
+- Avisos de mudanças na agenda consultados enquanto o site estiver aberto, com permissão opcional.
+- Instruções específicas para instalar no Safari (iPhone) e Android.
+- Smoke HTTP passa a testar rotas PWA e garante que o worker não grava requisições pessoais em cache.
+
 ## v1.3 — Administração geral e Anfitriões
 - Painel Administração restrito à conta cadastrada em `app_admins`, sem autoelevação.
 - Lista de eventos, anfitriões, participantes, pendências e auditoria.

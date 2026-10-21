@@ -40,6 +40,22 @@ try{
   const eventId="00000000-0000-4000-8000-000000000001";
   await verify("/evento/"+eventId,307,"/painel?evento="+eventId);
   await verify("/evento/invalid",307,"/painel");
+  const manifest=await verify("/manifest.webmanifest",200);
+  const manifestJson=await manifest.json();
+  assert.equal(manifestJson.name,"Mesa Marcada");
+  assert.equal(manifestJson.start_url,"/painel");
+  assert.equal(manifestJson.display,"standalone");
+  assert.ok(manifestJson.icons.some(x=>x.sizes==="192x192"),"Missing 192 icon");
+  assert.ok(manifestJson.icons.some(x=>x.sizes==="512x512"),"Missing 512 icon");
+  await verify("/icons/mesa-192.svg",200);
+  await verify("/icons/mesa-512.svg",200);
+  const serviceWorker=await verify("/sw.js",200);
+  const serviceWorkerText=await serviceWorker.text();
+  assert.ok(serviceWorkerText.includes('event.request')&&serviceWorkerText.includes("/offline.html"));
+  assert.ok(!serviceWorkerText.includes('caches.put(req'),'SW must never cache user requests');
+  const offline=await verify("/offline.html",200);
+  assert.ok((await offline.text()).includes("Você está sem internet"));
+  console.log("✓ PWA HTTP: manifest, service worker e offline sem cache financeiro");
   console.log("✓ Smoke HTTP: /, /login, /painel e links /evento/[id]");
   passed=true;
 }finally{
