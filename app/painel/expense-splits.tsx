@@ -149,7 +149,7 @@ export function MySplitsSummary({
   return <section className="mm-profile-debts">
     <div className="mm-section-title"><h2>Meus rachas</h2></div>
     <p className="mm-formfoot">Pendências de comida, bebidas e demais gastos dos quais você escolheu participar. Quem pagou confirma o recebimento para dar baixa.</p>
-    {settledCount>0&&<p className="mm-split-ok">✓ {settledCount} {settledCount===1?"parcela já acertada":"parcelas já acertadas"} não entram nos valores pendentes.</p>
+    {settledCount>0&&<p className="mm-split-ok">✓ {settledCount} {settledCount===1?"parcela já acertada":"parcelas já acertadas"} não entram nos valores pendentes.</p>}
     <div className="mm-split-overview mm-profile-split-summary">
       <div><small>Você deve a outras pessoas</small><strong>{money(payCents/100)}</strong>
         <span>{peopleOwed} {peopleOwed===1?"pessoa":"pessoas"}</span></div>
