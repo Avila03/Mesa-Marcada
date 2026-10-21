@@ -130,3 +130,19 @@ assert.ok(!homeV16.includes("onConfirm"),"No confirmation action on dashboard");
 assert.ok(panel.includes("Escolher assento →"),"Cards must offer seats directly");
 assert.ok(seatsUi.includes("participação será confirmada automaticamente"),"Seat onboarding explanation missing");
 console.log("✓ v2.2: seat selection automatically confirms attendance, no extra buttons");
+
+// v2.3: eventos excluídos não reaparecem nas telas públicas nem em "Todos".
+for(const guard of [
+ "const hiddenEventIds=new Set(hiddenEvents.map(h=>h.session_id))",
+ "const agendaEvents=events.filter(e=>!hiddenEventIds.has(e.id))",
+ "const visibleEvents=agendaEvents.filter",
+ "const upcoming=agendaEvents.filter",
+ "const count=agendaEvents.filter",
+ "{agendaEvents.filter(e=>roomFor(e.room_id)?.game===gameView)",
+ "onOpen={id=>openEvent(id,\"visao\",true)}",
+ "if(hiddenEvents.some(h=>h.session_id===id)&&!(adminAccess&&isAdmin))",
+ "if(events.some(e=>e.id===id&&!hiddenEvents.some(h=>h.session_id===id)))",
+ "events={agendaEvents} attendances={attendances.filter"
+]) assert.ok(panel.includes(guard),"Ocultação de eventos: "+guard);
+assert.ok(panel.includes("events={events} profiles={profiles}"),"Admin deve poder restaurar eventos excluídos");
+console.log("✓ v2.3: excluídos somente na administração, com restauração preservada");

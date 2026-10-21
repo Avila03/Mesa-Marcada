@@ -258,13 +258,13 @@ export default function PainelPage(){
     if(!user)return;
     const id=new URLSearchParams(window.location.search).get("evento");
     if(!id||events.length===0)return;
-    if(events.some(e=>e.id===id)){
+    if(events.some(e=>e.id===id&&!hiddenEvents.some(h=>h.session_id===id))){
       setSelectedId(id);setDetailTab("visao");setPage("detalhe");
     }else{
       setError("Evento não encontrado. Verifique o link compartilhado.");
     }
     window.history.replaceState(null,"","/painel");
-  },[user,events]);
+  },[user,events,hiddenEvents]);
 
   const refreshLive=useCallback(async(showLoading=false)=>{
     if(!selectedId||!user)return;
@@ -414,8 +414,12 @@ export default function PainelPage(){
   const ownProfile=profiles.find(p=>p.id===user?.id);
   const firstName=nickname.split(" ")[0];
   const activeRooms=(["poker","blackjack"] as Game[]).map(g=>rooms.find(r=>r.game===g&&r.status==="active")).filter((r):r is Room=>Boolean(r));
-  // Evita apresentar eventos históricos como "Sua próxima noite".
-  const upcoming=events.filter(e=>e.status==="scheduled"&&new Date(e.starts_at).getTime()>=Date.now())
+  // A RLS oculta eventos excluídos dos usuários comuns, mas Admin os recebe
+  // para restauração. Apenas a Administração utiliza a lista completa.
+  const hiddenEventIds=new Set(hiddenEvents.map(h=>h.session_id));
+  const agendaEvents=events.filter(e=>!hiddenEventIds.has(e.id));
+  // Evita apresentar eventos históricos ou excluídos como "Sua próxima noite".
+  const upcoming=agendaEvents.filter(e=>e.status==="scheduled"&&new Date(e.starts_at).getTime()>=Date.now())
     .sort((a,b)=>new Date(a.starts_at).getTime()-new Date(b.starts_at).getTime());
   const myUpcoming=upcoming.filter(e=>attendances.some(a=>a.session_id===e.id&&a.user_id===user?.id));
   const selected=events.find(e=>e.id===selectedId);
@@ -537,7 +541,12 @@ export default function PainelPage(){
     finally{setWorking(false);}
   }
 
-  function openEvent(id:string,sub:DetailTab="visao"){
+  function openEvent(id:string,sub:DetailTab="visao",adminAccess=false){
+    // Eventos excluídos são acessíveis exclusivamente pela Administração.
+    if(hiddenEvents.some(h=>h.session_id===id)&&!(adminAccess&&isAdmin)){
+      setError("Este evento foi excluído da agenda pelo administrador.");
+      return;
+    }
     setSelectedId(id);setLiveActivities([]);
     const isFinished=events.some(ev=>ev.id===id&&ev.status==="finished");
     setDetailTab(isFinished?"resumo-evento":sub==="fichas"?"ao-vivo":
@@ -603,7 +612,7 @@ export default function PainelPage(){
       setPollQuestion("");
     },"Enquete criada!");
   }
-  const visibleEvents=events.filter(e=>eventFilter==="todos"||
+  const visibleEvents=agendaEvents.filter(e=>eventFilter==="todos"||
     (eventFilter==="agendados"?e.status==="scheduled":e.status!=="scheduled"));
 
   if(loading)return <main className="mm-login-shell"><p className="mm-loading">Preparando sua mesa...</p></main>;
@@ -699,7 +708,7 @@ export default function PainelPage(){
         <div className="mm-rooms mm-permanent-tables">
           {(["poker","blackjack"] as Game[]).map(game=>{
             const room=activeRooms.find(r=>r.game===game);
-            const count=events.filter(e=>room&&e.room_id===room.id).length;
+            const count=agendaEvents.filter(e=>room&&e.room_id===room.id).length;
             return <article className="roomcard mm-fixed-roomcard" key={game}>
               <div className={"roombanner mm-room-banner "+(game==="blackjack"?"blackjack":"")}>
                 <span className={"tag "+game}>{gameName(game)}</span>
@@ -737,13 +746,13 @@ export default function PainelPage(){
           <button type="button" role="tab" aria-selected={gameTab==="tutorial"} className={gameTab==="tutorial"?"active":""} onClick={()=>setGameTab("tutorial")}><UiIcon name="book-open" size={16}/> Tutorial e regras</button>
         </div>
         {gameTab==="eventos"&&<>
-          <div className="mm-section-title"><h2>Eventos de {gameName(gameView)}</h2><span className={"tag "+gameView}>{events.filter(e=>roomFor(e.room_id)?.game===gameView).length} registrados</span></div>
+          <div className="mm-section-title"><h2>Eventos de {gameName(gameView)}</h2><span className={"tag "+gameView}>{agendaEvents.filter(e=>roomFor(e.room_id)?.game===gameView).length} registrados</span></div>
           <div className="mm-eventgrid">
-            {events.filter(e=>roomFor(e.room_id)?.game===gameView)
+            {agendaEvents.filter(e=>roomFor(e.room_id)?.game===gameView)
               .sort((a,b)=>new Date(a.starts_at).getTime()-new Date(b.starts_at).getTime())
               .map(ev=><EventTile key={ev.id} value={ev} room={roomFor(ev.room_id)} count={attendances.filter(a=>a.session_id===ev.id).length} confirmed={attendances.some(a=>a.session_id===ev.id&&a.user_id===user.id)} live={ev.status==="scheduled"&&liveStates.some(l=>l.session_id===ev.id)} open={()=>openEvent(ev.id)}/>)}
           </div>
-          {events.filter(e=>roomFor(e.room_id)?.game===gameView).length===0&&<div className="panel mm-empty">
+          {agendaEvents.filter(e=>roomFor(e.room_id)?.game===gameView).length===0&&<div className="panel mm-empty">
             <span className="mm-empty-symbol">{gameView==="poker"?"♠":"♦"}</span>
             <h2>Nenhum evento de {gameName(gameView)} ainda</h2>
             <p>Crie um evento nesta mesa e convide seus amigos.</p>
@@ -764,7 +773,7 @@ export default function PainelPage(){
         hidden={hiddenEvents} audits={adminAudits}
         nameFor={nameFor} busy={working}
         onAction={(id,action)=>void manageAdminEvent(id,action)}
-        onOpen={id=>openEvent(id)}
+        onOpen={id=>openEvent(id,"visao",true)}
       />}
 
       {page==="perfil"&&<>
@@ -776,7 +785,7 @@ export default function PainelPage(){
         </button>}
       <ProfilePanel
         profile={profiles.find(p=>p.id===(profileId||user.id))}
-        userId={user.id} events={events} attendances={attendances} stats={ranking}
+        userId={user.id} events={agendaEvents} attendances={attendances.filter(a=>agendaEvents.some(e=>e.id===a.session_id))} stats={ranking}
         photoUrl={photoUrls[profileId||user.id]}
         onUploadPhoto={uploadProfilePhoto} onRemovePhoto={removeProfilePhoto}
         busy={working} onBack={profileId&&profileId!==user.id?()=>go(profileReturn):undefined}
