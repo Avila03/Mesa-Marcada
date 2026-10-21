@@ -1,5 +1,11 @@
 # Histórico de versões — Mesa Marcada
 
+## v1.2 — Acertos de rachas e financeiro pendente
+- Quem pagou uma despesa pode confirmar ou reabrir o recebimento de cada pessoa no racha.
+- O perfil separa valores pendentes de valores já acertados, sem movimentar dinheiro.
+- Mudanças nos integrantes ou valor/credor da despesa invalidam acertos anteriores.
+- RLS e funções autenticadas impedem terceiros de marcar dívidas como pagas.
+
 ## v1.1 — Marca oficial, foto no perfil e rachas por despesa
 - Usa o novo emblema azul/vermelho enviado pelo Bruno na tela de login, no menu e no ícone da aplicação.
 - Remove os emojis do perfil; jogadores aparecem com foto própria ou iniciais.

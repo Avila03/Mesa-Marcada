@@ -13,7 +13,7 @@ import ChipPurchaseForm from "./chip-purchase-form";
 import SiteLogo from "./site-logo";
 import {prepareProfilePhoto} from "./photo-utils";
 import {ExpenseSplitsPanel,MySplitsSummary} from "./expense-splits";
-import type {ExpenseSplitRow,MyExpenseSplitRow} from "./expense-splits";
+import type {ExpenseSplitRow,MyExpenseSplitRow,ExpenseSettlement} from "./expense-splits";
 
 type ChipPriceKey="chip_price_1_brl"|"chip_price_5_brl"|"chip_price_10_brl"|"chip_price_25_brl"|"chip_price_50_brl";
 const chipPriceFields:{value:number;key:ChipPriceKey}[]=[
@@ -93,6 +93,7 @@ export default function PainelPage(){
   const [expenses,setExpenses]=useState<Expense[]>([]);
   const [expenseMembers,setExpenseMembers]=useState<{expense_id:string;session_id:string;user_id:string;joined_at:string}[]>([]);
   const [expenseShares,setExpenseShares]=useState<ExpenseSplitRow[]>([]);
+  const [settlements,setSettlements]=useState<ExpenseSettlement[]>([]);
   const [mySplits,setMySplits]=useState<MyExpenseSplitRow[]>([]);
   const [ranking,setRanking]=useState<Rank[]>([]);
   const [approvals,setApprovals]=useState<{session_id:string;user_id:string;reviewed_at:string}[]>([]);
@@ -125,7 +126,8 @@ export default function PainelPage(){
       db.from("session_finance_approvals").select("session_id,user_id,reviewed_at"),
       db.rpc("get_player_stats",{p_game:null}),
       db.from("expense_split_members").select("expense_id,session_id,user_id,joined_at"),
-      db.rpc("get_my_expense_splits")
+      db.rpc("get_my_expense_splits"),
+      db.from("expense_split_settlements").select("expense_id,session_id,user_id,confirmed_at")
     ]);
     requests.forEach(r=>{if(r.error)throw r.error});
     setRooms((requests[0].data||[]) as Room[]);
@@ -157,6 +159,7 @@ export default function PainelPage(){
     setRanking((requests[12].data||[]) as Rank[]);
     setExpenseMembers((requests[13].data||[]) as {expense_id:string;session_id:string;user_id:string;joined_at:string}[]);
     setMySplits((requests[14].data||[]) as MyExpenseSplitRow[]);
+    setSettlements((requests[15].data||[]) as ExpenseSettlement[]);
   },[]);
 
   useEffect(()=>{
@@ -558,8 +561,14 @@ export default function PainelPage(){
         }}
       />
       {(profileId||user.id)===user.id&&<MySplitsSummary
-        splits={mySplits} userId={user.id} nameFor={nameFor}
+        splits={mySplits} settlements={settlements} userId={user.id} nameFor={nameFor}
         onOpenEvent={eventId=>openEvent(eventId,"gastos")}
+        onSettle={(expenseId,memberId,settled)=>void act(async(db)=>{
+          const {error:payError}=await db.rpc("set_expense_settled",{
+            p_expense_id:expenseId,p_user_id:memberId,p_settled:settled
+          });
+          if(payError)throw payError;
+        },settled?"Recebimento confirmado!":"Acerto reaberto.")}
       />}
       </>}
 
@@ -774,7 +783,7 @@ export default function PainelPage(){
         {detailTab==="gastos"&&(!privateVisible?
           <div className="panel"><h2>Gastos restritos</h2><p>Confirme sua presença para consultar e participar dos rachas deste evento.</p></div>:
           <ExpenseSplitsPanel
-            expenses={eventExpenses} shares={expenseShares}
+            expenses={eventExpenses} shares={expenseShares} settlements={settlements}
             userId={user.id} canJoin={meConfirmed} canManage={organizer}
             scheduled={selected.status==="scheduled"} busy={working}
             nameFor={nameFor} photoUrls={photoUrls}
@@ -782,6 +791,12 @@ export default function PainelPage(){
               const {error:splitError}=await db.rpc("set_expense_split_membership",{p_expense_id:expenseId,p_join:join});
               if(splitError)throw splitError;
             },join?"Você entrou no racha.":"Você saiu do racha.")}
+            onSettle={(expenseId,memberId,settled)=>void act(async(db)=>{
+              const {error:settleError}=await db.rpc("set_expense_settled",{
+                p_expense_id:expenseId,p_user_id:memberId,p_settled:settled
+              });
+              if(settleError)throw settleError;
+            },settled?"Recebimento confirmado!":"Acerto marcado como pendente.")}
             onToggleOpen={(expenseId,open)=>void act(async(db)=>{
               const {error:splitError}=await db.rpc("set_expense_split_open",{p_expense_id:expenseId,p_open:open});
               if(splitError)throw splitError;
