@@ -11,6 +11,7 @@ import {AttendeeMiniCard,EventShareActions,FinanceReviewBoard,PlayerAvatar,Profi
 import type {FinanceLine} from "./v09-features";
 import ChipPurchaseForm from "./chip-purchase-form";
 import "../live-checkout.css";
+import "./duo-theme.css";
 import SiteLogo from "./site-logo";
 import {prepareProfilePhoto} from "./photo-utils";
 import {ExpenseSplitsPanel,MySplitsSummary} from "./expense-splits";
