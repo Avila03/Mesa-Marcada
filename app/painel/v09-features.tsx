@@ -203,19 +203,20 @@ export function EventShareActions({id,title,date,room}:{id:string;title:string;d
 }
 
 export function FinanceReviewBoard({
-  lines,organizer,scheduled,loading,busy,onApprove,onReopen
+  lines,organizer,scheduled,loading,busy,pendingPaymentsByUser,onApprove,onReopen
 }:{
   lines:FinanceLine[];
   organizer:boolean;
   scheduled:boolean;
   loading:boolean;
   busy:boolean;
+  pendingPaymentsByUser:Record<string,number>;
   onApprove:(userId:string)=>void;
   onReopen:(userId:string)=>void;
 }){
   const total=lines.reduce((s,r)=>s+Number(r.share_brl),0);
   const approved=lines.filter(l=>l.approved).length;
-  const ready=lines.length>0&&lines.every(l=>l.approved&&l.chips_final!==null&&l.chips_bought!==null);
+  const ready=lines.length>0&&lines.every(l=>l.approved&&l.chips_final!==null&&l.chips_bought!==null&&(pendingPaymentsByUser[l.user_id]||0)===0);
   return <section className="panel mm-v09-finance-review">
     <div className="panelhead">
       <div><h2>Conferência da noite</h2><p className="mm-formfoot">O organizador revisa as fichas de cada jogador antes de encerrar o evento.</p></div>
@@ -231,7 +232,8 @@ export function FinanceReviewBoard({
       {lines.map(line=><div className="mm-v09-finance-line" key={line.user_id}>
         <div className="mm-v09-finance-person">
           <PlayerAvatar symbol={line.avatar_symbol} name={line.display_name}/>
-          <div><strong>{line.display_name}</strong><small className={line.approved?"mm-v09-good":"mm-v09-pending"}>{line.approved?"✓ Revisado":"● Aguardando revisão"}</small></div>
+          <div><strong>{line.display_name}</strong><small className={line.approved?"mm-v09-good":"mm-v09-pending"}>{line.approved?"✓ Revisado":"● Aguardando revisão"}</small>
+          {(pendingPaymentsByUser[line.user_id]||0)>0&&<small className="mm-v09-pending">● {pendingPaymentsByUser[line.user_id]} compras aguardando recebimento</small>}</div>
         </div>
         <div className="mm-v09-finance-numbers">
           <span><small>Fichas compradas</small><strong>{line.chips_bought===null?"Pendente":number(line.chips_bought)}</strong></span>
@@ -246,14 +248,14 @@ export function FinanceReviewBoard({
         {organizer&&scheduled&&<div className="mm-v09-review-action">
           {line.approved?
             <button className="btn" disabled={busy} type="button" onClick={()=>onReopen(line.user_id)}>Reabrir revisão</button>:
-            <button className="btn gold" disabled={busy||line.chips_bought===null||line.chips_final===null}
+            <button className="btn gold" disabled={busy||line.chips_bought===null||line.chips_final===null||(pendingPaymentsByUser[line.user_id]||0)>0}
               type="button" onClick={()=>onApprove(line.user_id)}>✓ Aprovar fichas</button>}
         </div>}
       </div>)}
       {!lines.length&&!loading&&<p className="mm-empty">Confirme jogadores no evento para gerar o rateio e revisar os resultados.</p>}
     </div>
     <p className="mm-formfoot">Rateio igualitário entre confirmados, calculado no banco de dados com precisão de centavos. Diferença positiva significa que a pessoa informou ter pago mais do que sua quota; este aplicativo não realiza cobranças, transferências ou liquidações.</p>
-    {organizer&&scheduled&&!ready&&<p className="mm-message">Para encerrar o evento, todos os confirmados precisam registrar suas compras, as fichas finais e receber aprovação do organizador. Alterações posteriores cancelam automaticamente a aprovação anterior.</p>}
+    {organizer&&scheduled&&!ready&&<p className="mm-message">Para encerrar o evento, todos os confirmados precisam registrar suas compras, ter os pagamentos marcados como recebidos e receber aprovação do Anfitrião. Alterações posteriores cancelam automaticamente a aprovação anterior.</p>}
   </section>;
 }
 
