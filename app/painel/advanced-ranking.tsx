@@ -58,7 +58,7 @@ export default function AdvancedRankingPanel({
     <section className="panel mm-ranking-board">
       <div className="panelhead">
         <div><h2>{game==="poker"?"♠ Poker":"♦ Blackjack"} · resultado de {year}</h2>
-          <p className="mm-formfoot">Total de fichas do ano e rendimento acumulado. Cada jogo mantém seu próprio ranking.</p>
+          <p className="mm-formfoot">Saldo anual de pontos e rendimento acumulado. Poker e Blackjack têm rankings separados.</p>
         </div>
         {busy&&<span className="tag">Atualizando...</span>}
       </div>
@@ -76,7 +76,7 @@ export default function AdvancedRankingPanel({
             </span>
             <span className="mm-rank-performance">
               <strong className={Number(player.net_chips)>=0?"mm-v09-good":"mm-v09-pending"}>
-                {signed(player.net_chips)} <span className="mm-annual-unit">fichas</span>
+                {signed(player.net_chips)} <span className="mm-annual-unit">pontos</span>
               </strong>
               <small>{roi===null?"Sem base para percentual":signed(roi)+"% no ano"}</small>
             </span>
@@ -89,7 +89,7 @@ export default function AdvancedRankingPanel({
           <p>Os saldos aparecem quando os eventos deste ano forem encerrados, com as fichas e os pagamentos conferidos.</p>
         </div>}
     </section>
-    <p className="mm-formfoot">Saldo anual = fichas finais − fichas compradas, somadas entre todos os eventos válidos do ano. Rendimento = saldo anual ÷ fichas compradas no ano. Sem conversão em dinheiro.</p>
+    <p className="mm-formfoot">Saldo anual = pontos finais − pontos comprados, somados entre os eventos válidos do ano. Rendimento = saldo anual ÷ pontos comprados no ano. Não representa dinheiro.</p>
   </div>;
 }
 
