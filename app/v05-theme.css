@@ -503,3 +503,23 @@ a{text-decoration:none}
  .mm-v09-finance-review>.panelhead{align-items:flex-start}
  .mm-v09-finance-review>.panelhead .tag{flex-shrink:0}
 }
+
+
+/* v0.9: confirmação imediata e correções financeiras */
+.mm-v09-event-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:auto}
+.mm-v09-event-actions .btn{width:100%;min-height:44px;padding:10px 8px}
+.mm-v09-event-actions .mm-v09-confirmed{background:#0c3229;border-color:#24684d;color:#86ecc3;opacity:1}
+.mm-v09-finance-delete,.mm-v09-delete-entry{border:1px solid #75323f;background:#29151d;color:#ffb3bc;
+  border-radius:9px;min-height:35px;padding:7px 12px;font-weight:700;font-size:12px;cursor:pointer;flex-shrink:0}
+.mm-v09-delete-entry:disabled{cursor:not-allowed;opacity:.45}
+.mm-v09-purchases{margin-bottom:15px}
+.mm-v09-finance-history .itemcontent{flex:1}
+@media(max-width:750px){
+ .mm-v09-event-actions{grid-template-columns:1fr 1fr;gap:7px}
+ .mm-v09-event-actions .btn{font-size:12px}
+ .mm-v09-finance-history{gap:9px}
+ .mm-v09-delete-entry{padding:7px 9px}
+}
+@media(max-width:355px){
+ .mm-v09-event-actions{grid-template-columns:1fr}
+}
