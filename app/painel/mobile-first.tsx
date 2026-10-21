@@ -123,7 +123,12 @@ export default function PainelPage(){
     void(async()=>{
       try{
         const {data,error:authError}=await db.auth.getUser();
-        if(authError||!data.user){window.location.replace("/login");return;}
+        if(authError||!data.user){
+          const eventId=new URLSearchParams(window.location.search).get("evento");
+          const safeNext=eventId&&/^[0-9a-f-]{36}$/i.test(eventId)
+            ?"/login?next="+encodeURIComponent("/painel?evento="+eventId):"/login";
+          window.location.replace(safeNext);return;
+        }
         if(!alive)return;
         setUser({id:data.user.id,email:data.user.email});
         await reload();
@@ -564,7 +569,7 @@ export default function PainelPage(){
               <section className="panel">
                 <h2>Adicionar despesa</h2><p style={{margin:"9px 0 16px"}}>Comidas, bebidas e materiais da noite.</p>
                 <form className="mm-form-stack" onSubmit={e=>{e.preventDefault();void act(async(db,id)=>{
-                  const {error:expenseError}=await db.from("session_expenses").insert({session_id:selected.id,created_by:id,paid_by:guests.some(g=>g.user_id===expensePayer)?expensePayer:id,label:expenseName.trim(),category:expenseCategory,amount_brl:Number(expenseAmount)});
+                  const {error:expenseError}=await db.from("session_expenses").insert({session_id:selected.id,created_by:id,paid_by:organizer&&guests.some(g=>g.user_id===expensePayer)?expensePayer:id,label:expenseName.trim(),category:expenseCategory,amount_brl:Number(expenseAmount)});
                   if(expenseError)throw expenseError;setExpenseName("");setExpenseAmount("");
                 },"Despesa registrada!")}}>
                   <label className="mm-field">Descrição<input minLength={2} required value={expenseName} onChange={e=>setExpenseName(e.target.value)} placeholder="Pizza e bebidas"/></label>
@@ -573,9 +578,9 @@ export default function PainelPage(){
                     <label className="mm-field">Categoria<select value={expenseCategory} onChange={e=>setExpenseCategory(e.target.value)}><option value="food">Comida</option><option value="drinks">Bebidas</option><option value="materials">Materiais</option><option value="other">Outros</option></select></label>
                   </div>
                   <label className="mm-field">Quem pagou?
-                    <select value={expensePayer||user.id} onChange={e=>setExpensePayer(e.target.value)}>
+                    {organizer?<select value={expensePayer||user.id} onChange={e=>setExpensePayer(e.target.value)}>
                       {guests.map(g=><option key={g.user_id} value={g.user_id}>{nameFor(g.user_id)}{g.user_id===user.id?" (eu)":""}</option>)}
-                    </select>
+                    </select>:<input disabled readOnly value={nickname+" (eu)"}/>}
                   </label>
                   <button className="btn gold" disabled={working||!meConfirmed||selected.status!=="scheduled"}>Salvar despesa</button>
                 </form>

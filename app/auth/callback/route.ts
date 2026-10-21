@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
 
   if (!supabaseUrl || !supabaseKey) return errorRedirect();
 
-  const response = NextResponse.redirect(new URL("/painel", url.origin));
+  const requestedNext=url.searchParams.get("next");
+  const safeDestination=requestedNext&&/^\/painel\?evento=[0-9a-f-]{36}$/i.test(requestedNext)
+    ?requestedNext:"/painel";
+  const response = NextResponse.redirect(new URL(safeDestination, url.origin));
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
       getAll() {
