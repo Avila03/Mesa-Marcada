@@ -10,6 +10,8 @@ import "../v05-theme.css";
 import {AttendeeMiniCard,EventShareActions,FinanceReviewBoard,PlayerAvatar,ProfilePanel,RankingPanel} from "./v09-features";
 import type {FinanceLine} from "./v09-features";
 import ChipPurchaseForm from "./chip-purchase-form";
+import SiteLogo from "./site-logo";
+import {prepareProfilePhoto} from "./photo-utils";
 
 type ChipPriceKey="chip_price_1_brl"|"chip_price_5_brl"|"chip_price_10_brl"|"chip_price_25_brl"|"chip_price_50_brl";
 const chipPriceFields:{value:number;key:ChipPriceKey}[]=[
@@ -78,6 +80,7 @@ export default function PainelPage(){
   const [rooms,setRooms]=useState<Room[]>([]);
   const [events,setEvents]=useState<Event[]>([]);
   const [profiles,setProfiles]=useState<Profile[]>([]);
+  const [photoUrls,setPhotoUrls]=useState<Record<string,string>>({});
   const [attendances,setAttendances]=useState<Attendance[]>([]);
   const [polls,setPolls]=useState<Poll[]>([]);
   const [choices,setChoices]=useState<Choice[]>([]);
@@ -105,7 +108,7 @@ export default function PainelPage(){
     const requests=await Promise.all([
       db.from("rooms").select("*").order("created_at",{ascending:false}),
       db.from("sessions").select("*").order("starts_at",{ascending:true}),
-      db.from("profiles").select("id,display_name,avatar_symbol,favorite_game,bio"),
+      db.from("profiles").select("id,display_name,avatar_symbol,favorite_game,bio,avatar_path"),
       db.from("session_attendance").select("session_id,user_id"),
       db.from("session_polls").select("*").order("created_at",{ascending:false}),
       db.from("session_poll_options").select("*").order("position"),
@@ -120,7 +123,20 @@ export default function PainelPage(){
     requests.forEach(r=>{if(r.error)throw r.error});
     setRooms((requests[0].data||[]) as Room[]);
     setEvents((requests[1].data||[]) as Event[]);
-    setProfiles((requests[2].data||[]) as Profile[]);
+    const currentProfiles=(requests[2].data||[]) as Profile[];
+    setProfiles(currentProfiles);
+    const withPhotos=currentProfiles.filter(profile=>Boolean(profile.avatar_path));
+    if(withPhotos.length){
+      const {data:signed,error:signError}=await db.storage.from("player-avatars")
+        .createSignedUrls(withPhotos.map(profile=>profile.avatar_path as string),3600);
+      if(!signError&&signed){
+        const urls:Record<string,string>={};
+        for(let i=0;i<withPhotos.length;i++){
+          if(signed[i]?.signedUrl)urls[withPhotos[i].id]=signed[i].signedUrl;
+        }
+        setPhotoUrls(urls);
+      }else setPhotoUrls({});
+    }else setPhotoUrls({});
     setAttendances((requests[3].data||[]) as Attendance[]);
     setPolls((requests[4].data||[]) as Poll[]);
     setChoices((requests[5].data||[]) as Choice[]);
@@ -236,6 +252,43 @@ export default function PainelPage(){
     }).sort((a,b)=>(b.difference??-Infinity)-(a.difference??-Infinity));
   },[guests,buys,results,selected]);
 
+  async function uploadProfilePhoto(original:File):Promise<void>{
+    const db=getSupabase();
+    if(!db||!user)throw new Error("Entre novamente na sua conta para enviar a foto.");
+    const photo=await prepareProfilePhoto(original);
+    const path=user.id+"/"+photo.name;
+    const previous=profiles.find(profile=>profile.id===user.id)?.avatar_path;
+    setWorking(true);
+    try{
+      const {error:uploadError}=await db.storage.from("player-avatars").upload(path,photo,{
+        cacheControl:"3600",upsert:false,contentType:photo.type
+      });
+      if(uploadError)throw uploadError;
+      const {error:updateError}=await db.from("profiles").update({avatar_path:path}).eq("id",user.id);
+      if(updateError){
+        await db.storage.from("player-avatars").remove([path]);
+        throw updateError;
+      }
+      await reload();
+      if(previous&&previous!==path){
+        void db.storage.from("player-avatars").remove([previous]);
+      }
+    }finally{setWorking(false);}
+  }
+
+  async function removeProfilePhoto():Promise<void>{
+    const db=getSupabase();
+    if(!db||!user)throw new Error("Entre novamente para remover a foto.");
+    const previous=profiles.find(profile=>profile.id===user.id)?.avatar_path;
+    setWorking(true);
+    try{
+      const {error:updateError}=await db.from("profiles").update({avatar_path:null}).eq("id",user.id);
+      if(updateError)throw updateError;
+      await reload();
+      if(previous)void db.storage.from("player-avatars").remove([previous]);
+    }finally{setWorking(false);}
+  }
+
   async function recordPurchase(quantities:number[]):Promise<boolean>{
     const db=getSupabase();
     if(!db||!user||!selected){setError("Entre em um evento para registrar fichas.");return false;}
@@ -318,24 +371,23 @@ export default function PainelPage(){
     (eventFilter==="agendados"?e.status==="scheduled":e.status!=="scheduled"));
 
   if(loading)return <main className="mm-login-shell"><p className="mm-loading">Preparando sua mesa...</p></main>;
-  if(!user)return <main className="mm-login-shell"><div className="mm-login-card"><div className="brand"><span className="brandmark">♠</span><span className="brandname">Mesa <em>Marcada</em></span></div><p className="mm-message">{error||"Redirecionando para login..."}</p><a href="/login" className="btn gold">Ir para o login</a></div></main>;
+  if(!user)return <main className="mm-login-shell"><div className="mm-login-card"><SiteLogo kind="mobile"/><p className="mm-message">{error||"Redirecionando para login..."}</p><a href="/login" className="btn gold">Ir para o login</a></div></main>;
 
-  const navEntries:[View,string,string][]=[["inicio","Início","▦"],["eventos","Eventos","▤"],["mesas","Mesas","♠"],["ranking","Ranking","★"],["perfil","Perfil","☺"]];
+  const navEntries:[View,string,string][]=[["inicio","Início","▦"],["eventos","Eventos","▤"],["mesas","Mesas","♠"],["ranking","Ranking","★"],["perfil","Perfil",""]];
   const activePage=page==="detalhe"?"eventos":page==="mesa"?"mesas":page;
   return <div className="layout">
     <aside className="sidebar">
-      <div className="brand">
-        <span className="brandmark">♠</span>
-        <div className="brandname">Mesa <em>Marcada</em><span className="brandsub">CLUBE DE JOGOS</span></div>
-      </div>
+      <SiteLogo kind="sidebar"/>
       <nav className="nav" aria-label="Navegação principal">
         <div className="navlabel">NAVEGAÇÃO</div>
         {navEntries.map(([id,label,icon])=><button className={"mm-nav-btn "+(activePage===id?"active":"")} key={id} type="button" onClick={()=>{if(id==="perfil")setProfileId(user.id);go(id)}} aria-current={activePage===id?"page":undefined}>
-          <span className="ico" aria-hidden="true">{icon}</span>{label}
+          <span className="ico" aria-hidden="true">
+            {id==="perfil"?<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.8"/><path d="M4.2 20c.3-4.1 3.2-6.2 7.8-6.2s7.5 2.1 7.8 6.2"/></svg>:icon}
+          </span>{label}
         </button>)}
       </nav>
       <div className="mm-side-profile">
-        <PlayerAvatar symbol={ownProfile?.avatar_symbol} name={nickname}/>
+        <PlayerAvatar photoUrl={photoUrls[user.id]} name={nickname}/>
         <div className="person"><strong>{nickname}</strong><small>{isAdmin?"Administrador geral":"Jogador"}</small></div>
         <button type="button" aria-label="Sair" title="Sair" onClick={async()=>{await getSupabase()?.auth.signOut();window.location.replace("/login")}}>↪</button>
       </div>
@@ -343,8 +395,8 @@ export default function PainelPage(){
 
     <main className="main" id="main-content">
       <div className="mm-mobile-head">
-        <div className="brand"><span className="brandmark">♠</span><span className="brandname">Mesa <em>Marcada</em></span></div>
-        <div className="mm-mobile-account"><button type="button" className="mm-v09-profile-link" aria-label="Abrir meu perfil" onClick={()=>{setProfileId(user.id);go("perfil")}}><PlayerAvatar symbol={ownProfile?.avatar_symbol} name={nickname}/></button><button type="button" aria-label="Sair" onClick={async()=>{await getSupabase()?.auth.signOut();window.location.replace("/login")}}>↪</button></div>
+        <SiteLogo kind="mobile"/>
+        <div className="mm-mobile-account"><button type="button" className="mm-v09-profile-link" aria-label="Abrir meu perfil" onClick={()=>{setProfileId(user.id);go("perfil")}}><PlayerAvatar photoUrl={photoUrls[user.id]} name={nickname}/></button><button type="button" aria-label="Sair" onClick={async()=>{await getSupabase()?.auth.signOut();window.location.replace("/login")}}>↪</button></div>
       </div>
       <div className="mm-breadcrumb-row">
         <div className="breadcrumb">Mesa Marcada　/　{page==="inicio"?"Visão geral":page==="detalhe"?"Evento":page==="mesa"?"Mesa de "+gameName(gameView):page==="eventos"?"Eventos":page==="mesas"?"Mesas":page==="perfil"?"Perfil":"Ranking"}</div>
@@ -470,12 +522,14 @@ export default function PainelPage(){
         {gameTab==="tutorial"&&<TableTutorial game={gameView}/>}
       </>}
 
-      {page==="ranking"&&<RankingPanel game={rankGame} onGameChange={setRankGame} ranking={ranking}
+      {page==="ranking"&&<RankingPanel game={rankGame} onGameChange={setRankGame} ranking={ranking} photoUrls={photoUrls}
         onPlayer={id=>{setProfileReturn("ranking");setProfileId(id);go("perfil")}}/>}
 
       {page==="perfil"&&<ProfilePanel
         profile={profiles.find(p=>p.id===(profileId||user.id))}
         userId={user.id} events={events} attendances={attendances} stats={ranking}
+        photoUrl={photoUrls[profileId||user.id]}
+        onUploadPhoto={uploadProfilePhoto} onRemovePhoto={removeProfilePhoto}
         busy={working} onBack={profileId&&profileId!==user.id?()=>go(profileReturn):undefined}
         onSave={async details=>{
           const db=getSupabase();
@@ -537,7 +591,7 @@ export default function PainelPage(){
             <div className="mm-progress"><div style={{width:(Math.min(1,guests.length/selected.max_participants)*100)+"%"}}/></div>
             <div className="mm-chipgroup">{guests.map(g=><button className="mm-v09-attendee-link" type="button" key={g.user_id}
               onClick={()=>{setProfileReturn("detalhe");setProfileId(g.user_id);go("perfil")}}>
-              <AttendeeMiniCard symbol={profiles.find(p=>p.id===g.user_id)?.avatar_symbol} name={nameFor(g.user_id)}/>
+              <AttendeeMiniCard photoUrl={photoUrls[g.user_id]} name={nameFor(g.user_id)}/>
             </button>)}</div>
             {!guests.length&&<p>Ainda não há presenças confirmadas. Convide seus amigos!</p>}
             {organizer&&!meConfirmed&&<p className="mm-formfoot">Como organizador, você também pode confirmar sua presença para votar e registrar fichas.</p>}
@@ -715,7 +769,7 @@ export default function PainelPage(){
                 {guests.length>0&&<p className="mm-formfoot" style={{marginTop:15}}>O rateio individual detalhado está abaixo, calculado com precisão de centavos.</p>}
               </section>
             </div>
-            <FinanceReviewBoard lines={financeRows} loading={financeLoading} organizer={organizer} pendingPaymentsByUser={pendingByUser}
+            <FinanceReviewBoard lines={financeRows} loading={financeLoading} organizer={organizer} pendingPaymentsByUser={pendingByUser} photoUrls={photoUrls}
               scheduled={selected.status==="scheduled"} busy={working}
               onApprove={userId=>void act(async(db,id)=>{
                 const {error:approveError}=await db.from("session_finance_approvals").insert({
