@@ -1,5 +1,16 @@
 # Histórico de versões — Mesa Marcada
 
+## v1.1 — Marca oficial, foto no perfil e rachas por despesa
+- Usa o novo emblema azul/vermelho enviado pelo Bruno na tela de login, no menu e no ícone da aplicação.
+- Remove os emojis do perfil; jogadores aparecem com foto própria ou iniciais.
+- Permite escolher foto no aparelho, cortar automaticamente em quadrado, remover e guardar no Storage privado com políticas por usuário.
+- Separa as abas **Fichas** e **Gastos** em cada evento.
+- Na aba Gastos, os participantes confirmados escolhem individualmente **Participar do racha** por despesa.
+- O Anfitrião e o criador da despesa podem fechar e reabrir cada racha; grupos encerrados preservam quem entrou.
+- O Supabase divide cada despesa em centavos sem diferença de arredondamento (R$ 100 / 3 = R$ 33,34 + R$ 33,33 + R$ 33,33).
+- O perfil próprio mostra saldos **A pagar** e **A receber** por pessoa, despesa e evento.
+- Os rachas não geram cobranças reais e não atribuem dívidas a quem não optou por participar.
+
 ## v1.0 — entrada mínima, Anfitrião e recebimentos
 - Entrada mínima validada no banco e sinalizada na compra do celular.
 - Compras anteriores abaixo do mínimo exigem completar a diferença na próxima compra.

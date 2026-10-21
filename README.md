@@ -9,9 +9,9 @@ Aplicação web para organizar encontros presenciais de **Poker** e **Blackjack*
 - **Duas mesas fixas:** Poker e Blackjack. Cada mesa tem tutoriais, regras e eventos.
 - **Eventos:** criação, capacidade máxima, confirmação individual diretamente dos cards, cancelamento pelo Anfitrião, compartilhamento (WhatsApp/nativo/link) e calendário `.ics`.
 - **Cadastro aberto:** login e senha com Supabase Auth, sem convite obrigatório. Confirmação de e-mail é configurável no dashboard do Supabase.
-- **Perfis:** apelido, avatar, jogo favorito, descrição e histórico de desempenho.
+- **Perfis:** apelido, foto enviada pelo próprio jogador (Supabase Storage privado), jogo favorito, descrição, histórico e aba **Meus rachas** com valores a pagar e a receber.
 - **Enquetes** somente dentro dos eventos; um voto por participante, alterável enquanto aberta.
-- **Fichas e financeiro:** compra/recompra por denominações 1/5/10/25/50; primeira entrada obrigatoriamente completa o mínimo em reais; o Anfitrião marca pagamentos presenciais como recebidos antes de aprovar fichas e encerrar o evento. Despesas, rateio em centavos e histórico permanecem informativos.
+- **Fichas e financeiro:** Fichas e Gastos em abas separadas. Compras/recompras por denominações 1/5/10/25/50; Anfitrião confirma os recebimentos. Em **Gastos**, cada participante confirmado escolhe entrar ou sair do racha individual de cada despesa; o perfil mostra valores a pagar e a receber, divididos exatamente em centavos.
 - **Rankings:** Poker e Blackjack separados, ordenados por rendimento percentual médio dos eventos completos e revisados, com saldo de fichas e melhor resultado exibidos.
 - **Segurança:** RLS em todas as tabelas públicas, validação de capacidade e autorizações no Supabase. Não são realizadas apostas, cobranças nem pagamentos pelo aplicativo.
 
@@ -48,7 +48,7 @@ npm run build
 npm run smoke
 ```
 
-O GitHub Actions executa essas verificações em PRs e pushes. A Vercel publica automaticamente a branch `main`. Documentação por versão: [v1.0](README-v1.0.md), [v0.9](README-v0.9.md), [histórico](CHANGELOG.md) e [testes](docs/TESTES-v0.9.md).
+O GitHub Actions executa essas verificações em PRs e pushes. A Vercel publica automaticamente a branch `main`. Documentação por versão: [v1.1](README-v1.1.md), [v1.0](README-v1.0.md), [v0.9](README-v0.9.md), [histórico](CHANGELOG.md) e [testes](docs/TESTES-v0.9.md).
 
 ## Privacidade e limitações
 
