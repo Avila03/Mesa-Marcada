@@ -30,7 +30,7 @@ function GameBanner({game,name,large=false}:{game:Game;name?:string;large?:boole
   </div>;
 }
 
-function EventTile({value,room,count,open}:{value:Event;room?:Room;count:number;open:()=>void}){
+function EventTile({value,room,count,confirmed,busy,open,onConfirm}:{value:Event;room?:Room;count:number;confirmed:boolean;busy:boolean;open:()=>void;onConfirm:()=>void}){
   const game=room?.game||"poker";
   return <article className="mm-event-card">
     <GameBanner game={game}/>
@@ -39,7 +39,12 @@ function EventTile({value,room,count,open}:{value:Event;room?:Room;count:number;
       <div className="mm-event-info"><span>◷ {fullDate(value.starts_at)}</span><span>⌖ {value.location}</span></div>
       <div className="mm-event-occupancy"><span>{count} de {value.max_participants} confirmados</span><span>{Math.max(0,value.max_participants-count)} vagas</span></div>
       <div className="mm-progress" aria-hidden="true"><div style={{width:(Math.min(1,count/value.max_participants)*100)+"%"}}/></div>
-      <button type="button" className="btn" onClick={open}>Ver evento <span aria-hidden="true">→</span></button>
+      <div className="mm-v09-event-actions">
+        <button type="button" className={confirmed?"btn mm-v09-confirmed":"btn gold"}
+          disabled={confirmed||busy||value.status!=="scheduled"||count>=value.max_participants}
+          onClick={onConfirm}>{confirmed?"✓ Presença confirmada":"✓ Confirmar presença"}</button>
+        <button type="button" className="btn" onClick={open}>Detalhes →</button>
+      </div>
     </div>
   </article>;
 }
@@ -213,6 +218,14 @@ export default function PainelPage(){
     }).sort((a,b)=>(b.difference??-Infinity)-(a.difference??-Infinity));
   },[guests,buys,results,selected]);
 
+  async function confirmAttendance(eventId:string){
+    await act(async(db,id)=>{
+      const {error:attendanceError}=await db.from("session_attendance")
+        .insert({session_id:eventId,user_id:id});
+      if(attendanceError)throw attendanceError;
+    },"Presença confirmada!");
+  }
+
   function openEvent(id:string,sub:DetailTab="visao"){
     setSelectedId(id);setDetailTab(sub);setPage("detalhe");setError("");setMessage("");window.scrollTo({top:0,behavior:"smooth"});
   }
@@ -347,7 +360,7 @@ export default function PainelPage(){
           )}
         </div>
         <div className="mm-eventgrid">
-          {visibleEvents.map(ev=><EventTile key={ev.id} value={ev} room={roomFor(ev.room_id)} count={attendances.filter(a=>a.session_id===ev.id).length} open={()=>openEvent(ev.id)}/>)}
+          {visibleEvents.map(ev=><EventTile key={ev.id} value={ev} room={roomFor(ev.room_id)} count={attendances.filter(a=>a.session_id===ev.id).length} confirmed={attendances.some(a=>a.session_id===ev.id&&a.user_id===user.id)} busy={working} onConfirm={()=>void confirmAttendance(ev.id)} open={()=>openEvent(ev.id)}/>)}
         </div>
         {!visibleEvents.length&&<div className="panel mm-empty"><span className="mm-empty-symbol">♠</span><h2>Nenhum evento por aqui</h2><p>Que tal organizar a próxima noite?</p><button className="btn gold" onClick={()=>openCreator()}>＋ Criar evento</button></div>}
       </>}
@@ -401,7 +414,7 @@ export default function PainelPage(){
           <div className="mm-eventgrid">
             {events.filter(e=>roomFor(e.room_id)?.game===gameView)
               .sort((a,b)=>new Date(a.starts_at).getTime()-new Date(b.starts_at).getTime())
-              .map(ev=><EventTile key={ev.id} value={ev} room={roomFor(ev.room_id)} count={attendances.filter(a=>a.session_id===ev.id).length} open={()=>openEvent(ev.id)}/>)}
+              .map(ev=><EventTile key={ev.id} value={ev} room={roomFor(ev.room_id)} count={attendances.filter(a=>a.session_id===ev.id).length} confirmed={attendances.some(a=>a.session_id===ev.id&&a.user_id===user.id)} busy={working} onConfirm={()=>void confirmAttendance(ev.id)} open={()=>openEvent(ev.id)}/>)}
           </div>
           {events.filter(e=>roomFor(e.room_id)?.game===gameView).length===0&&<div className="panel mm-empty">
             <span className="mm-empty-symbol">{gameView==="poker"?"♠":"♦"}</span>
@@ -448,10 +461,7 @@ export default function PainelPage(){
                   const {error:leaveError}=await db.from("session_attendance").delete().eq("session_id",selected.id).eq("user_id",id);
                   if(leaveError)throw leaveError;
                 },"Sua presença foi cancelada.")}>Cancelar presença</button>
-              :<button className="btn gold" type="button" disabled={working||selected.status!=="scheduled"||guests.length>=selected.max_participants} onClick={()=>void act(async(db,id)=>{
-                const {error:joinError}=await db.from("session_attendance").insert({session_id:selected.id,user_id:id});
-                if(joinError)throw joinError;
-              },"Presença confirmada!")}>✓ Confirmar minha presença</button>}
+              :<button className="btn gold" type="button" disabled={working||selected.status!=="scheduled"||guests.length>=selected.max_participants} onClick={()=>void confirmAttendance(selected.id)}>✓ Confirmar minha presença</button>}
               {organizer&&selected.status==="scheduled"&&<button className="btn" type="button" disabled={working||!canFinish} onClick={()=>{
                 if(window.confirm("Encerrar este evento com os registros financeiros aprovados?"))void act(async db=>{
                   const {error:endError}=await db.from("sessions").update({status:"finished"}).eq("id",selected.id);
