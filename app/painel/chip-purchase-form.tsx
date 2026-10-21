@@ -27,7 +27,7 @@ function CasinoChip({value,outer,inner}:{value:number;outer:string;inner:string}
 
 /** Valores de cada ficha são preços, não o número impresso em pontos. */
 export default function ChipPurchaseForm({
-  eventId,prices,special,locked,disabled,busy,onSave
+  eventId,prices,special,locked,disabled,busy,minToComplete,entryMinimum,onSave
 }:{
   eventId:string;
   prices:readonly number[];
@@ -35,6 +35,8 @@ export default function ChipPurchaseForm({
   locked:boolean;
   disabled:boolean;
   busy:boolean;
+  minToComplete:number;
+  entryMinimum:number;
   onSave:(quantities:number[])=>Promise<boolean>;
 }){
   const [quantities,setQuantities]=useState<number[]>([0,0,0,0,0]);
@@ -47,7 +49,7 @@ export default function ChipPurchaseForm({
     const cents=quantities.reduce((sum,q,i)=>sum+q*Math.round(Number(prices[i]||0)*100),0);
     return {physical,points,cash:cents/100};
   },[quantities,prices]);
-  const canSubmit=!disabled&&!busy&&!working&&data.physical>0&&data.physical<=MAX_PIECES;
+  const canSubmit=!disabled&&!busy&&!working&&data.physical>0&&data.physical<=MAX_PIECES&&Math.round(data.cash*100)>=Math.round(minToComplete*100);
   function setQuantity(index:number,value:number){
     if(!Number.isSafeInteger(value)||value<0||value>MAX_QTY)return;
     setStatus("");
@@ -73,6 +75,8 @@ export default function ChipPurchaseForm({
     </div>
     {special&&<div className="mm-denom-special">★ Evento especial — preços personalizados nesta noite.</div>}
     {!special&&<p className="mm-denom-standard">Tabela padrão do Mesa Marcada</p>}
+    {minToComplete>0?<div className="mm-message mm-v1-min-entry">Entrada mínima: <strong>{fmtMoney(entryMinimum)}</strong>. {minToComplete<entryMinimum?"Faltam":"Selecione pelo menos"} <strong>{fmtMoney(minToComplete)}</strong> em fichas para completar sua entrada.</div>:
+      <p className="mm-v1-rebuy-hint">✓ Entrada mínima atendida. Recompras de qualquer valor positivo estão liberadas.</p>}
     <form onSubmit={e=>void submit(e)}>
       <div className="mm-denom-rows">
         {chips.map((chip,i)=><div className="mm-denom-row" key={chip.value}>
@@ -100,6 +104,9 @@ export default function ChipPurchaseForm({
           onClick={()=>{setQuantities([0,0,0,0,0]);setStatus("");}}>Limpar</button>
       </div>
       {status&&<p className="mm-denom-feedback" role="status">{status}</p>}
+      {data.physical>0&&data.cash<minToComplete&&<p className="mm-denom-feedback mm-v1-min-warning" role="status">
+        Adicione mais {fmtMoney(minToComplete-data.cash)} em fichas para liberar sua compra.
+      </p>}
       <button type="submit" className="btn gold mm-denom-save" disabled={!canSubmit}>
         {busy||working?"Salvando...":"Salvar compra"}
       </button>

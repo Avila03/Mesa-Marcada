@@ -60,6 +60,7 @@ function EventTile({value,room,count,confirmed,busy,open,onConfirm}:{value:Event
 
 export default function PainelPage(){
   const [user,setUser]=useState<{id:string;email?:string}|null>(null);
+  const [isAdmin,setIsAdmin]=useState(false);
   const [page,setPage]=useState<View>("inicio");
   const [detailTab,setDetailTab]=useState<DetailTab>("visao");
   const [selectedId,setSelectedId]=useState("");
@@ -147,6 +148,8 @@ export default function PainelPage(){
         }
         if(!alive)return;
         setUser({id:data.user.id,email:data.user.email});
+        const {data:adminRow}=await db.from("app_admins").select("user_id").eq("user_id",data.user.id).maybeSingle();
+        if(alive)setIsAdmin(Boolean(adminRow));
         await reload();
       }catch(e){if(alive)setError(errText(e));}
       finally{if(alive)setLoading(false);}
@@ -213,9 +216,13 @@ export default function PainelPage(){
   const guests=selected?attendances.filter(a=>a.session_id===selected.id):[];
   const meConfirmed=Boolean(user&&guests.some(a=>a.user_id===user.id));
   const organizer=Boolean(user&&selected?.organizer_id===user.id);
-  const canFinish=guests.length>0&&financeRows.length===guests.length&&financeRows.every(r=>r.approved&&r.chips_bought!==null&&r.chips_final!==null);
   const privateVisible=meConfirmed||organizer;
   const eventBuys=selected?buys.filter(b=>b.session_id===selected.id):[];
+  const unpaid=eventBuys.filter(b=>b.payment_status!=="paid");
+  const myPurchasedTotal=eventBuys.filter(b=>b.user_id===user?.id).reduce((total,b)=>total+Number(b.amount_brl),0);
+  const minToComplete=Math.max(0,Number(selected?.min_entry_brl||0)-myPurchasedTotal);
+  const pendingByUser=Object.fromEntries(guests.map(a=>[a.user_id,eventBuys.filter(b=>b.user_id===a.user_id&&b.payment_status!=="paid").length]));
+  const canFinish=unpaid.length===0&&guests.length>0&&financeRows.length===guests.length&&financeRows.every(r=>r.approved&&r.chips_bought!==null&&r.chips_final!==null);
   const eventResults=selected?results.filter(r=>r.session_id===selected.id):[];
   const eventExpenses=selected?expenses.filter(e=>e.session_id===selected.id):[];
   const eventPolls=selected?polls.filter(p=>p.session_id===selected.id):[];
@@ -329,7 +336,7 @@ export default function PainelPage(){
       </nav>
       <div className="mm-side-profile">
         <PlayerAvatar symbol={ownProfile?.avatar_symbol} name={nickname}/>
-        <div className="person"><strong>{nickname}</strong><small>Conta ativa</small></div>
+        <div className="person"><strong>{nickname}</strong><small>{isAdmin?"Administrador geral":"Jogador"}</small></div>
         <button type="button" aria-label="Sair" title="Sair" onClick={async()=>{await getSupabase()?.auth.signOut();window.location.replace("/login")}}>↪</button>
       </div>
     </aside>
@@ -341,7 +348,7 @@ export default function PainelPage(){
       </div>
       <div className="mm-breadcrumb-row">
         <div className="breadcrumb">Mesa Marcada　/　{page==="inicio"?"Visão geral":page==="detalhe"?"Evento":page==="mesa"?"Mesa de "+gameName(gameView):page==="eventos"?"Eventos":page==="mesas"?"Mesas":page==="perfil"?"Perfil":"Ranking"}</div>
-        <span className="pill">♠ {firstName}</span>
+        <span className="pill">{isAdmin?"★ Administrador":`♠ ${firstName}`}</span>
       </div>
       {error&&<p className="mm-message error" role="alert" style={{marginBottom:16}}>{error}</p>}
       {message&&<p className="mm-message" role="status" style={{marginBottom:16}}>{message}</p>}
@@ -488,7 +495,8 @@ export default function PainelPage(){
           <GameBanner game={roomFor(selected.room_id)?.game||"poker"} large/>
           <div style={{padding:"20px 22px 21px"}}>
             <div className="mm-event-head">
-              <div><div className="eyebrow">{roomTitle(selected.room_id)}　·　{gameName(roomFor(selected.room_id)?.game||"poker")}</div><h1 style={{marginBottom:6}}>{selected.title}</h1></div>
+              <div><div className="eyebrow">{roomTitle(selected.room_id)}　·　{gameName(roomFor(selected.room_id)?.game||"poker")}</div><h1 style={{marginBottom:6}}>{selected.title}</h1>
+              <span className="mm-v1-host-label">♠ Anfitrião: {nameFor(selected.organizer_id)}{organizer?" (você)":""}</span></div>
               <span className={"tag "+(selected.status==="scheduled"?(roomFor(selected.room_id)?.game||"poker"):"archive")}>{selected.status==="scheduled"?"Agendado":selected.status==="finished"?"Encerrado":"Cancelado"}</span>
             </div>
             <div className="mm-event-meta"><span>◷ {fullDate(selected.starts_at)}</span><span>⌖ {selected.location}</span><span>♠ {guests.length}/{selected.max_participants} participantes</span></div>
@@ -505,8 +513,17 @@ export default function PainelPage(){
                   if(endError)throw endError;
                 },"Evento encerrado.");
               }}>Encerrar evento</button>}
+              {organizer&&selected.status==="scheduled"&&<button className="mm-btn-destructive" type="button"
+                disabled={working} onClick={()=>{
+                  if(!window.confirm("Cancelar este evento? Os registros e o histórico serão preservados, mas os participantes não poderão realizar novos lançamentos."))return;
+                  void act(async(db,id)=>{
+                    const {error:cancelError}=await db.from("sessions").update({status:"cancelled"})
+                      .eq("id",selected.id).eq("organizer_id",id);
+                    if(cancelError)throw cancelError;
+                  },"Evento cancelado. O histórico foi mantido.");
+                }}>Cancelar evento</button>}
             </div>
-            {organizer&&selected.status==="scheduled"&&!canFinish&&<p className="mm-formfoot">O encerramento será liberado depois que todas as fichas forem registradas e aprovadas na aba Financeiro.</p>}
+            {organizer&&selected.status==="scheduled"&&!canFinish&&<p className="mm-formfoot">Para encerrar, confirme o recebimento das compras e aprove os resultados na aba Financeiro.</p>}
             <EventShareActions id={selected.id} title={selected.title} date={selected.starts_at} room={roomTitle(selected.room_id)}/>
           </div>
         </section>
@@ -598,6 +615,7 @@ export default function PainelPage(){
                 special={selected.chip_pricing_special}
                 locked={selected.chip_pricing_locked}
                 disabled={!meConfirmed||selected.status!=="scheduled"} busy={working}
+                minToComplete={minToComplete} entryMinimum={Number(selected.min_entry_brl)}
                 onSave={recordPurchase}
               />
               <div className="stack">
@@ -634,6 +652,8 @@ export default function PainelPage(){
             </div>
             <section className="panel mm-v09-purchases" style={{marginTop:19}}>
               <div className="panelhead"><h2>Compras e recompras registradas</h2><span className="tag">{eventBuys.length} lançamentos</span></div>
+              <p className="mm-v1-payment-explain">O Anfitrião confirma o dinheiro recebido presencialmente. O site não realiza pagamentos ou transferências.</p>
+              {organizer&&unpaid.length>0&&<p className="mm-message">Há {unpaid.length} {unpaid.length===1?"compra pendente":"compras pendentes"} de confirmação.</p>}
               {eventBuys.map(b=><div className="item mm-v09-finance-history" key={b.id}>
                 <div className="itemcontent"><strong>{nameFor(b.user_id)}</strong>
                   <small>{Number(b.chips_received).toLocaleString("pt-BR")} pontos em fichas · {money(b.amount_brl)}</small>
@@ -643,6 +663,18 @@ export default function PainelPage(){
                       .map(item=>item.quantity+"× ficha "+item.chip_value).join(" · ")}
                   </small>}
                 </div>
+                <span className={"mm-v1-payment-state "+(b.payment_status==="paid"?"received":"pending")}>
+                  {b.payment_status==="paid"?"✓ Recebido":"● Aguardando"}
+                </span>
+                {organizer&&selected.status==="scheduled"&&<button type="button" className="btn mm-v1-payment-action"
+                  disabled={working} onClick={()=>{
+                    const paid=b.payment_status!=="paid";
+                    if(!window.confirm(paid?"Confirmar que este valor foi recebido presencialmente?":"Reabrir a confirmação de recebimento?"))return;
+                    void act(async(db)=>{
+                      const {error:paymentError}=await db.rpc("confirm_chip_payment",{p_purchase_id:b.id,p_paid:paid});
+                      if(paymentError)throw paymentError;
+                    },paid?"Recebimento confirmado!":"Recebimento voltou para pendente.");
+                  }}>{b.payment_status==="paid"?"Marcar pendente":"✓ Marcar recebido"}</button>}
                 {b.user_id===user.id&&selected.status==="scheduled"&&<button type="button"
                   className="mm-v09-delete-entry" disabled={working} onClick={()=>{
                     if(!window.confirm("Excluir este lançamento de fichas? Se o resultado já estava aprovado, a aprovação será retirada."))return;
@@ -683,7 +715,7 @@ export default function PainelPage(){
                 {guests.length>0&&<p className="mm-formfoot" style={{marginTop:15}}>O rateio individual detalhado está abaixo, calculado com precisão de centavos.</p>}
               </section>
             </div>
-            <FinanceReviewBoard lines={financeRows} loading={financeLoading} organizer={organizer}
+            <FinanceReviewBoard lines={financeRows} loading={financeLoading} organizer={organizer} pendingPaymentsByUser={pendingByUser}
               scheduled={selected.status==="scheduled"} busy={working}
               onApprove={userId=>void act(async(db,id)=>{
                 const {error:approveError}=await db.from("session_finance_approvals").insert({
