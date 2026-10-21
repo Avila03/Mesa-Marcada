@@ -14,6 +14,8 @@ import SiteLogo from "./site-logo";
 import {prepareProfilePhoto} from "./photo-utils";
 import {ExpenseSplitsPanel,MySplitsSummary} from "./expense-splits";
 import type {ExpenseSplitRow,MyExpenseSplitRow,ExpenseSettlement} from "./expense-splits";
+import AdminPanel from "./admin-panel";
+import type {HiddenEvent,AdminAudit} from "./admin-panel";
 
 type ChipPriceKey="chip_price_1_brl"|"chip_price_5_brl"|"chip_price_10_brl"|"chip_price_25_brl"|"chip_price_50_brl";
 const chipPriceFields:{value:number;key:ChipPriceKey}[]=[
@@ -65,6 +67,8 @@ function EventTile({value,room,count,confirmed,busy,open,onConfirm}:{value:Event
 export default function PainelPage(){
   const [user,setUser]=useState<{id:string;email?:string}|null>(null);
   const [isAdmin,setIsAdmin]=useState(false);
+  const [hiddenEvents,setHiddenEvents]=useState<HiddenEvent[]>([]);
+  const [adminAudits,setAdminAudits]=useState<AdminAudit[]>([]);
   const [page,setPage]=useState<View>("inicio");
   const [detailTab,setDetailTab]=useState<DetailTab>("visao");
   const [selectedId,setSelectedId]=useState("");
@@ -127,7 +131,9 @@ export default function PainelPage(){
       db.rpc("get_player_stats",{p_game:null}),
       db.from("expense_split_members").select("expense_id,session_id,user_id,joined_at"),
       db.rpc("get_my_expense_splits"),
-      db.from("expense_split_settlements").select("expense_id,session_id,user_id,confirmed_at")
+      db.from("expense_split_settlements").select("expense_id,session_id,user_id,confirmed_at"),
+      db.from("admin_hidden_events").select("session_id,previous_status,hidden_by,hidden_at"),
+      db.from("event_admin_audit").select("id,session_id,action,performed_by,occurred_at,description").order("occurred_at",{ascending:false}).limit(30)
     ]);
     requests.forEach(r=>{if(r.error)throw r.error});
     setRooms((requests[0].data||[]) as Room[]);
@@ -160,6 +166,8 @@ export default function PainelPage(){
     setExpenseMembers((requests[13].data||[]) as {expense_id:string;session_id:string;user_id:string;joined_at:string}[]);
     setMySplits((requests[14].data||[]) as MyExpenseSplitRow[]);
     setSettlements((requests[15].data||[]) as ExpenseSettlement[]);
+    setHiddenEvents((requests[16].data||[]) as HiddenEvent[]);
+    setAdminAudits((requests[17].data||[]) as AdminAudit[]);
   },[]);
 
   useEffect(()=>{
@@ -228,6 +236,20 @@ export default function PainelPage(){
     return()=>window.removeEventListener("keydown",escape);
   },[modal]);
 
+  async function manageAdminEvent(eventId:string,action:"hide"|"restore"|"cancel"|"finish"){
+    const messages:Record<string,string>={
+      hide:"Excluir este evento da agenda? A operação é reversível e mantém os registros.",
+      restore:"Restaurar este evento na agenda?",
+      cancel:"Cancelar este evento? Os registros serão preservados.",
+      finish:"Encerrar este evento? Todos os resultados e pagamentos precisam estar revisados."
+    };
+    if(!window.confirm(messages[action]))return;
+    await act(async db=>{
+      const {error:adminError}=await db.rpc("admin_manage_event",{p_event_id:eventId,p_action:action});
+      if(adminError)throw adminError;
+    },action==="hide"?"Evento excluído da agenda.":"Alteração administrativa registrada.");
+  }
+
   async function act(fn:(db:SupabaseClient,id:string)=>Promise<void>,success:string){
     const db=getSupabase();
     if(!db||!user)return;
@@ -250,7 +272,7 @@ export default function PainelPage(){
   const guests=selected?attendances.filter(a=>a.session_id===selected.id):[];
   const meConfirmed=Boolean(user&&guests.some(a=>a.user_id===user.id));
   const organizer=Boolean(user&&selected?.organizer_id===user.id);
-  const privateVisible=meConfirmed||organizer;
+  const privateVisible=meConfirmed||organizer||isAdmin;
   const eventBuys=selected?buys.filter(b=>b.session_id===selected.id):[];
   const unpaid=eventBuys.filter(b=>b.payment_status!=="paid");
   const myPurchasedTotal=eventBuys.filter(b=>b.user_id===user?.id).reduce((total,b)=>total+Number(b.amount_brl),0);
@@ -391,7 +413,8 @@ export default function PainelPage(){
   if(loading)return <main className="mm-login-shell"><p className="mm-loading">Preparando sua mesa...</p></main>;
   if(!user)return <main className="mm-login-shell"><div className="mm-login-card"><SiteLogo kind="mobile"/><p className="mm-message">{error||"Redirecionando para login..."}</p><a href="/login" className="btn gold">Ir para o login</a></div></main>;
 
-  const navEntries:[View,string,string][]=[["inicio","Início","▦"],["eventos","Eventos","▤"],["mesas","Mesas","♠"],["ranking","Ranking","★"],["perfil","Perfil",""]];
+  const navEntries:[View,string,string][]=[["inicio","Início","▦"],["eventos","Eventos","▤"],["mesas","Mesas","♠"],["ranking","Ranking","★"],["perfil","Perfil",""],
+    ...(isAdmin?[["admin","Administração","⚙"] as [View,string,string]]:[])];
   const activePage=page==="detalhe"?"eventos":page==="mesa"?"mesas":page;
   return <div className="layout">
     <aside className="sidebar">
@@ -417,7 +440,7 @@ export default function PainelPage(){
         <div className="mm-mobile-account"><button type="button" className="mm-v09-profile-link" aria-label="Abrir meu perfil" onClick={()=>{setProfileId(user.id);go("perfil")}}><PlayerAvatar photoUrl={photoUrls[user.id]} name={nickname}/></button><button type="button" aria-label="Sair" onClick={async()=>{await getSupabase()?.auth.signOut();window.location.replace("/login")}}>↪</button></div>
       </div>
       <div className="mm-breadcrumb-row">
-        <div className="breadcrumb">Mesa Marcada　/　{page==="inicio"?"Visão geral":page==="detalhe"?"Evento":page==="mesa"?"Mesa de "+gameName(gameView):page==="eventos"?"Eventos":page==="mesas"?"Mesas":page==="perfil"?"Perfil":"Ranking"}</div>
+        <div className="breadcrumb">Mesa Marcada　/　{page==="inicio"?"Visão geral":page==="detalhe"?"Evento":page==="mesa"?"Mesa de "+gameName(gameView):page==="eventos"?"Eventos":page==="mesas"?"Mesas":page==="perfil"?"Perfil":page==="admin"?"Administração":"Ranking"}</div>
         <span className="pill">{isAdmin?"★ Administrador":`♠ ${firstName}`}</span>
       </div>
       {error&&<p className="mm-message error" role="alert" style={{marginBottom:16}}>{error}</p>}
@@ -543,6 +566,14 @@ export default function PainelPage(){
       {page==="ranking"&&<RankingPanel game={rankGame} onGameChange={setRankGame} ranking={ranking} photoUrls={photoUrls}
         onPlayer={id=>{setProfileReturn("ranking");setProfileId(id);go("perfil")}}/>}
 
+      {page==="admin"&&isAdmin&&<AdminPanel
+        events={events} profiles={profiles} attendances={attendances} buys={buys}
+        hidden={hiddenEvents} audits={adminAudits}
+        nameFor={nameFor} busy={working}
+        onAction={(id,action)=>void manageAdminEvent(id,action)}
+        onOpen={id=>openEvent(id)}
+      />}
+
       {page==="perfil"&&<><ProfilePanel
         profile={profiles.find(p=>p.id===(profileId||user.id))}
         userId={user.id} events={events} attendances={attendances} stats={ranking}
@@ -590,23 +621,27 @@ export default function PainelPage(){
                   if(leaveError)throw leaveError;
                 },"Sua presença foi cancelada.")}>Cancelar presença</button>
               :<button className="btn gold" type="button" disabled={working||selected.status!=="scheduled"||guests.length>=selected.max_participants} onClick={()=>void confirmAttendance(selected.id)}>✓ Confirmar minha presença</button>}
-              {organizer&&selected.status==="scheduled"&&<button className="btn" type="button" disabled={working||!canFinish} onClick={()=>{
+              {(organizer||isAdmin)&&selected.status==="scheduled"&&<button className="btn" type="button" disabled={working||!canFinish} onClick={()=>{
                 if(window.confirm("Encerrar este evento com os registros financeiros aprovados?"))void act(async db=>{
-                  const {error:endError}=await db.from("sessions").update({status:"finished"}).eq("id",selected.id);
+                  const {error:endError}=!organizer&&isAdmin
+                    ?await db.rpc("admin_manage_event",{p_event_id:selected.id,p_action:"finish"})
+                    :await db.from("sessions").update({status:"finished"}).eq("id",selected.id);
                   if(endError)throw endError;
                 },"Evento encerrado.");
               }}>Encerrar evento</button>}
-              {organizer&&selected.status==="scheduled"&&<button className="mm-btn-destructive" type="button"
+              {(organizer||isAdmin)&&selected.status==="scheduled"&&<button className="mm-btn-destructive" type="button"
                 disabled={working} onClick={()=>{
                   if(!window.confirm("Cancelar este evento? Os registros e o histórico serão preservados, mas os participantes não poderão realizar novos lançamentos."))return;
                   void act(async(db,id)=>{
-                    const {error:cancelError}=await db.from("sessions").update({status:"cancelled"})
-                      .eq("id",selected.id).eq("organizer_id",id);
+                    const {error:cancelError}=organizer
+                      ?await db.from("sessions").update({status:"cancelled"})
+                        .eq("id",selected.id).eq("organizer_id",id)
+                      :await db.rpc("admin_manage_event",{p_event_id:selected.id,p_action:"cancel"});
                     if(cancelError)throw cancelError;
                   },"Evento cancelado. O histórico foi mantido.");
                 }}>Cancelar evento</button>}
             </div>
-            {organizer&&selected.status==="scheduled"&&!canFinish&&<p className="mm-formfoot">Para encerrar, confirme o recebimento das compras e aprove os resultados na aba Financeiro.</p>}
+            {(organizer||isAdmin)&&selected.status==="scheduled"&&!canFinish&&<p className="mm-formfoot">Para encerrar, confirme o recebimento das compras e aprove os resultados na aba Financeiro.</p>}
             <EventShareActions id={selected.id} title={selected.title} date={selected.starts_at} room={roomTitle(selected.room_id)}/>
           </div>
         </section>
@@ -730,7 +765,7 @@ export default function PainelPage(){
                 <span className={"mm-v1-payment-state "+(b.payment_status==="paid"?"received":"pending")}>
                   {b.payment_status==="paid"?"✓ Recebido":"● Aguardando"}
                 </span>
-                {organizer&&selected.status==="scheduled"&&<button type="button" className="btn mm-v1-payment-action"
+                {(organizer||isAdmin)&&selected.status==="scheduled"&&<button type="button" className="btn mm-v1-payment-action"
                   disabled={working} onClick={()=>{
                     const paid=b.payment_status!=="paid";
                     if(!window.confirm(paid?"Confirmar que este valor foi recebido presencialmente?":"Reabrir a confirmação de recebimento?"))return;
@@ -763,7 +798,7 @@ export default function PainelPage(){
               </section>
 
             </div>
-            <FinanceReviewBoard lines={financeRows} loading={financeLoading} organizer={organizer} pendingPaymentsByUser={pendingByUser} photoUrls={photoUrls}
+            <FinanceReviewBoard lines={financeRows} loading={financeLoading} organizer={organizer||isAdmin} pendingPaymentsByUser={pendingByUser} photoUrls={photoUrls}
               scheduled={selected.status==="scheduled"} busy={working}
               onApprove={userId=>void act(async(db,id)=>{
                 const {error:approveError}=await db.from("session_finance_approvals").insert({
