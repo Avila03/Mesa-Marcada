@@ -1,79 +1,79 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import Link from "next/link";
 import { getSupabase } from "@/lib/supabase/browser";
-import "../realtime.css";
+import "../v05-theme.css";
 
 export default function LoginPage() {
-  const [mode, setMode] = useState<"login" | "signup">("login");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [status, setStatus] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [signup,setSignup] = useState(false);
+  const [name,setName] = useState("");
+  const [email,setEmail] = useState("");
+  const [password,setPassword] = useState("");
+  const [visible,setVisible] = useState(false);
+  const [busy,setBusy] = useState(false);
+  const [message,setMessage] = useState("");
+  useEffect(()=>{
+    const db=getSupabase();
+    if(!db) return;
+    void db.auth.getUser().then(({data})=>{if(data.user)window.location.replace("/painel")});
+  },[]);
 
-  useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("auth_error") === "confirmation") {
-      setStatus("Não foi possível concluir a confirmação do e-mail. Tente cadastrar-se novamente ou entrar em contato com o suporte.");
-    }
-  }, []);
-
-  async function submit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const supabase = getSupabase();
-    if (!supabase) {
-      setStatus("Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY no .env.local.");
-      return;
-    }
-    if (mode === "signup" && name.trim().length < 2) {
-      setStatus("Informe um nome com pelo menos dois caracteres.");
-      return;
-    }
-    setBusy(true);
-    setStatus("");
+  async function handleSubmit(event:FormEvent<HTMLFormElement>){
+    event.preventDefault();
+    const db=getSupabase();
+    if(!db){setMessage("Não foi possível estabelecer conexão com o servidor. Tente mais tarde.");return;}
+    setBusy(true);setMessage("");
     try {
-      if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
-          email, password,
-          options: {
-            data: { display_name: name.trim() },
-            emailRedirectTo: window.location.origin + "/auth/callback"
-          }
+      if(signup){
+        const {data,error}=await db.auth.signUp({
+          email:email.trim(),password,options:{data:{display_name:name.trim()},emailRedirectTo:window.location.origin+"/auth/callback"}
         });
-        if (error) throw error;
-        if (!data.session) setStatus("Cadastro enviado! Confira seu e-mail e siga o link de confirmação para ativar sua conta.");
-        else window.location.assign("/painel");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        window.location.assign("/painel");
+        if(error)throw error;
+        if(data.session){window.location.replace("/painel");return;}
+        // Confirmar e-mail é uma configuração do Supabase Auth, não do frontend.
+        setMessage("A conta foi registrada, mas o Supabase ainda solicita confirmação por e-mail. O administrador precisa desativar essa exigência nas configurações de autenticação.");
+      }else{
+        const {error}=await db.auth.signInWithPassword({email:email.trim(),password});
+        if(error)throw error;
+        window.location.replace("/painel");
       }
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Não foi possível autenticar.");
-    } finally {
-      setBusy(false);
-    }
+    }catch(e){
+      const text=e instanceof Error?e.message:"";
+      setMessage(/rate limit|only request this|seconds|too many requests/i.test(text)
+        ?"Muitas tentativas seguidas. Aguarde um minuto e tente novamente."
+        :/invalid login credentials/i.test(text)?"E-mail ou senha incorretos."
+        :/email not confirmed/i.test(text)?"O Supabase ainda exige a confirmação do e-mail desta conta."
+        :text||"Ocorreu um erro. Tente novamente.");
+    }finally{setBusy(false)}
   }
 
-  return <main className="mm-auth">
-    <section className="mm-authbox">
-      <div className="mm-brand"><span>♠</span> Mesa <em>Marcada</em></div>
-      <p className="mm-overline">BOAS CARTAS · BONS AMIGOS · GRANDES NOITES</p>
-      <h1>{mode === "login" ? "Entrar na mesa" : "Criar minha conta"}</h1>
-      <p className="mm-muted">Salas, confirmações, fichas, gastos e rankings em um só lugar.</p>
-      {mode === "signup" && <p className="mm-info">Cadastro aberto: não é necessário convite. Por segurança, confirme seu e-mail antes de entrar, quando solicitado.</p>}
-      <form onSubmit={submit} className="mm-form">
-        {mode === "signup" && <label>Nome de jogador<input autoComplete="name" required minLength={2} maxLength={64} value={name} onChange={e => setName(e.target.value)} placeholder="Como vão te identificar?"/></label>}
-        <label>E-mail<input required type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com"/></label>
-        <label>Senha<input required minLength={6} type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo de 6 caracteres"/></label>
-        <button className="mm-primary" type="submit" disabled={busy}>{busy ? "Aguarde..." : mode === "login" ? "Entrar" : "Cadastrar"}</button>
+  return <main className="mm-login-shell">
+    <section className="mm-login-card" aria-labelledby="auth-title">
+      <div className="brand">
+        <span className="brandmark">♠</span>
+        <span className="brandname">Mesa <em>Marcada</em></span>
+      </div>
+      <h1 id="auth-title">{signup?"Criar minha conta":"Entrar na mesa"}</h1>
+      <form className="mm-form-stack" onSubmit={handleSubmit}>
+        {signup&&<label className="mm-field">Nome de jogador
+          <input autoComplete="name" placeholder="Como podemos te chamar?" minLength={2} maxLength={64} required value={name} onChange={e=>setName(e.target.value)}/>
+        </label>}
+        <label className="mm-field">E-mail
+          <input type="email" autoComplete="email" required placeholder="seu@email.com" value={email} onChange={e=>setEmail(e.target.value)}/>
+        </label>
+        <label className="mm-field">Senha
+          <span className="mm-password-field">
+            <input type={visible?"text":"password"} autoComplete={signup?"new-password":"current-password"} minLength={6} required placeholder="Sua senha" value={password} onChange={e=>setPassword(e.target.value)}/>
+            <button type="button" onClick={()=>setVisible(v=>!v)} aria-label={visible?"Ocultar senha":"Mostrar senha"}>{visible?"◉":"◎"}</button>
+          </span>
+        </label>
+        {message&&<div className="mm-message" role="status">{message}</div>}
+        <button className="btn gold mm-login-submit" type="submit" disabled={busy}>{busy?"Aguarde...":signup?"Criar conta":"Entrar"} <span aria-hidden="true">→</span></button>
       </form>
-      {status && <p role="status" className="mm-notice">{status}</p>}
-      <button className="mm-textbtn" type="button" onClick={() => {setMode(mode === "login" ? "signup" : "login");setStatus("");}}>
-        {mode === "login" ? "Não tenho conta — criar cadastro" : "Já tenho conta — fazer login"}
-      </button>
-      <p className="mm-muted mm-small">Ainda quer explorar sem cadastro? <Link href="/demo.html">Abrir demonstração v0.5</Link></p>
+      <div className="mm-login-switch">
+        <span>{signup?"Já tem uma conta?":"Novo por aqui?"}</span>
+        <button type="button" onClick={()=>{setSignup(s=>!s);setMessage("")}}>{signup?"Fazer login":"Criar conta"}</button>
+      </div>
     </section>
   </main>;
 }

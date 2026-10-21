@@ -1,8 +1,10 @@
-name: Build do MVP
+name: Build do Mesa Marcada
 on:
   pull_request:
   push:
-    branches: [main, feature/supabase-v0.6]
+    branches:
+      - main
+      - "feature/**"
 jobs:
   build:
     runs-on: ubuntu-latest
