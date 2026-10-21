@@ -1,5 +1,14 @@
 # Histórico de versões — Mesa Marcada
 
+## v1.7.1 — Tela estável no smartphone
+- Criar evento mantém a página de fundo imóvel.
+- Formulário rola somente internamente; cabeçalho e ações fixos durante rolagem.
+- Layout acompanha teclado do iPhone e evita zoom de foco com fonte mínima de 16px.
+- Fechar restaura a posição; criar evento leva ao novo evento pelo topo.
+- Telas Início, Eventos, Mesas, Ranking, Perfil e Administração navegam sem rolagem suave.
+- Reserva espaço para scrollbar no desktop e cuida de foco, Tab e Escape.
+- Regressão de scroll adicionada ao CI, além dos demais testes.
+
 ## v1.7 — Evento ao Vivo
 - Início **manual e exclusivo do Anfitrião**, sem iniciar automaticamente no horário marcado.
 - Nova aba **Ao vivo** com linha do tempo visível somente a participantes confirmados, Anfitrião e Administrador.
