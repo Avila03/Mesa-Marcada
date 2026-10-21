@@ -41,7 +41,7 @@ const relativeTag=(startedAt:string,status:string)=>{
 export default function EventLivePanel({
   title,status,startedAt,requiresStart,canSee,host,admin,
   busy,loading,guestCount,paidCount,purchaseCount,checkedCount,
-  canFinish,activities,nameFor,onStart,onFinish,onRefresh,onFichas,canStart,onSeats
+  canFinish,activities,nameFor,onStart,onFinish,onRefresh,onFichas,canStart,onSeats,showTimeline=true
 }:{
   title:string;
   status:"scheduled"|"finished"|"cancelled";
@@ -49,7 +49,7 @@ export default function EventLivePanel({
   requiresStart:boolean;
   canSee:boolean;host:boolean;admin:boolean;
   busy:boolean;loading:boolean;
-  canStart:boolean;onSeats:()=>void;
+  canStart:boolean;onSeats:()=>void;showTimeline?:boolean;
   guestCount:number;paidCount:number;purchaseCount:number;checkedCount:number;
   canFinish:boolean;
   activities:LiveActivity[];
@@ -65,7 +65,7 @@ export default function EventLivePanel({
     </section>;
   }
   const active=Boolean(startedAt&&status==="scheduled");
-  const completed=guestCount>0&&paidCount===purchaseCount&&checkedCount===guestCount&&purchaseCount>0;
+  const completed=guestCount>0&&checkedCount===guestCount&&purchaseCount>0;
   const timeline=[...activities].sort((a,b)=>
     new Date(b.occurred_at).getTime()-new Date(a.occurred_at).getTime()||b.id-a.id);
   return <div className="mm-live">
@@ -94,8 +94,8 @@ export default function EventLivePanel({
         <div className="mm-live-awaiting"><UiIcon name="clock" size={19}/>
           Aguardando o Anfitrião iniciar a partida</div>}
       {status==="scheduled"&&startedAt&&
-        <p className="mm-live-note">A partida está acontecendo. Registre as fichas em <strong>Compra</strong> e faça os repasses em reais em <strong>Encerrar</strong>. Gastos e rachas ficam separados.</p>}
-      {status==="finished"&&<p className="mm-live-good">Partida encerrada após conferência financeira das fichas.</p>}
+        <p className="mm-live-note">A partida está acontecendo. Compre fichas na área <strong>Compra</strong> e registre o valor final em <strong>Encerrar</strong>. As despesas são independentes.</p>}
+      {status==="finished"&&<p className="mm-live-good">Partida encerrada. Consulte o Resumo do evento.</p>}
       {status==="cancelled"&&<p className="mm-live-note">Evento cancelado. Os registros existentes continuam preservados.</p>}
     </section>
 
@@ -105,19 +105,19 @@ export default function EventLivePanel({
           <h3>Conferência financeira</h3>
           <span className="tag">{canFinish||status==="finished"?"Pronto":"Em revisão"}</span>
         </div>
-        <p>O fechamento depende dos valores em reais, das compras recebidas e dos repasses confirmados.</p>
+        <p>O fechamento depende apenas do total das compras e da soma dos valores finais informados.</p>
         <div className="mm-live-steps">
           <div className={guestCount>0?"done":"todo"}>
             <UiIcon name={guestCount>0?"check":"users"} size={18}/>
             <span><strong>Participantes</strong><small>{guestCount} confirmados</small></span>
           </div>
-          <div className={purchaseCount>0&&paidCount===purchaseCount?"done":"todo"}>
-            <UiIcon name={purchaseCount>0&&paidCount===purchaseCount?"check":"credit-card"} size={18}/>
-            <span><strong>Pagamentos das compras</strong><small>{paidCount} de {purchaseCount} compras recebidas</small></span>
+          <div className={purchaseCount>0?"done":"todo"}>
+            <UiIcon name={purchaseCount>0?"check":"credit-card"} size={18}/>
+            <span><strong>Compras de fichas</strong><small>{purchaseCount} registros da noite</small></span>
           </div>
           <div className={guestCount>0&&checkedCount===guestCount?"done":"todo"}>
             <UiIcon name={guestCount>0&&checkedCount===guestCount?"check":"clipboard"} size={18}/>
-            <span><strong>Conferência final</strong><small>{checkedCount} de {guestCount} resultados aprovados</small></span>
+            <span><strong>Conferência final</strong><small>{checkedCount} de {guestCount} valores finais informados</small></span>
           </div>
         </div>
         <div className="mm-live-actions">
@@ -132,7 +132,7 @@ export default function EventLivePanel({
         <p className="mm-live-expense-note">Os rachas opcionais de comida e bebida são independentes e <strong>não bloqueiam</strong> o encerramento.</p>
       </section>}
 
-    <section className="mm-live-timeline" aria-label="Linha do tempo da partida">
+    {showTimeline&&<section className="mm-live-timeline" aria-label="Linha do tempo da partida">
       <div className="mm-live-timeline-head">
         <div><h3>Linha do tempo</h3><p>Atualizações automáticas enquanto esta aba estiver aberta.</p></div>
         <button className="btn mm-live-refresh" type="button" disabled={busy||loading}
@@ -162,6 +162,31 @@ export default function EventLivePanel({
         <p>{startedAt?"As compras, os pagamentos e as conferências aparecerão aqui.":"A linha do tempo começará quando o Anfitrião iniciar a partida."}</p>
       </div>}
       <p className="mm-live-privacy">Somente participantes confirmados, Anfitrião e Administrador podem visualizar estes registros. Os valores dos rachas não aparecem aqui.</p>
-    </section>
+    </section>}
   </div>;
+}
+
+export function LiveMovements({activities,nameFor,onRefresh,loading,busy}:{
+ activities:LiveActivity[];nameFor:(id:string)=>string;onRefresh:()=>void;loading:boolean;busy:boolean;
+}){
+ const timeline=[...activities].sort((a,b)=>
+   new Date(b.occurred_at).getTime()-new Date(a.occurred_at).getTime()||b.id-a.id);
+ return <section className="mm-live-timeline mm-inline-movements">
+   <div className="mm-live-timeline-head"><div><h3>Movimentações da partida</h3>
+     <p>Registro de alterações do evento, disponível para consulta.</p></div>
+     <button type="button" className="btn mm-live-refresh" disabled={loading||busy} onClick={onRefresh}>
+       <UiIcon name="clock" size={17}/> Atualizar</button>
+   </div>
+   {timeline.length?<ol className="mm-live-timeline-list">{timeline.map(entry=>{
+     const info=kindInfo[entry.kind];if(!info)return null;
+     const subject=entry.subject_id?nameFor(entry.subject_id):null;
+     const actor=entry.actor_id?nameFor(entry.actor_id):null;
+     return <li className="mm-live-activity" key={entry.id}>
+       <span className="mm-live-activity-icon"><UiIcon name={info.icon} size={19}/></span>
+       <div className="mm-live-activity-copy"><strong>{info.title}</strong>
+         <span>{subject?subject+(actor&&actor!==subject?" · por "+actor:""):actor||info.note}</span>
+       </div><time dateTime={entry.occurred_at}>{time(entry.occurred_at)}</time>
+     </li>;
+   })}</ol>:<p className="mm-formfoot">Ainda não existem movimentações registradas.</p>}
+ </section>;
 }
