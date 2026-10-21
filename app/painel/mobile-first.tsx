@@ -908,7 +908,6 @@ export default function PainelPage(){
         </div>}
 
         {detailTab==="ao-vivo"&&selectedLive&&privateVisible&&(liveSubtab==="compra"||liveSubtab==="encerrar")&&<>
-          <div className="mm-message" style={{marginBottom:18}}>Compras em fichas são convertidas automaticamente em reais. O acerto final acontece apenas em reais.</div>
           {!privateVisible?<div className="panel"><h2>Informações restritas</h2><p>Confirme presença neste evento para consultar ou registrar informações financeiras.</p></div>:<>
             {liveSubtab==="compra"&&<><div className="metrics" style={{gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))"}}>
               <div className="metric"><div className="mhead">Fichas distribuídas <span className="micon"><UiIcon name="check" size={22}/></span></div><strong>{eventBuys.reduce((n,b)=>n+Number(b.chips_received),0).toLocaleString("pt-BR")}</strong><small>Compras e recompras</small></div>
@@ -966,11 +965,10 @@ export default function PainelPage(){
                   <p className="mm-formfoot">Valor salvo para {nameFor(cashoutTarget)}: <strong>{money(Number(eventCashouts.find(c=>c.user_id===cashoutTarget)?.final_brl||0))}</strong>. Você pode atualizar o valor antes de confirmar qualquer repasse.</p>}
                 {eventCashouts.length>0&&<p className="mm-formfoot">A conferência financeira começou: novas compras ficam bloqueadas para evitar diferenças no caixa.</p>}
               </div>}
-              <p className={cashBalanced?"mm-message":"mm-message error"}>
-                {cashBalanced?"Caixa conciliado: o total dos repasses é igual ao das compras.":
-                checkedCount<guests.length?`Valores informados por ${checkedCount} de ${guests.length} jogadores.`:
+              {!cashBalanced&&<p className="mm-message error">
+                {checkedCount<guests.length?`Faltam valores finais de ${guests.length-checkedCount} jogador(es).`:
                 "O total final precisa ser exatamente igual ao valor das compras."}
-              </p>
+              </p>}
               <h3>Acerto com o Anfitrião</h3>
               <p>Primeiro o Anfitrião confirma os recebimentos na área Compra. Depois registra os repasses abaixo.</p>
               {guests.map(g=>{const v=playerSettlement(g.user_id);const payout=eventPayouts.some(p=>p.user_id===g.user_id);

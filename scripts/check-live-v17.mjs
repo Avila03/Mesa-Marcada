@@ -52,3 +52,10 @@ assert.ok(panel.includes('Acerto final em reais'),"Closing screen must ask for r
 assert.ok(panel.includes('db.rpc("record_chip_cashout"'),"Closing must save final BRL amount");
 assert.ok(!panel.includes('Conferência final por denominação'),"Closing must not ask for quantities per denomination");
 assert.ok(panel.includes('cashBalanced')&&panel.includes('totalBoughtBRL'),"Cash totals must be reconciled before finish");
+
+assert.ok(!panel.includes('Compras em fichas são convertidas automaticamente em reais. O acerto final acontece apenas em reais.'),
+ "Redundant live chip conversion info banner must be hidden");
+assert.ok(!panel.includes('Caixa conciliado: o total dos repasses é igual ao das compras.'),
+ "Cash balanced success notification must not obscure settlement summary");
+assert.ok(panel.includes('{!cashBalanced&&<p className="mm-message error">'),
+ "Mismatched or missing cash amounts must still present an action warning");
