@@ -127,6 +127,7 @@ export default function PainelPage(){
   const [finalChips,setFinalChips]=useState("");
   const [liveSubtab,setLiveSubtab]=useState<LiveSubtab>("resumo");
   const [finalQuantities,setFinalQuantities]=useState<number[]>([0,0,0,0,0]);
+  const [purchaseFor,setPurchaseFor]=useState("");
   const [finalItems,setFinalItems]=useState<{session_id:string;user_id:string;chip_value:number;quantity:number}[]>([]);
   const [chipPayouts,setChipPayouts]=useState<{session_id:string;user_id:string;confirmed_at:string}[]>([]);
   const [expenseName,setExpenseName]=useState("");
@@ -456,14 +457,14 @@ export default function PainelPage(){
   async function recordPurchase(quantities:number[]):Promise<boolean>{
     const db=getSupabase();
     if(!db||!user||!selected){setError("Entre em um evento para registrar fichas.");return false;}
-    if(!attendances.some(a=>a.session_id===selected.id&&a.user_id===user.id)){
+    if(!(organizer||isAdmin)&&!attendances.some(a=>a.session_id===selected.id&&a.user_id===user.id)){
       setError("Confirme sua presença antes de comprar fichas.");
       return false;
     }
     setWorking(true);setError("");setMessage("");
     try{
-      const {error:purchaseError}=await db.rpc("record_chip_purchase",{
-        p_event_id:selected.id,p_quantities:quantities
+      const {error:purchaseError}=await db.rpc("record_chip_purchase_for",{
+        p_event_id:selected.id,p_quantities:quantities,p_user_id:organizer||isAdmin?(purchaseFor||user.id):user.id
       });
       if(purchaseError)throw purchaseError;
       await reload();
@@ -894,12 +895,17 @@ export default function PainelPage(){
               <div className="metric"><div className="mhead">Entradas registradas <span className="micon"><UiIcon name="calendar" size={22}/></span></div><strong>{money(eventBuys.reduce((n,b)=>n+Number(b.amount_brl),0))}</strong><small>Valor informativo</small></div>
             </div>
             <div className="mm-denom-layout">
+              {(organizer||isAdmin)&&<label className="mm-field" style={{marginBottom:14}}>Registrar compra para o jogador
+                <select value={purchaseFor||user.id} onChange={e=>setPurchaseFor(e.target.value)}>
+                  {guests.map(g=><option key={g.user_id} value={g.user_id}>{nameFor(g.user_id)}</option>)}
+                </select>
+              </label>}
               <ChipPurchaseForm key={selected.id} eventId={selected.id}
                 prices={[selected.chip_price_1_brl,selected.chip_price_5_brl,
                   selected.chip_price_10_brl,selected.chip_price_25_brl,selected.chip_price_50_brl]}
                 special={selected.chip_pricing_special}
                 locked={selected.chip_pricing_locked}
-                disabled={!meConfirmed||selected.status!=="scheduled"} busy={working}
+                disabled={!(meConfirmed||(organizer||isAdmin)&&guests.length>0)||selected.status!=="scheduled"} busy={working}
                 available={chipValues.map((v,i)=>Math.max(0,Math.max(40,selected.chip_stock_legacy?soldByDenom[i]:40)-soldByDenom[i]))}
                 maxStock={chipValues.map((v,i)=>Math.max(40,selected.chip_stock_legacy?soldByDenom[i]:40))}
                 minToComplete={minToComplete} entryMinimum={Number(selected.min_entry_brl)}
