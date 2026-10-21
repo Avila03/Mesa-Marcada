@@ -59,3 +59,26 @@ assert.ok(!panel.includes('Caixa conciliado: o total dos repasses é igual ao da
  "Cash balanced success notification must not obscure settlement summary");
 assert.ok(panel.includes('{!cashBalanced&&<p className="mm-message error">'),
  "Mismatched or missing cash amounts must still present an action warning");
+
+const seatsSql=read("supabase/migrations/20261022040000_table_seats_dealer.sql");
+const seatsUi=read("app/painel/seating-table.tsx");
+const seatsCss=read("app/painel/seating-table.css");
+const duoCss=read("app/painel/duo-theme.css");
+// Segurança: reserva serializada e única; crupiê obrigatório só no Blackjack.
+for(const term of ["session_table_seats","UNIQUE(session_id,seat_no)",
+   "REFERENCES public.session_attendance(session_id,user_id) ON DELETE CASCADE",
+   "WHERE s.id=p_event_id FOR UPDATE","v_game='blackjack'","p_seat_no=0",
+   "IF EXISTS(SELECT 1 FROM public.session_live_state","CREATE POLICY seating_read_confirmed",
+   "CREATE OR REPLACE FUNCTION app_private.start_live_event"]){
+  assert.ok(seatsSql.includes(term),"Missing seating security rule: "+term);
+}
+for(const token of ["<SeatingTable","db.rpc(\"choose_table_seat\"","detailTab===\"assentos\"",
+   '["assentos","Assentos"]','openEvent(data.id,"assentos")']){
+  assert.ok(panel.includes(token),"Event seat integration missing: "+token);
+}
+assert.ok(seatsUi.includes("mm-seat-dealer")&&seatsUi.includes("CRUPIÊ"),"Blackjack dealer marker missing");
+assert.ok(seatsUi.includes("disabled={!canChange||!confirmed||busy"),"Guests cannot sit before confirming");
+assert.ok(seatsCss.includes("@media(max-width:490px)"),"Seats need compact mobile sizing");
+assert.ok(duoCss.includes("#258bff")&&duoCss.includes("#ff424d"),"Keep coequal Dark Cards Duo accents");
+assert.ok(duoCss.includes(".mm-game-blackjack .btn.gold"),"Blackjack must use red primary action");
+console.log("✓ v1.9: seating, dealer, concurrency, responsive and Dark Cards Duo");
