@@ -1,5 +1,27 @@
 # Histórico de versões — Mesa Marcada
 
+## v0.9 — Eventos, perfis e revisão financeira (21/10/2026)
+- Confirmação de presença nos cards e convite por WhatsApp/nativo, link e calendário.
+- Redirecionamento seguro ao evento após autenticação.
+- Perfis com avatar, nome, bio e jogo favorito.
+- Estatísticas separadas por Poker e Blackjack, rendimento percentual e melhores saldos.
+- Rateio igualitário de despesas com precisão de centavos e registro de quem pagou.
+- Aprovação dos resultados individuais pelo organizador e bloqueio de encerramento incompleto.
+- Exclusão de lançamentos próprios de fichas/despesas enquanto o evento está aberto.
+- CI com smoke HTTP, TypeScript e build Next.js.
+
+## v0.8 — Duas mesas fixas (21/10/2026)
+- Mesas Poker e Blackjack permanentes com eventos e tutoriais incorporados.
+- Ranking visual de mãos do Poker e calculadora de Blackjack.
+
+## v0.7 — Mobile-first e Dark Cards (21/10/2026)
+- Restaura o CSS original da v0.5 no painel React.
+- Dashboard inicial, agendamento de eventos e navegação inferior no celular.
+
+## v0.6 — Supabase e contas reais (20/10/2026)
+- Supabase Auth, salas/sessões, presença individual, enquetes e financeiro.
+- RLS e isolamento por usuário; primeira integração Vercel.
+
 ## v0.5 — Dark Cards (20/10/2026)
 - Aplicada estética de baralho preto premium com acentos azul elétrico e vermelho.
 - Mantidas navegação, formulários, salas, sessões, financeiro, rankings, enquetes e tutoriais.
