@@ -24,7 +24,7 @@ const categories:Record<string,string>={food:"Comida",drinks:"Bebidas",materials
 
 export function ExpenseSplitsPanel({
   expenses,shares,settlements,userId,canJoin,canManage,scheduled,busy,
-  nameFor,photoUrls,onJoin,onToggleOpen,onDelete,onSettle,createForm
+  nameFor,photoUrls,onJoin,onToggleOpen,onDelete,createForm
 }:{
   expenses:Expense[];
   shares:ExpenseSplitRow[];
@@ -39,7 +39,6 @@ export function ExpenseSplitsPanel({
   onJoin:(expenseId:string,join:boolean)=>void;
   onToggleOpen:(expenseId:string,open:boolean)=>void;
   onDelete:(expenseId:string)=>void;
-  onSettle:(expenseId:string,memberId:string,settled:boolean)=>void;
   createForm:ReactNode;
 }){
   const openCount=expenses.filter(e=>e.split_open).length;
@@ -93,10 +92,7 @@ export function ExpenseSplitsPanel({
                   <small className={settledKeys.has(expense.id+":"+member.user_id)?"mm-v09-good":"mm-v09-pending"}>
                     {settledKeys.has(expense.id+":"+member.user_id)?"✓ Acertado":"● Pendente"}
                   </small>:<small className="mm-v09-good">✓ Pagou a despesa</small>}
-                {payer===userId&&member.user_id!==userId&&<button type="button" className="mm-split-settle-btn"
-                    disabled={busy} onClick={()=>onSettle(expense.id,member.user_id,!settledKeys.has(expense.id+":"+member.user_id))}>
-                    {settledKeys.has(expense.id+":"+member.user_id)?"Reabrir":"Confirmar recebido"}
-                  </button>}
+                
               </div>
             </div>)}
           </div>:<p className="mm-split-empty">Ainda ninguém entrou nesse racha. Nenhuma dívida foi criada.</p>}
@@ -122,19 +118,18 @@ export function ExpenseSplitsPanel({
         <p>O Anfitrião ou os participantes podem registrar comida, bebida ou outros gastos. Cada pessoa decide em quais divisões vai entrar.</p>
       </div>}
     </div>
-    <p className="mm-formfoot">As divisões e os acertos são registros informativos: quem pagou confirma recebimentos realizados fora do aplicativo. Nenhum dinheiro é transferido pelo Mesa Marcada.</p>
+    <p className="mm-formfoot">As despesas e os rachas são informativos. O resumo da noite mostrará as parcelas de cada participante; nenhum dinheiro é transferido pelo Mesa Marcada.</p>
   </div>;
 }
 
 export function MySplitsSummary({
-  splits,settlements,userId,nameFor,onOpenEvent,onSettle
+  splits,settlements,userId,nameFor,onOpenEvent
 }:{
   splits:MyExpenseSplitRow[];
   settlements:ExpenseSettlement[];
   userId:string;
   nameFor:(id:string)=>string;
   onOpenEvent:(eventId:string)=>void;
-  onSettle:(expenseId:string,memberId:string,settled:boolean)=>void;
 }){
   const settledKeys=new Set(settlements.map(x=>x.expense_id+":"+x.user_id));
   const toPay=splits.filter(row=>row.user_id===userId&&row.paid_by!==userId
@@ -148,7 +143,7 @@ export function MySplitsSummary({
   const peopleOwed=new Set(toPay.map(row=>row.paid_by)).size;
   return <section className="mm-profile-debts">
     <div className="mm-section-title"><h2>Meus rachas</h2></div>
-    <p className="mm-formfoot">Pendências de comida, bebidas e demais gastos dos quais você escolheu participar. Quem pagou confirma o recebimento para dar baixa.</p>
+    <p className="mm-formfoot">Valores de comida, bebidas e outros gastos dos quais você escolheu participar. Consulte o resumo do evento para os totais.</p>
     {settledCount>0&&<p className="mm-split-ok">✓ {settledCount} {settledCount===1?"parcela já acertada":"parcelas já acertadas"} não entram nos valores pendentes.</p>}
     <div className="mm-split-overview mm-profile-split-summary">
       <div><small>Você deve a outras pessoas</small><strong>{money(payCents/100)}</strong>
@@ -172,11 +167,10 @@ export function MySplitsSummary({
             <span><strong>{row.label}</strong><small>{row.event_title} · de {nameFor(row.user_id)}</small></span>
             <strong className="mm-v09-pending">{money(row.share_brl)}</strong>
           </button>
-          <button type="button" className="btn mm-split-settle-btn"
-            onClick={()=>onSettle(row.expense_id,row.user_id,true)}>✓ Confirmar recebimento</button>
+          
         </div>):<p className="mm-formfoot">Não há valores pendentes de outras pessoas.</p>}
       </section>
     </div>
-    <p className="mm-formfoot">Apenas a pessoa que pagou pode confirmar o acerto. Alterar os participantes de um racha reabre as confirmações anteriores para manter os valores corretos.</p>
+    <p className="mm-formfoot">Os valores são registros informativos e não representam pagamentos pelo aplicativo.</p>
   </section>;
 }
