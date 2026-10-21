@@ -523,3 +523,71 @@ a{text-decoration:none}
 @media(max-width:355px){
  .mm-v09-event-actions{grid-template-columns:1fr}
 }
+
+
+/* v0.9.1 — Compra de fichas por denominação, no estilo Dark Cards v0.5. */
+.mm-denom-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:17px;align-items:start;margin-top:17px}
+.mm-denom-layout>.stack{min-width:0;display:grid;gap:16px}
+.mm-denom-layout>.stack .panel{margin:0}
+.mm-denom-purchase{background:linear-gradient(156deg,#121922,#0c121a);border:1px solid #2d455d;border-radius:16px;padding:22px;min-width:0;box-shadow:0 14px 35px #0004}
+.mm-denom-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.mm-denom-heading h2{font-size:20px;color:#eff6ff;margin:0 0 8px}
+.mm-denom-heading p{font-size:12px;color:#9db2ca;margin:0 0 14px}
+.mm-denom-standard{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.3px;color:#599de0;margin:4px 0 7px}
+.mm-denom-special{background:#3b1c28;border:1px solid #713844;border-radius:9px;padding:10px 12px;color:#ffb5bd;font-size:12px;margin:5px 0 9px}
+.mm-denom-rows{display:grid;gap:1px;margin:6px 0 20px}
+.mm-denom-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 1px;min-width:0}
+.mm-denom-info{display:flex;align-items:center;gap:13px;min-width:0}
+.mm-chip-token{flex-shrink:0;filter:drop-shadow(0 2px 4px #0008)}
+.mm-denom-name{display:grid;gap:5px}
+.mm-denom-name strong{font-size:14px;font-weight:800;color:#f6f8fc}
+.mm-denom-name small{font-size:12px;color:#b7c8da}
+.mm-denom-controls{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.mm-denom-step{width:43px;height:43px;display:grid;place-items:center;padding:0;border:1px solid #3d5065;border-radius:50%;background:#0d141d;color:#e7effa;font:400 24px Arial,sans-serif;cursor:pointer;transition:background .14s,border-color .14s}
+.mm-denom-step:hover:enabled{border-color:#268bfc;background:#15355b}
+.mm-denom-step:focus-visible{outline:3px solid #61b7ff;outline-offset:2px}
+.mm-denom-step:disabled{opacity:.33;cursor:not-allowed}
+.mm-denom-number{font-size:14px;font-weight:800;color:#f4f9ff;text-align:center;min-width:39px;max-width:62px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.mm-denom-summary{border-top:1px solid #2a4059;padding:20px 0 13px;display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.mm-denom-summary>div{min-width:0}
+.mm-denom-summary small{font-size:12px;color:#a5b5c9;display:block;margin-bottom:6px}
+.mm-denom-summary strong{font-size:clamp(19px,2.5vw,26px);color:#eff8ff;display:block;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.mm-denom-summary-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#a5b9cd;font-size:12px;margin-bottom:15px}
+.mm-denom-summary-foot button{border:0;background:none;color:#62b5ff;font-size:12px;font-weight:750;padding:10px;cursor:pointer}
+.mm-denom-summary-foot button:disabled{color:#79899a}
+.mm-denom-save{width:100%;min-height:47px;display:grid;place-items:center;font-size:14px}
+.mm-denom-feedback{font-size:12px;color:#78e0b8;padding:10px 11px;background:#143a2b;border:1px solid #326951;border-radius:9px;margin:7px 0}
+.mm-denom-hint{font-size:11px;color:#8ba3be;line-height:1.6;margin:13px 0 0}
+.mm-denom-receipt{color:#6fb3ef!important;font-weight:600}
+.mm-denom-event-setting{background:linear-gradient(155deg,#0d2138,#111620);border:1px solid #315577;border-radius:12px;padding:16px;display:grid;gap:12px}
+.mm-denom-special-switch{display:flex;align-items:center;gap:12px;cursor:pointer;min-height:44px}
+.mm-denom-special-switch input{width:22px;height:22px;flex-shrink:0;accent-color:#258bff}
+.mm-denom-special-switch>span{display:grid;gap:5px}
+.mm-denom-special-switch strong{font-size:14px;color:#f3f7ff}
+.mm-denom-special-switch small{font-size:11px;color:#a6b9d0}
+.mm-denom-event-setting>.mm-formfoot{margin:0;color:#b0c6da}
+.mm-denom-price-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.mm-denom-price-grid .mm-formfoot{grid-column:1/-1;margin:0}
+@media(max-width:1010px){.mm-denom-layout{grid-template-columns:1fr}.mm-denom-layout>.stack{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}}
+@media(max-width:750px){
+ .mm-denom-layout{gap:13px}
+ .mm-denom-layout>.stack{grid-template-columns:1fr;gap:13px}
+ .mm-denom-purchase{padding:17px 15px;border-radius:15px}
+ .mm-denom-heading h2{font-size:19px}
+ .mm-denom-row{padding:9px 0}
+ .mm-denom-info{gap:10px}
+ .mm-denom-name strong{font-size:14px}
+ .mm-denom-step{width:43px;height:43px}
+ .mm-denom-controls{gap:7px}
+ .mm-denom-summary{padding-top:17px}
+ .mm-denom-summary strong{font-size:21px}
+ .mm-denom-price-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+}
+@media(max-width:355px){
+ .mm-chip-token{width:39px;height:39px}
+ .mm-denom-step{width:40px;height:40px}
+ .mm-denom-number{min-width:31px}
+ .mm-denom-controls{gap:4px}
+ .mm-denom-info{gap:5px}
+ .mm-denom-name small{font-size:11px}
+}
