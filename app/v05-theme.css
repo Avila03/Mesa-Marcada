@@ -591,3 +591,20 @@ a{text-decoration:none}
  .mm-denom-info{gap:5px}
  .mm-denom-name small{font-size:11px}
 }
+
+
+/* Mesa Marcada v1.0 — painel do Anfitrião e confirmação de recebimentos */
+.mm-v1-host-label{font-size:12px;color:#7ec2ff;font-weight:700;display:block;margin-top:9px}
+.mm-v1-payment-state{display:inline-flex;align-items:center;font-size:11px;font-weight:800;white-space:nowrap;border-radius:9px;padding:7px 9px}
+.mm-v1-payment-state.received{color:#87dfb4;background:#113528;border:1px solid #2e7357}
+.mm-v1-payment-state.pending{color:#ffbba8;background:#381d23;border:1px solid #884b47}
+.mm-v1-payment-action{font-size:11px;padding:7px 10px;flex-shrink:0}
+.mm-v1-payment-explain{font-size:12px;color:#9fb1c6;line-height:1.5;margin:8px 0 12px}
+.mm-v1-min-entry{margin:10px 0 5px}
+.mm-v1-rebuy-hint{font-size:12px;color:#76d1aa;margin:10px 0}
+.mm-v1-min-warning{background:#30191f;border-color:#864254;color:#ffd0c3;margin:8px 0 12px}
+@media(max-width:750px){
+ .mm-v09-finance-history{flex-wrap:wrap}
+ .mm-v1-payment-action{min-height:41px;flex:1}
+ .mm-v1-payment-state{margin-left:auto}
+}
