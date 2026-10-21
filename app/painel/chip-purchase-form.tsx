@@ -27,7 +27,7 @@ function CasinoChip({value,outer,inner}:{value:number;outer:string;inner:string}
 
 /** Valores de cada ficha são preços, não o número impresso em pontos. */
 export default function ChipPurchaseForm({
-  eventId,prices,special,locked,disabled,busy,minToComplete,entryMinimum,onSave
+  eventId,prices,special,locked,disabled,busy,minToComplete,entryMinimum,onSave,available,maxStock
 }:{
   eventId:string;
   prices:readonly number[];
@@ -37,6 +37,8 @@ export default function ChipPurchaseForm({
   busy:boolean;
   minToComplete:number;
   entryMinimum:number;
+  available:number[];
+  maxStock:number[];
   onSave:(quantities:number[])=>Promise<boolean>;
 }){
   const [quantities,setQuantities]=useState<number[]>([0,0,0,0,0]);
@@ -49,14 +51,14 @@ export default function ChipPurchaseForm({
     const cents=quantities.reduce((sum,q,i)=>sum+q*Math.round(Number(prices[i]||0)*100),0);
     return {physical,points,cash:cents/100};
   },[quantities,prices]);
-  const canSubmit=!disabled&&!busy&&!working&&data.physical>0&&data.physical<=MAX_PIECES&&Math.round(data.cash*100)>=Math.round(minToComplete*100);
+  const canSubmit=!disabled&&!busy&&!working&&data.physical>0&&data.physical<=MAX_PIECES&&quantities.every((q,i)=>q<=available[i])&&Math.round(data.cash*100)>=Math.round(minToComplete*100);
   function setQuantity(index:number,value:number){
-    if(!Number.isSafeInteger(value)||value<0||value>MAX_QTY)return;
+    if(!Number.isSafeInteger(value)||value<0||value>Math.min(MAX_QTY,available[index]))return;
     setStatus("");
     setQuantities(current=>current.map((q,i)=>{
       if(i!==index)return q;
       const other=current.reduce((sum,x,j)=>j===index?sum:sum+x,0);
-      return Math.min(value,MAX_PIECES-other);
+      return Math.min(value,MAX_PIECES-other,available[index]);
     }));
   }
   async function submit(e:FormEvent<HTMLFormElement>){
@@ -70,7 +72,7 @@ export default function ChipPurchaseForm({
   }
   return <section className="mm-denom-purchase">
     <div className="mm-denom-heading">
-      <div><h2>Compra ou recompra</h2><p>Selecione a quantidade de cada ficha.</p></div>
+      <div><h2>Compra</h2><p>Selecione a quantidade de cada ficha.</p></div>
       <span className="tag poker">♠ Fichas</span>
     </div>
     {special&&<div className="mm-denom-special">★ Evento especial — preços personalizados nesta noite.</div>}
@@ -83,14 +85,14 @@ export default function ChipPurchaseForm({
           <div className="mm-denom-info">
             <CasinoChip {...chip}/>
             <div className="mm-denom-name"><strong>Ficha {chip.value}</strong>
-              <small>{fmtMoney(Number(prices[i]||0))} cada</small></div>
+              <small>{fmtMoney(Number(prices[i]||0))} cada · {available[i]} de {maxStock[i]} disponíveis</small></div>
           </div>
           <div className="mm-denom-controls" aria-label={"Quantidade de fichas de "+chip.value}>
             <button type="button" className="mm-denom-step" aria-label={"Retirar ficha de "+chip.value}
               onClick={()=>setQuantity(i,quantities[i]-1)} disabled={busy||working||disabled||quantities[i]===0}>−</button>
             <output className="mm-denom-number" aria-live="off" aria-label={String(quantities[i])+" fichas"}>{fmt(quantities[i])}</output>
             <button type="button" className="mm-denom-step" aria-label={"Adicionar ficha de "+chip.value}
-              onClick={()=>setQuantity(i,quantities[i]+1)} disabled={busy||working||disabled||quantities[i]>=MAX_QTY||data.physical>=MAX_PIECES}>＋</button>
+              onClick={()=>setQuantity(i,quantities[i]+1)} disabled={busy||working||disabled||quantities[i]>=Math.min(MAX_QTY,available[i])||data.physical>=MAX_PIECES}>＋</button>
           </div>
         </div>)}
       </div>

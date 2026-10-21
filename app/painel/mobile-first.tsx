@@ -10,6 +10,7 @@ import "../v05-theme.css";
 import {AttendeeMiniCard,EventShareActions,FinanceReviewBoard,PlayerAvatar,ProfilePanel} from "./v09-features";
 import type {FinanceLine} from "./v09-features";
 import ChipPurchaseForm from "./chip-purchase-form";
+import "../live-checkout.css";
 import SiteLogo from "./site-logo";
 import {prepareProfilePhoto} from "./photo-utils";
 import {ExpenseSplitsPanel,MySplitsSummary} from "./expense-splits";
@@ -26,6 +27,7 @@ import AdvancedRankingPanel,{PlayerAchievements} from "./advanced-ranking";
 import type {AdvancedRank} from "./advanced-ranking";
 import type {HiddenEvent,AdminAudit} from "./admin-panel";
 
+type LiveSubtab="resumo"|"compra"|"movimentacoes"|"encerrar";
 type ChipPriceKey="chip_price_1_brl"|"chip_price_5_brl"|"chip_price_10_brl"|"chip_price_25_brl"|"chip_price_50_brl";
 const chipPriceFields:{value:number;key:ChipPriceKey}[]=[
   {value:1,key:"chip_price_1_brl"},
@@ -123,6 +125,10 @@ export default function PainelPage(){
   const [pollQuestion,setPollQuestion]=useState("");
   const [pollOptions,setPollOptions]=useState("Pizza\nHambúrguer\nChurrasco");
   const [finalChips,setFinalChips]=useState("");
+  const [liveSubtab,setLiveSubtab]=useState<LiveSubtab>("resumo");
+  const [finalQuantities,setFinalQuantities]=useState<number[]>([0,0,0,0,0]);
+  const [finalItems,setFinalItems]=useState<{session_id:string;user_id:string;chip_value:number;quantity:number}[]>([]);
+  const [chipPayouts,setChipPayouts]=useState<{session_id:string;user_id:string;confirmed_at:string}[]>([]);
   const [expenseName,setExpenseName]=useState("");
   const [expenseAmount,setExpenseAmount]=useState("");
   const [expenseCategory,setExpenseCategory]=useState("food");
@@ -151,12 +157,16 @@ export default function PainelPage(){
       db.from("admin_hidden_events").select("session_id,previous_status,hidden_by,hidden_at"),
       db.from("event_admin_audit").select("id,session_id,action,performed_by,occurred_at,description").order("occurred_at",{ascending:false}).limit(30),
       db.rpc("get_player_stats_period",{p_game:null,p_period:"ano"}),
-      db.from("session_live_state").select("session_id,started_at,started_by")
+      db.from("session_live_state").select("session_id,started_at,started_by"),
+      db.from("session_chip_final_items").select("session_id,user_id,chip_value,quantity"),
+      db.from("session_chip_payouts").select("session_id,user_id,confirmed_at")
     ]);
     requests.forEach(r=>{if(r.error)throw r.error});
     setRooms((requests[0].data||[]) as Room[]);
     setEvents((requests[1].data||[]) as Event[]);
     setLiveStates((requests[19].data||[]) as LiveState[]);
+    setFinalItems((requests[20].data||[]) as {session_id:string;user_id:string;chip_value:number;quantity:number}[]);
+    setChipPayouts((requests[21].data||[]) as {session_id:string;user_id:string;confirmed_at:string}[]);
     const currentProfiles=(requests[2].data||[]) as Profile[];
     setProfiles(currentProfiles);
     const withPhotos=currentProfiles.filter(profile=>Boolean(profile.avatar_path));
@@ -330,7 +340,7 @@ export default function PainelPage(){
       const {error:startError}=await db.rpc("start_live_event",{p_event_id:eventId});
       if(startError)throw startError;
       await reload();
-      setDetailTab("ao-vivo");
+      setDetailTab("ao-vivo");setLiveSubtab("resumo");
       setMessage("Evento ao Vivo iniciado! Os registros da mesa aparecem na linha do tempo.");
     }catch(e){setError(errText(e));}
     finally{setWorking(false);}
@@ -374,11 +384,21 @@ export default function PainelPage(){
   const organizer=Boolean(user&&selected?.organizer_id===user.id);
   const privateVisible=meConfirmed||organizer||isAdmin;
   const eventBuys=selected?buys.filter(b=>b.session_id===selected.id):[];
+  const eventFinalItems=selected?finalItems.filter(f=>f.session_id===selected.id):[];
+  const eventPayouts=selected?chipPayouts.filter(p=>p.session_id===selected.id):[];
+  const chipValues=[1,5,10,25,50] as const;
+  const chipPrices=selected?[selected.chip_price_1_brl,selected.chip_price_5_brl,selected.chip_price_10_brl,selected.chip_price_25_brl,selected.chip_price_50_brl]:[1,5,0.1,0.25,0.5];
+  const soldByDenom=chipValues.map(value=>chipItems.filter(i=>i.chip_value===value&&eventBuys.some(b=>b.id===i.purchase_id)).reduce((sum,i)=>sum+i.quantity,0));
+  const finishedByDenom=chipValues.map(value=>eventFinalItems.filter(i=>i.chip_value===value).reduce((sum,i)=>sum+i.quantity,0));
+  const stockBalanced=soldByDenom.every((n,i)=>n===finishedByDenom[i])&&eventBuys.length>0&&guests.every(g=>eventFinalItems.some(x=>x.user_id===g.user_id));
+  const totalBoughtBRL=eventBuys.reduce((n,b)=>n+Number(b.amount_brl),0);
+  const playerSettlement=(id:string)=>{const purchased=eventBuys.filter(b=>b.user_id===id).reduce((n,b)=>n+Number(b.amount_brl),0);const returned=eventFinalItems.filter(f=>f.user_id===id).reduce((n,f)=>n+f.quantity*Number(chipPrices[chipValues.indexOf(f.chip_value as (typeof chipValues)[number])]||0),0);return {purchased,returned,net:returned-purchased};};
   const unpaid=eventBuys.filter(b=>b.payment_status!=="paid");
   const myPurchasedTotal=eventBuys.filter(b=>b.user_id===user?.id).reduce((total,b)=>total+Number(b.amount_brl),0);
   const minToComplete=Math.max(0,Number(selected?.min_entry_brl||0)-myPurchasedTotal);
   const pendingByUser=Object.fromEntries(guests.map(a=>[a.user_id,eventBuys.filter(b=>b.user_id===a.user_id&&b.payment_status!=="paid").length]));
   const canFinish=(!selected?.live_start_required||Boolean(selectedLive))&&unpaid.length===0
+    &&(selected?.chip_stock_legacy!==false || (stockBalanced&&guests.every(g=>{const p=playerSettlement(g.user_id);return p.returned===0||eventPayouts.some(x=>x.user_id===g.user_id);})))
     &&guests.length>0&&financeRows.length===guests.length
     &&financeRows.every(r=>r.approved&&r.chips_bought!==null&&r.chips_final!==null);
   const checkedCount=financeRows.filter(r=>r.approved&&r.chips_bought!==null&&r.chips_final!==null).length;
@@ -467,7 +487,8 @@ export default function PainelPage(){
       &&Boolean(isAdmin||events.some(e=>e.id===id&&e.organizer_id===user?.id)
         ||attendances.some(a=>a.session_id===id&&a.user_id===user?.id));
     setSelectedId(id);setLiveActivities([]);
-    setDetailTab(sub==="visao"&&active?"ao-vivo":sub);
+    setDetailTab(sub==="fichas"?"ao-vivo":sub==="visao"&&active?"ao-vivo":sub);
+    setLiveSubtab(sub==="fichas"?"compra":"resumo");
     setPage("detalhe");setError("");setMessage("");window.scrollTo({top:0,behavior:"auto"});
   }
   function go(next:View){
@@ -763,16 +784,17 @@ export default function PainelPage(){
             </div>
             {(organizer||isAdmin)&&selected.status==="scheduled"&&!canFinish&&
               <p className="mm-formfoot">{selected.live_start_required&&!selectedLive
-                ?"Inicie a partida na aba Ao vivo para liberar o encerramento.":"Para encerrar, confirme os pagamentos de fichas e aprove todos os resultados na aba Fichas."}
+                ?"Inicie a partida na aba Ao vivo para liberar o encerramento.":"Para encerrar, confira compras, resultados e repasses no Ao vivo."}
               </p>}
             <EventShareActions id={selected.id} title={selected.title} date={selected.starts_at} room={roomTitle(selected.room_id)}/>
           </div>
         </section>
         <div className="mm-detail-tabs" role="tablist" aria-label="Conteúdo deste evento">
-          {([["visao","Visão geral"],["ao-vivo","Ao vivo"],["enquetes","Enquetes"],["fichas","Fichas"],["gastos","Gastos"]] as const).map(([id,title])=><button type="button" key={id} className={detailTab===id?"active":""} role="tab" aria-selected={detailTab===id} onClick={()=>setDetailTab(id)}>{title}</button>)}
+          {([["visao","Visão geral"],["ao-vivo","Ao vivo"],["enquetes","Enquetes"],["gastos","Gastos"]] as const).map(([id,title])=><button type="button" key={id} className={detailTab===id?"active":""} role="tab" aria-selected={detailTab===id} onClick={()=>{setDetailTab(id);if(id==="ao-vivo")setLiveSubtab("resumo")}}>{title}</button>)}
         </div>
 
-        {detailTab==="ao-vivo"&&<EventLivePanel
+        {detailTab==="ao-vivo"&&privateVisible&&selectedLive&&<div className="mm-live-subnav" role="tablist" aria-label="Áreas do Ao vivo">{([["resumo","Resumo"],["compra","Compra"],["movimentacoes","Movimentações"],["encerrar","Encerrar"]] as const).map(([id,title])=><button type="button" role="tab" aria-selected={liveSubtab===id} className={liveSubtab===id?"active":""} key={id} onClick={()=>setLiveSubtab(id)}>{title}</button>)}</div>}
+        {detailTab==="ao-vivo"&&(!selectedLive||liveSubtab==="resumo"||liveSubtab==="movimentacoes")&&<EventLivePanel
           title={selected.title}
           status={selected.status}
           startedAt={selectedLive?.started_at||null}
@@ -792,7 +814,7 @@ export default function PainelPage(){
           onStart={()=>void startLiveEvent(selected.id)}
           onFinish={()=>void finishLiveEvent(selected.id,organizer)}
           onRefresh={()=>void refreshLive(true).catch(e=>setError(errText(e)))}
-          onFichas={()=>setDetailTab("fichas")}
+          onFichas={()=>setLiveSubtab("encerrar")}
         />}
 
         {detailTab==="visao"&&<div className="two">
@@ -816,7 +838,7 @@ export default function PainelPage(){
             <p style={{marginTop:16}}>Organizado por {nameFor(selected.organizer_id)}.</p>
             <div className="mm-action-row" style={{marginTop:15}}>
               <button type="button" className="btn" onClick={()=>setDetailTab("enquetes")}>Ver enquetes →</button>
-              <button type="button" className="btn" onClick={()=>setDetailTab("fichas")}>Ver fichas →</button>
+              <button type="button" className="btn" onClick={()=>{setDetailTab("ao-vivo");setLiveSubtab("compra")}}>Ver compras ao vivo →</button>
             </div>
           </section>
         </div>}
@@ -864,10 +886,10 @@ export default function PainelPage(){
           </section>
         </div>}
 
-        {detailTab==="fichas"&&<>
-          <div className="mm-message" style={{marginBottom:18}}>Registre apenas as fichas adquiridas e seus resultados. Para organizar as despesas com comida e bebidas, abra a aba Gastos.</div>
+        {detailTab==="ao-vivo"&&selectedLive&&privateVisible&&(liveSubtab==="compra"||liveSubtab==="encerrar")&&<>
+          <div className="mm-message" style={{marginBottom:18}}>Controle de fichas da partida. As despesas de consumo continuam na aba Gastos.</div>
           {!privateVisible?<div className="panel"><h2>Informações restritas</h2><p>Confirme presença neste evento para consultar ou registrar informações financeiras.</p></div>:<>
-            <div className="metrics" style={{gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))"}}>
+            {liveSubtab==="compra"&&<><div className="metrics" style={{gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))"}}>
               <div className="metric"><div className="mhead">Fichas distribuídas <span className="micon"><UiIcon name="check" size={22}/></span></div><strong>{eventBuys.reduce((n,b)=>n+Number(b.chips_received),0).toLocaleString("pt-BR")}</strong><small>Compras e recompras</small></div>
               <div className="metric"><div className="mhead">Entradas registradas <span className="micon"><UiIcon name="calendar" size={22}/></span></div><strong>{money(eventBuys.reduce((n,b)=>n+Number(b.amount_brl),0))}</strong><small>Valor informativo</small></div>
             </div>
@@ -878,24 +900,32 @@ export default function PainelPage(){
                 special={selected.chip_pricing_special}
                 locked={selected.chip_pricing_locked}
                 disabled={!meConfirmed||selected.status!=="scheduled"} busy={working}
+                available={chipValues.map((v,i)=>Math.max(0,Math.max(40,selected.chip_stock_legacy?soldByDenom[i]:40)-soldByDenom[i]))}
+                maxStock={chipValues.map((v,i)=>Math.max(40,selected.chip_stock_legacy?soldByDenom[i]:40))}
                 minToComplete={minToComplete} entryMinimum={Number(selected.min_entry_brl)}
                 onSave={recordPurchase}
               />
-              <div className="stack">
-              <section className="panel">
-                <h2>Meu resultado</h2><p style={{margin:"9px 0 16px"}}>Quantas fichas você tinha ao final?</p>
-                <form className="mm-form-stack" onSubmit={e=>{e.preventDefault();void act(async(db,id)=>{
-                  const {error:resultError}=await db.from("session_chip_results").upsert({session_id:selected.id,user_id:id,chips_final:Number(finalChips),updated_at:new Date().toISOString()},{onConflict:"session_id,user_id"});
-                  if(resultError)throw resultError;
-                },"Resultado registrado!")}}>
-                  <label className="mm-field">Fichas finais<input type="number" min={0} step={1} required value={finalChips} onChange={e=>setFinalChips(e.target.value)}/></label>
-                  <button className="btn gold" disabled={working||!meConfirmed||selected.status!=="scheduled"}>Salvar resultado</button>
-                </form>
-              </section>
-
               </div>
-            </div>
-            <section className="panel mm-v09-purchases" style={{marginTop:19}}>
+            </>}
+            {liveSubtab==="encerrar"&&<section className="panel mm-live-checkout">
+              <h2>Conferência final por denominação</h2>
+              <p>Informe quantas fichas físicas restaram com você. Todas as cinco denominações precisam fechar com as compras da mesa.</p>
+              <div className="mm-live-final-grid">{chipValues.map((v,i)=><label className="mm-field" key={v}>Ficha {v}
+                <input type="number" min={0} max={soldByDenom[i]} step={1} value={finalQuantities[i]} onChange={e=>setFinalQuantities(old=>old.map((n,j)=>j===i?Math.max(0,Number(e.target.value)||0):n))}/>
+              </label>)}</div>
+              <button className="btn gold" type="button" disabled={!meConfirmed||working||selected.status!=="scheduled"}
+                onClick={()=>void act(async db=>{const {error:e}=await db.rpc("record_chip_final",{p_event_id:selected.id,p_quantities:finalQuantities});if(e)throw e;},"Contagem registrada.")}>Salvar minha contagem</button>
+              <div className="mm-live-balance">{chipValues.map((v,i)=><div key={v}>Ficha {v}: <strong>{finishedByDenom[i]} / {soldByDenom[i]}</strong> conferidas</div>)}</div>
+              <p className={stockBalanced?"mm-message":"mm-message error"}>{stockBalanced?"Todas as denominações estão conciliadas.":"Ainda há fichas não conferidas ou quantidades divergentes."}</p>
+              <h3>Acerto com o Anfitrião</h3>
+              <p>Total das compras: <strong>{money(totalBoughtBRL)}</strong>. Repasse calculado pelas denominações finais; a soma dos repasses deve ser igual ao total comprado.</p>
+              {guests.map(g=>{const v=playerSettlement(g.user_id);const payout=eventPayouts.some(p=>p.user_id===g.user_id);return <div className="mm-live-settle-row" key={g.user_id}>
+                <div><strong>{nameFor(g.user_id)}</strong><small>Compras {money(v.purchased)} · Recebe {money(v.returned)} · Saldo {v.net>=0?"+":""}{money(v.net)}</small></div>
+                {v.returned>0&&(organizer||isAdmin)&&<button className="btn" disabled={!stockBalanced||unpaid.length>0||working||selected.status!=="scheduled"} onClick={()=>void act(async db=>{const {error:e}=await db.rpc("set_chip_payout",{p_event_id:selected.id,p_user_id:g.user_id,p_confirmed:!payout});if(e)throw e;},payout?"Repasse reaberto.":"Repasse confirmado.")}>{payout?"✓ Repassado":"Marcar repassado"}</button>}
+              </div>})}
+              {(organizer||isAdmin)&&<button className="btn gold" disabled={!canFinish||working} onClick={()=>void finishLiveEvent(selected.id,organizer)}>Encerrar partida</button>}
+            </section>}
+            {liveSubtab==="compra"&&<><section className="panel mm-v09-purchases" style={{marginTop:19}}>
               <div className="panelhead"><h2>Compras e recompras registradas</h2><span className="tag">{eventBuys.length} lançamentos</span></div>
               <p className="mm-v1-payment-explain">O Anfitrião confirma o dinheiro recebido presencialmente. O site não realiza pagamentos ou transferências.</p>
               {organizer&&unpaid.length>0&&<p className="mm-message">Há {unpaid.length} {unpaid.length===1?"compra pendente":"compras pendentes"} de confirmação.</p>}
@@ -932,7 +962,8 @@ export default function PainelPage(){
               </div>)}
               {!eventBuys.length&&<p>Nenhuma compra ou recompra registrada até agora.</p>}
             </section>
-            <div className="mm-v11-night-ranking" style={{marginTop:19}}>
+</>}
+            {liveSubtab==="encerrar"&&<><div className="mm-v11-night-ranking" style={{marginTop:19}}>
               <section className="panel">
                 <div className="panelhead"><h2>Ranking da noite</h2></div>
                 {nightRank.map((r,i)=><div className="item" key={r.id}>
@@ -958,6 +989,7 @@ export default function PainelPage(){
                 if(revokeError)throw revokeError;
               },"Revisão reaberta.")}
             />
+            </>}
           </>}
         </>}
 
