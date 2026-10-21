@@ -67,7 +67,7 @@ const duoCss=read("app/painel/duo-theme.css");
 // Segurança: reserva serializada e única; crupiê obrigatório só no Blackjack.
 for(const term of ["session_table_seats","UNIQUE(session_id,seat_no)",
    "REFERENCES public.session_attendance(session_id,user_id) ON DELETE CASCADE",
-   "WHERE s.id=p_event_id FOR UPDATE","v_game='blackjack'","p_seat_no=0",
+   "WHERE s.id=p_event_id FOR UPDATE","v_game='blackjack'","st.seat_no=0",
    "IF EXISTS(SELECT 1 FROM public.session_live_state","CREATE POLICY seating_read_confirmed",
    "CREATE OR REPLACE FUNCTION app_private.start_live_event"]){
   assert.ok(seatsSql.includes(term),"Missing seating security rule: "+term);
