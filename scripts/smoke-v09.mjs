@@ -6,7 +6,7 @@ import {strict as assert} from "node:assert";
 const port=3123;
 const base="http://127.0.0.1:"+port;
 const cli=process.platform==="win32"?"npm.cmd":"npm";
-const server=spawn(cli,["run","start","--","-p",String(port)],{stdio:["ignore","pipe","pipe"]});
+const server=spawn(cli,["run","start","--","-p",String(port)],{stdio:["ignore","pipe","pipe"],detached:process.platform!=="win32"});
 let logs="";
 server.stdout.on("data",chunk=>{logs+=String(chunk).slice(0,2000)});
 server.stderr.on("data",chunk=>{logs+=String(chunk).slice(0,2000)});
@@ -43,6 +43,13 @@ try{
   console.log("✓ Smoke HTTP: /, /login, /painel e links /evento/[id]");
   passed=true;
 }finally{
-  server.kill();
+  // npm spawns Next.js as a child. Terminate the process group so CI cannot
+  // hang with an orphaned Next server holding the inherited stdout pipe open.
+  try{
+    if(process.platform!=="win32"&&server.pid)process.kill(-server.pid,"SIGKILL");
+    else server.kill("SIGKILL");
+  }catch{server.kill("SIGKILL");}
+  server.stdout.destroy();
+  server.stderr.destroy();
   if(!passed)console.error(logs.slice(-4500));
 }
