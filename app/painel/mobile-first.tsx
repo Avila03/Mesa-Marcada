@@ -297,7 +297,6 @@ export default function PainelPage(){
                 </div>;
               })}
             </section>
-            </section>
           </div>
         </div>
       </>}

@@ -109,7 +109,7 @@ function BlackjackTutorial(){
           {cards:[["A","♣"],["6","♦"],["9","♠"]],name:"16 duro",text:"O Ás passou a valer 1."},
           {cards:[["10","♠"],["8","♣"],["5","♥"]],name:"23 — Estourou",text:"Acima de 21."}
         ].map((ex,i)=><div className="rankrow" key={i}>
-          <PlayingCards cards={ex.cards}/>
+          <PlayingCards cards={ex.cards as Card[]}/>
           <div className="rankdesc"><strong>{ex.name}</strong><small>{ex.text}</small></div>
         </div>)}
       </Panel>
