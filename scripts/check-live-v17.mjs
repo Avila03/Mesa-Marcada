@@ -11,7 +11,7 @@ const styles=read("app/event-live.css");
 const newSql=read("supabase/migrations/20261022020000_live_chips_inventory_settlements.sql");
 
 for(const piece of [
-  '["ao-vivo","Ao vivo"]','["compra","Compra"]','["gastos","Gastos"]',
+  '["ao-vivo","Ao vivo"]','["compra","Compra"]','["gastos","Despesas"]',
   'db.rpc("start_live_event"','<EventLivePanel','setLiveSubtab("encerrar")',
   'canSee={privateVisible}','const canFinish=(!selected?.live_start_required||Boolean(selectedLive))',
   'db.from("session_live_activity")','window.setInterval(tick,15000)'
@@ -72,8 +72,8 @@ for(const term of ["session_table_seats","UNIQUE(session_id,seat_no)",
    "CREATE OR REPLACE FUNCTION app_private.start_live_event"]){
   assert.ok(seatsSql.includes(term),"Missing seating security rule: "+term);
 }
-for(const token of ["<SeatingTable","db.rpc(\"choose_table_seat\"","detailTab===\"assentos\"",
-   '["assentos","Assentos"]','openEvent(data.id,"assentos")']){
+for(const token of ["<SeatingTable","db.rpc(\"choose_table_seat\"","detailTab===\"visao\"",
+   '["visao","Visão geral"]','openEvent(data.id,"visao")']){
   assert.ok(panel.includes(token),"Event seat integration missing: "+token);
 }
 assert.ok(seatsUi.includes("mm-seat-dealer")&&seatsUi.includes("CRUPIÊ"),"Blackjack dealer marker missing");
@@ -82,3 +82,27 @@ assert.ok(seatsCss.includes("@media(max-width:490px)"),"Seats need compact mobil
 assert.ok(duoCss.includes("#258bff")&&duoCss.includes("#ff424d"),"Keep coequal Dark Cards Duo accents");
 assert.ok(duoCss.includes(".mm-game-blackjack .btn.gold"),"Blackjack must use red primary action");
 console.log("✓ v1.9: seating, dealer, concurrency, responsive and Dark Cards Duo");
+
+const newFinanceSql=read("supabase/migrations/20261022050000_simplified_cashout_finish.sql");
+const recap=read("app/painel/night-summary.tsx");
+const expenseUi=read("app/painel/expense-splits.tsx");
+const movements=read("app/painel/event-live-panel.tsx");
+for(const token of ['["visao","Visão geral"]','["gastos","Despesas"]','["compra","Compra"]',
+ '["resumo","Resumo"]','["encerrar","Encerrar"]','<SeatingTable','openPolls.length',
+ 'showPastPolls','showCreatePoll','<NightSummary','setDetailTab("resumo-evento")']){
+ assert.ok(panel.includes(token),"Expected simplified event workflow: "+token);
+}
+for(const gone of ['["enquetes","Enquetes"]','["assentos","Assentos"]',
+ '["movimentacoes","Movimentações"]','confirm_chip_payment','set_chip_payout',
+ 'set_expense_settled']){
+ assert.ok(!panel.includes(gone),"Old action/tab must not appear: "+gone);
+}
+assert.ok(newFinanceSql.includes("app_private.cashout_balanced(NEW.id)"),
+ "Must enforce BRL cashout sum on finish");
+assert.ok(!newFinanceSql.includes("Há compras ainda não recebidas'; END IF;") || 
+ newFinanceSql.includes("ELSE"),"Old event requirements must stay legacy-only");
+assert.ok(!expenseUi.includes("onSettle("),"Manual racha receipt buttons should be removed");
+assert.ok(movements.includes("export function LiveMovements"),"Movement history needs reusable component");
+assert.ok(recap.includes("Compras de fichas")&&recap.includes("Despesas e rachas"),
+ "Night summary must show chips and splits separately");
+console.log("✓ v2.0 event overview, live purchase-first, no receipts, post-finish recap");

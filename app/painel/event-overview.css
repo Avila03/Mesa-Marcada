@@ -1,0 +1,24 @@
+/* Mesa Marcada v2.0: organização das informações sem descaracterizar Dark Cards Duo. */
+.mm-detail-tabs{gap:8px}
+.mm-detail-tabs button{min-height:45px;flex:1 1 auto}
+.mm-overview-polls{display:grid;grid-template-columns:1fr;gap:12px;margin-top:17px;scroll-margin-top:22px}
+.mm-overview-poll-actions{display:flex;flex-wrap:wrap;gap:9px;margin:0 0 13px}
+.mm-overview-poll-actions>.btn{min-height:40px;font-size:12px;padding:9px 13px}
+.mm-overview-polls>.stack,.mm-overview-polls>.panel{min-width:0}
+.mm-overview-polls .mm-poll-stack{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.mm-overview-polls .pollbox{margin:0}
+.mm-live-history{margin:17px 0 0;border:1px solid #30445a;border-radius:14px;background:#0e1722;overflow:hidden}
+.mm-live-history>summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;color:#d6e9fa;padding:15px 17px;font-size:13px;font-weight:750}
+.mm-live-history>summary::marker{content:""}
+.mm-live-history>summary span{font-size:10px;color:#8db9df;font-weight:700}
+.mm-live-history[open]>summary{border-bottom:1px solid #28425b}
+.mm-live-history .mm-inline-movements{margin:0;border:0;background:transparent;border-radius:0}
+.mm-night-redirect{display:grid;gap:12px;justify-items:start}
+.mm-night-redirect h2{margin:0}.mm-night-redirect p{font-size:13px}
+.mm-game-blackjack .mm-live-history{border-color:#754050}
+.mm-game-blackjack .mm-overview-poll-actions>.btn:hover{border-color:#ff424d}
+@media(max-width:740px){
+ .mm-detail-tabs{gap:4px}.mm-detail-tabs button{padding:10px 9px;font-size:12px}
+ .mm-overview-polls .mm-poll-stack{grid-template-columns:1fr}
+ .mm-overview-poll-actions>.btn{flex:1}
+}
