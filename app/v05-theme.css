@@ -1057,3 +1057,24 @@ a{text-decoration:none}
  .mm-home-datebox{width:43px;min-width:43px}
  .mm-home-rowstatus{display:none}
 }
+
+/* v1.6.1 — Ranking anual compacto, sem filtros mensais ou quadros repetidos. */
+.mm-annual-summary{
+  display:inline-flex;align-items:center;gap:6px;
+  border:1px solid #2a4e70;border-radius:10px;background:#0c1d30;
+  color:#b2d2ef;font-size:12px;font-weight:700;padding:10px 13px;
+  white-space:normal;
+}
+.mm-annual-unit{font-size:11px;font-weight:600;color:#a4c7df}
+.mm-advanced-ranking .mm-ranking-board .panelhead{margin-bottom:15px}
+.mm-advanced-ranking .mm-ranking-filter-row{margin:0}
+.mm-advanced-ranking .mm-rank-performance strong{white-space:nowrap}
+.mm-advanced-ranking .mm-rank-performance small{white-space:nowrap}
+.mm-advanced-ranking .mm-rank-person small{white-space:normal}
+@media(max-width:650px){
+  .mm-annual-summary{font-size:11px;width:100%;justify-content:center;padding:9px}
+  .mm-advanced-ranking .mm-ranking-filter-row .mm-filter-bar{width:100%;display:flex;gap:9px}
+  .mm-advanced-ranking .mm-ranking-filter-row .mm-filter-bar button{flex:1;min-height:44px}
+  .mm-advanced-ranking .mm-rank-performance strong{font-size:15px}
+  .mm-annual-unit{font-size:10px}
+}

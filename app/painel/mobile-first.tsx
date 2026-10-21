@@ -20,7 +20,7 @@ import UiIcon from "./ui-icon";
 import DashboardV16 from "./dashboard-v16";
 import type {UiIconName} from "./ui-icon";
 import AdvancedRankingPanel,{PlayerAchievements} from "./advanced-ranking";
-import type {AdvancedRank,RankingPeriod} from "./advanced-ranking";
+import type {AdvancedRank} from "./advanced-ranking";
 import type {HiddenEvent,AdminAudit} from "./admin-panel";
 
 type ChipPriceKey="chip_price_1_brl"|"chip_price_5_brl"|"chip_price_10_brl"|"chip_price_25_brl"|"chip_price_50_brl";
@@ -107,9 +107,8 @@ export default function PainelPage(){
   const [mySplits,setMySplits]=useState<MyExpenseSplitRow[]>([]);
   const [ranking,setRanking]=useState<Rank[]>([]);
   const [periodRanking,setPeriodRanking]=useState<AdvancedRank[]>([]);
-  const [lifetimeStats,setLifetimeStats]=useState<AdvancedRank[]>([]);
+  const [annualStats,setAnnualStats]=useState<AdvancedRank[]>([]);
   const [rankingLoading,setRankingLoading]=useState(false);
-  const [rankPeriod,setRankPeriod]=useState<RankingPeriod>("geral");
   const [approvals,setApprovals]=useState<{session_id:string;user_id:string;reviewed_at:string}[]>([]);
   const [rankGame,setRankGame]=useState<Game>("poker");
   const [eventFilter,setEventFilter]=useState<"todos"|"agendados"|"encerrados">("agendados");
@@ -144,7 +143,7 @@ export default function PainelPage(){
       db.from("expense_split_settlements").select("expense_id,session_id,user_id,confirmed_at"),
       db.from("admin_hidden_events").select("session_id,previous_status,hidden_by,hidden_at"),
       db.from("event_admin_audit").select("id,session_id,action,performed_by,occurred_at,description").order("occurred_at",{ascending:false}).limit(30),
-      db.rpc("get_player_stats_period",{p_game:null,p_period:"geral"})
+      db.rpc("get_player_stats_period",{p_game:null,p_period:"ano"})
     ]);
     requests.forEach(r=>{if(r.error)throw r.error});
     setRooms((requests[0].data||[]) as Room[]);
@@ -179,7 +178,7 @@ export default function PainelPage(){
     setSettlements((requests[15].data||[]) as ExpenseSettlement[]);
     setHiddenEvents((requests[16].data||[]) as HiddenEvent[]);
     setAdminAudits((requests[17].data||[]) as AdminAudit[]);
-    setLifetimeStats((requests[18].data||[]) as AdvancedRank[]);
+    setAnnualStats((requests[18].data||[]) as AdvancedRank[]);
   },[]);
 
   useEffect(()=>{
@@ -213,14 +212,14 @@ export default function PainelPage(){
     if(!db)return;
     let active=true;
     setRankingLoading(true);
-    void Promise.resolve(db.rpc("get_player_stats_period",{p_game:rankGame,p_period:rankPeriod}))
+    void Promise.resolve(db.rpc("get_player_stats_period",{p_game:rankGame,p_period:"ano"}))
       .then(({data,error:rankingError})=>{
         if(!active)return;
         if(rankingError)setError("Ranking indisponível: "+rankingError.message);
         else setPeriodRanking((data||[]) as AdvancedRank[]);
       }).finally(()=>{if(active)setRankingLoading(false);});
     return()=>{active=false};
-  },[user,rankGame,rankPeriod,events,buys,results,approvals]);
+  },[user,rankGame,events,buys,results,approvals]);
 
   useEffect(()=>{
     if(!user)return;
@@ -588,7 +587,6 @@ export default function PainelPage(){
 
       {page==="ranking"&&<AdvancedRankingPanel
         game={rankGame} onGameChange={setRankGame}
-        period={rankPeriod} onPeriodChange={setRankPeriod}
         ranking={periodRanking} busy={rankingLoading} photoUrls={photoUrls}
         onPlayer={id=>{setProfileReturn("ranking");setProfileId(id);go("perfil")}}
       />}
@@ -625,7 +623,7 @@ export default function PainelPage(){
           }finally{setWorking(false);}
         }}
       />
-      <PlayerAchievements stats={lifetimeStats} userId={profileId||user.id}/>
+      <PlayerAchievements stats={annualStats} userId={profileId||user.id}/>
       {(profileId||user.id)===user.id&&<MySplitsSummary
         splits={mySplits} settlements={settlements} userId={user.id} nameFor={nameFor}
         onOpenEvent={eventId=>openEvent(eventId,"gastos")}

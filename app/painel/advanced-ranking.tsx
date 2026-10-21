@@ -3,7 +3,6 @@
 import type {Game,Rank} from "@/lib/mesa-types";
 import {PlayerAvatar} from "./v09-features";
 
-export type RankingPeriod="mes"|"ano"|"geral";
 export type AdvancedRank=Rank&{
   positive_events:number;
   best_yield_pct:number;
@@ -11,78 +10,86 @@ export type AdvancedRank=Rank&{
   total_chips_bought:number;
   total_chips_final:number;
 };
-const compact=(x:number)=>new Intl.NumberFormat("pt-BR",{maximumFractionDigits:1}).format(Number(x)||0);
-const percent=(x:number)=>(Number(x)>0?"+":"")+compact(x)+"%";
-const signed=(x:number)=>(Number(x)>0?"+":"")+compact(x);
+
+const formatNumber=(value:number)=>new Intl.NumberFormat("pt-BR",{maximumFractionDigits:1}).format(Number(value)||0);
+const signed=(value:number)=>(Number(value)>0?"+":"")+formatNumber(value);
+
+/** O rendimento anual usa as fichas consolidadas, não a média mensal. */
+function annualReturn(row:AdvancedRank){
+  const bought=Number(row.total_chips_bought);
+  return bought>0?Number(row.net_chips)/bought*100:null;
+}
 
 export default function AdvancedRankingPanel({
-  game,onGameChange,period,onPeriodChange,ranking,photoUrls,onPlayer,busy
+  game,onGameChange,ranking,photoUrls,onPlayer,busy
 }:{
   game:Game;onGameChange:(g:Game)=>void;
-  period:RankingPeriod;onPeriodChange:(p:RankingPeriod)=>void;
   ranking:AdvancedRank[];photoUrls:Record<string,string>;
   onPlayer:(id:string)=>void;busy:boolean;
 }){
-  const players=ranking.filter(x=>x.game===game).sort((a,b)=>
-    Number(b.avg_yield_pct)-Number(a.avg_yield_pct)||Number(b.net_chips)-Number(a.net_chips));
-  const totalSessions=players.reduce((s,x)=>s+Number(x.sessions_played),0);
-  const maxStreak=players.reduce((s,x)=>Math.max(s,Number(x.max_positive_streak)),0);
-  const bestPositive=players.reduce((s,x)=>s+Number(x.positive_events),0);
+  const year=new Date().getFullYear();
+  // Cada jogador aparece uma única vez por jogo, com todos os resultados
+  // do ano consolidados pelo banco de dados.
+  const players=ranking.filter(row=>row.game===game).sort((a,b)=>{
+    const x=annualReturn(a),y=annualReturn(b);
+    return (y??-Infinity)-(x??-Infinity)||Number(b.net_chips)-Number(a.net_chips);
+  });
+  const sessions=players.reduce((total,row)=>total+Number(row.sessions_played),0);
+
   return <div className="mm-advanced-ranking">
-    <div className="heading"><div><div className="eyebrow">QUEM DOMINA A MESA?</div>
-      <h1>Ranking e estatísticas</h1>
-      <p>Desempenho por modalidade, com períodos e resultados conferidos pelo Anfitrião.</p>
+    <div className="heading"><div>
+      <div className="eyebrow">TEMPORADA {year}</div>
+      <h1>Ranking anual</h1>
+      <p>Os resultados de todas as noites de {year} ficam reunidos em um único saldo por jogador.</p>
     </div></div>
+
     <div className="mm-ranking-filter-row">
-      <div className="mm-filter-bar">
-        {(["poker","blackjack"] as Game[]).map(g=><button key={g} type="button"
-          className={"filter "+(game===g?"active":"")} onClick={()=>onGameChange(g)}>
-          {g==="poker"?"♠ Poker":"♦ Blackjack"}</button>)}
+      <div className="mm-filter-bar" aria-label="Modalidade">
+        {(["poker","blackjack"] as Game[]).map(mode=>
+          <button key={mode} type="button" aria-pressed={game===mode}
+            className={"filter "+(game===mode?"active":"")}
+            onClick={()=>onGameChange(mode)}>
+            {mode==="poker"?"♠ Poker":"♦ Blackjack"}
+          </button>)}
       </div>
-      <div className="mm-ranking-period" role="group" aria-label="Período de classificação">
-        {([["mes","Mês"],["ano","Ano"],["geral","Histórico"]] as const).map(([value,label])=>
-          <button key={value} type="button" aria-pressed={period===value}
-            className={period===value?"active":""} onClick={()=>onPeriodChange(value)}>{label}</button>)}
-      </div>
+      <span className="mm-annual-summary">{year} · {players.length} {players.length===1?"jogador":"jogadores"} · {sessions} {sessions===1?"participação":"participações"}</span>
     </div>
-    <div className="mm-ranking-metrics">
-      <div><small>Jogadores no ranking</small><strong>{players.length}</strong></div>
-      <div><small>Participações válidas</small><strong>{totalSessions}</strong></div>
-      <div><small>Noites positivas</small><strong>{bestPositive}</strong></div>
-      <div><small>Maior sequência positiva</small><strong>{maxStreak}</strong></div>
-    </div>
+
     <section className="panel mm-ranking-board">
       <div className="panelhead">
-        <div><h2>{game==="poker"?"♠ Poker":"♦ Blackjack"} · {period==="mes"?"Neste mês":period==="ano"?"Neste ano":"Desde o início"}</h2>
-        <p className="mm-formfoot">Ordenado por rendimento percentual médio. O número de pontos pode variar entre eventos.</p></div>
-        <span className={"tag "+game}>{busy?"Carregando...":players.length+" jogadores"}</span>
+        <div><h2>{game==="poker"?"♠ Poker":"♦ Blackjack"} · resultado de {year}</h2>
+          <p className="mm-formfoot">Saldo anual de pontos e rendimento acumulado. Poker e Blackjack têm rankings separados.</p>
+        </div>
+        {busy&&<span className="tag">Atualizando...</span>}
       </div>
+
       {players.length>0?<div className="mm-rank-rows">
-        {players.map((player,i)=><button type="button" className={"mm-rank-entry "+(i===0?"mm-rank-leader":"")} key={player.user_id}
-          onClick={()=>onPlayer(player.user_id)}>
-          <span className={"mm-rank-order "+(i<3?"mm-rank-podium":"")}>{i===0?"1º":i===1?"2º":i===2?"3º":i+1+"º"}</span>
-          <PlayerAvatar name={player.display_name} photoUrl={photoUrls[player.user_id]}/>
-          <span className="mm-rank-person">
-            <strong>{player.display_name}</strong>
-            <small>{player.sessions_played} {Number(player.sessions_played)===1?"noite":"noites"} · {player.positive_events} positivas</small>
-            <small>Melhor saldo: {signed(player.best_event_chips)} pontos</small>
-          </span>
-          <span className="mm-rank-performance">
-            <strong className={Number(player.avg_yield_pct)>=0?"mm-v09-good":"mm-v09-pending"}>{percent(player.avg_yield_pct)}</strong>
-            <small>{signed(player.net_chips)} pontos</small>
-            {Number(player.max_positive_streak)>=2&&<small>Sequência: {player.max_positive_streak}</small>}
-          </span>
-          <span className="mm-rank-open" aria-hidden="true">›</span>
-        </button>)}
+        {players.map((player,index)=>{
+          const roi=annualReturn(player);
+          return <button type="button" className={"mm-rank-entry "+(index===0?"mm-rank-leader":"")} key={player.user_id}
+            onClick={()=>onPlayer(player.user_id)}>
+            <span className={"mm-rank-order "+(index<3?"mm-rank-podium":"")}>{index+1}º</span>
+            <PlayerAvatar name={player.display_name} photoUrl={photoUrls[player.user_id]}/>
+            <span className="mm-rank-person">
+              <strong>{player.display_name}</strong>
+              <small>{player.sessions_played} {Number(player.sessions_played)===1?"noite":"noites"} em {year}</small>
+            </span>
+            <span className="mm-rank-performance">
+              <strong className={Number(player.net_chips)>=0?"mm-v09-good":"mm-v09-pending"}>
+                {signed(player.net_chips)} <span className="mm-annual-unit">pontos</span>
+              </strong>
+              <small>{roi===null?"Sem base para percentual":signed(roi)+"% no ano"}</small>
+            </span>
+            <span className="mm-rank-open" aria-hidden="true">›</span>
+          </button>;
+        })}
       </div>:
-        <div className="mm-empty"><span className="mm-empty-symbol">★</span>
-          <h3>Nenhum resultado nesse período</h3>
-          <p>O ranking começará quando um evento for encerrado com fichas, pagamentos e resultados revisados.</p>
-          {period!=="geral"&&<button type="button" className="btn"
-            onClick={()=>onPeriodChange("geral")}>Ver histórico completo</button>}
+        <div className="mm-empty">
+          <h3>Nenhum resultado em {year}</h3>
+          <p>Os saldos aparecem quando os eventos deste ano forem encerrados, com as fichas e os pagamentos conferidos.</p>
         </div>}
     </section>
-    <p className="mm-formfoot">Rendimento = (fichas finais − fichas compradas) ÷ fichas compradas. O ranking utiliza a média dos rendimentos de cada evento válido. Não converte pontos em dinheiro.</p>
+    <p className="mm-formfoot">Saldo anual = pontos finais − pontos comprados, somados entre os eventos válidos do ano. Rendimento = saldo anual ÷ pontos comprados no ano. Não representa dinheiro.</p>
   </div>;
 }
 
@@ -102,7 +109,7 @@ export function PlayerAchievements({stats,userId}:{stats:AdvancedRank[];userId:s
   ];
   const unlocked=badges.filter(x=>x.unlocked);
   return <section className="mm-achievements">
-    <div className="mm-section-title"><h2>Conquistas</h2><span className="tag">{unlocked.length}/{badges.length} desbloqueadas</span></div>
+    <div className="mm-section-title"><h2>Conquistas do ano</h2><span className="tag">{unlocked.length}/{badges.length} desbloqueadas</span></div>
     <div className="mm-achievement-grid">
       {badges.map(b=><div key={b.label} className={"mm-achievement "+(b.unlocked?"earned":"locked")}>
         <span className="mm-achievement-symbol" aria-hidden="true">{b.icon}</span>
@@ -110,6 +117,6 @@ export function PlayerAchievements({stats,userId}:{stats:AdvancedRank[];userId:s
         <span className="mm-achievement-status">{b.unlocked?"✓ Desbloqueada":"Bloqueada"}</span>
       </div>)}
     </div>
-    <p className="mm-formfoot">Conquistas informativas, calculadas a partir de eventos encerrados e revisados. Não envolvem prêmios ou dinheiro.</p>
+    <p className="mm-formfoot">Conquistas de {new Date().getFullYear()}, calculadas somente com eventos encerrados e revisados. Não envolvem prêmios ou dinheiro.</p>
   </section>;
 }
