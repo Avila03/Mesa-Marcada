@@ -20,6 +20,8 @@ import MobileAppCompanion from "./mobile-app-companion";
 import UiIcon from "./ui-icon";
 import DashboardV16 from "./dashboard-v16";
 import EventLivePanel from "./event-live-panel";
+import SeatingTable from "./seating-table";
+import type {TableSeat} from "./seating-table";
 import {useStableDialog} from "./use-stable-dialog";
 import type {LiveState,LiveActivity} from "./event-live-panel";
 import type {UiIconName} from "./ui-icon";
@@ -103,6 +105,7 @@ export default function PainelPage(){
   const [profiles,setProfiles]=useState<Profile[]>([]);
   const [photoUrls,setPhotoUrls]=useState<Record<string,string>>({});
   const [attendances,setAttendances]=useState<Attendance[]>([]);
+  const [tableSeats,setTableSeats]=useState<TableSeat[]>([]);
   const [polls,setPolls]=useState<Poll[]>([]);
   const [choices,setChoices]=useState<Choice[]>([]);
   const [votes,setVotes]=useState<Vote[]>([]);
@@ -162,7 +165,8 @@ export default function PainelPage(){
       db.from("session_live_state").select("session_id,started_at,started_by"),
       db.from("session_chip_final_items").select("session_id,user_id,chip_value,quantity"),
       db.from("session_chip_payouts").select("session_id,user_id,confirmed_at"),
-      db.from("session_chip_cashouts").select("session_id,user_id,final_brl,updated_at")
+      db.from("session_chip_cashouts").select("session_id,user_id,final_brl,updated_at"),
+      db.from("session_table_seats").select("session_id,user_id,seat_no,chosen_at")
     ]);
     requests.forEach(r=>{if(r.error)throw r.error});
     setRooms((requests[0].data||[]) as Room[]);
@@ -171,6 +175,7 @@ export default function PainelPage(){
     setFinalItems((requests[20].data||[]) as {session_id:string;user_id:string;chip_value:number;quantity:number}[]);
     setChipPayouts((requests[21].data||[]) as {session_id:string;user_id:string;confirmed_at:string}[]);
     setChipCashouts((requests[22].data||[]) as {session_id:string;user_id:string;final_brl:number;updated_at:string}[]);
+    setTableSeats((requests[23].data||[]) as TableSeat[]);
     const currentProfiles=(requests[2].data||[]) as Profile[];
     setProfiles(currentProfiles);
     const withPhotos=currentProfiles.filter(profile=>Boolean(profile.avatar_path));
@@ -282,6 +287,27 @@ export default function PainelPage(){
   },[selectedId,user]);
 
   useEffect(()=>{
+    if(!user||!selectedId||page!=="detalhe"||detailTab!=="assentos")return;
+    const db=getSupabase();
+    if(!db)return;
+    let active=true;
+    const refresh=()=>{
+      if(document.visibilityState==="hidden")return;
+      void db.from("session_table_seats").select("session_id,user_id,seat_no,chosen_at")
+        .eq("session_id",selectedId).then(({data,error:seatError})=>{
+          if(!active)return;
+          if(seatError){setError("Não foi possível atualizar os assentos: "+seatError.message);return;}
+          setTableSeats(previous=>[
+            ...previous.filter(st=>st.session_id!==selectedId),...((data||[]) as TableSeat[])
+          ]);
+        });
+    };
+    refresh();
+    const t=window.setInterval(refresh,12000);
+    return()=>{active=false;window.clearInterval(t);};
+  },[user,selectedId,page,detailTab]);
+
+  useEffect(()=>{
     if(!user||!selectedId||page!=="detalhe"||detailTab!=="ao-vivo")return;
     let active=true;
     const tick=()=>{
@@ -384,6 +410,9 @@ export default function PainelPage(){
   const selectedLive=liveStates.find(l=>l.session_id===selectedId);
   const eventLiveActivities=liveActivities.filter(a=>a.session_id===selectedId);
   const guests=selected?attendances.filter(a=>a.session_id===selected.id):[];
+  const selectedGame:Game=selected?(roomFor(selected.room_id)?.game||"poker"):"poker";
+  const seatedGuests=selected?tableSeats.filter(st=>st.session_id===selected.id):[];
+  const blackjackDealerReady=selectedGame!=="blackjack"||seatedGuests.some(st=>st.seat_no===0);
   const meConfirmed=Boolean(user&&guests.some(a=>a.user_id===user.id));
   const organizer=Boolean(user&&selected?.organizer_id===user.id);
   const privateVisible=meConfirmed||organizer||isAdmin;
@@ -521,7 +550,7 @@ export default function PainelPage(){
   }
   function openCreator(roomId?:string){
     const room=(roomId?activeRooms.find(r=>r.id===roomId):undefined)||activeRooms.find(r=>r.game==="poker")||activeRooms[0];
-    setForm({...defaultEvent,room_id:room?.id||""});
+    setForm({...defaultEvent,room_id:room?.id||"",max_participants:room?.game==="blackjack"?"6":"8"});
     setModal("evento");setError("");setMessage("");
   }
   async function addEvent(e:FormEvent<HTMLFormElement>){
@@ -530,7 +559,8 @@ export default function PainelPage(){
       const room=activeRooms.find(r=>r.id===form.room_id);
       if(!room)throw new Error("Selecione Poker ou Blackjack para criar o evento.");
       if(!form.starts_at)throw new Error("Informe data e horário.");
-      const {data,error:eventError}=await db.from("sessions").insert({
+      if(Number(form.max_participants)>10||Number(form.max_participants)<2)throw new Error("A mesa admite de 2 a 10 participantes.");
+       const {data,error:eventError}=await db.from("sessions").insert({
         room_id:room.id,organizer_id:id,title:form.name.trim(),
         starts_at:new Date(form.starts_at).toISOString(),location:form.location.trim(),
         min_entry_brl:Number(form.min_entry_brl),max_participants:Number(form.max_participants),
@@ -542,9 +572,17 @@ export default function PainelPage(){
         chip_price_50_brl:form.chip_pricing_special?Number(form.chip_price_50_brl):0.50
       }).select("id").single();
       if(eventError)throw eventError;
-      setModal(null);openEvent(data.id);
+      setModal(null);openEvent(data.id,"assentos");
     },"Evento criado! Seus amigos já podem confirmar presença.");
   }
+  async function chooseSeat(seatNo:number|null){
+    if(!selected)return;
+    await act(async db=>{
+      const {error:seatError}=await db.rpc("choose_table_seat",{p_event_id:selected.id,p_seat_no:seatNo});
+      if(seatError)throw seatError;
+    },seatNo===null?"Você levantou da cadeira.":seatNo===0?"Você assumiu a cadeira de crupiê.":"Assento reservado com sucesso!");
+  }
+
   async function createPoll(e:FormEvent<HTMLFormElement>){
     e.preventDefault();
     if(!selected)return;
@@ -578,7 +616,7 @@ export default function PainelPage(){
     id==="inicio"||id==="eventos"||id==="ranking"||id==="perfil"
   );
   const mobileActivePage=page==="mesas"||page==="mesa"?"inicio":page==="admin"?"perfil":activePage;
-  return <div className="layout">
+  return <div className={"layout "+(page==="mesa"&&gameView==="blackjack"||page==="detalhe"&&selectedGame==="blackjack"?"mm-game-blackjack":page==="mesa"&&gameView==="poker"||page==="detalhe"&&selectedGame==="poker"?"mm-game-poker":"")}>
     <aside className="sidebar">
       <SiteLogo kind="sidebar"/>
       <nav className="nav mm-desktop-nav" aria-label="Navegação lateral">
@@ -811,9 +849,15 @@ export default function PainelPage(){
           </div>
         </section>
         <div className="mm-detail-tabs" role="tablist" aria-label="Conteúdo deste evento">
-          {([["visao","Visão geral"],["ao-vivo","Ao vivo"],["enquetes","Enquetes"],["gastos","Gastos"]] as const).map(([id,title])=><button type="button" key={id} className={detailTab===id?"active":""} role="tab" aria-selected={detailTab===id} onClick={()=>{setDetailTab(id);if(id==="ao-vivo")setLiveSubtab("resumo")}}>{title}</button>)}
+          {([["visao","Visão geral"],["assentos","Assentos"],["ao-vivo","Ao vivo"],["enquetes","Enquetes"],["gastos","Gastos"]] as const).map(([id,title])=><button type="button" key={id} className={detailTab===id?"active":""} role="tab" aria-selected={detailTab===id} onClick={()=>{setDetailTab(id);if(id==="ao-vivo")setLiveSubtab("resumo")}}>{title}</button>)}
         </div>
 
+        {detailTab==="assentos"&&<SeatingTable game={selectedGame}
+          capacity={selected.max_participants} seats={seatedGuests}
+          myId={user.id} confirmed={meConfirmed}
+          canChange={selected.status==="scheduled"&&!Boolean(selectedLive)}
+          busy={working} nameFor={nameFor}
+          onChoose={seatNo=>void chooseSeat(seatNo)}/>}
         {detailTab==="ao-vivo"&&privateVisible&&selectedLive&&<div className="mm-live-subnav" role="tablist" aria-label="Áreas do Ao vivo">{([["resumo","Resumo"],["compra","Compra"],["movimentacoes","Movimentações"],["encerrar","Encerrar"]] as const).map(([id,title])=><button type="button" role="tab" aria-selected={liveSubtab===id} className={liveSubtab===id?"active":""} key={id} onClick={()=>setLiveSubtab(id)}>{title}</button>)}</div>}
         {detailTab==="ao-vivo"&&(!selectedLive||liveSubtab==="resumo"||liveSubtab==="movimentacoes")&&<EventLivePanel
           title={selected.title}
@@ -832,6 +876,8 @@ export default function PainelPage(){
           canFinish={canFinish}
           activities={eventLiveActivities}
           nameFor={nameFor}
+          canStart={blackjackDealerReady}
+          onSeats={()=>setDetailTab("assentos")}
           onStart={()=>void startLiveEvent(selected.id)}
           onFinish={()=>void finishLiveEvent(selected.id,organizer)}
           onRefresh={()=>void refreshLive(true).catch(e=>setError(errText(e)))}
@@ -1117,7 +1163,10 @@ export default function PainelPage(){
         <header><div><div className="eyebrow">ORGANIZAR UMA NOITE</div><h2 id="new-event-title">Criar evento</h2></div><button className="mm-close" type="button" aria-label="Fechar" onClick={()=>setModal(null)}><UiIcon name="close" size={22}/></button></header>
         <form className="mm-form-stack" onSubmit={addEvent}>
           <label className="mm-field">Escolha a mesa
-            <select value={form.room_id} onChange={e=>setForm({...form,room_id:e.target.value})} required>
+            <select value={form.room_id} onChange={e=>{
+              const newRoom=activeRooms.find(room=>room.id===e.target.value);
+              setForm({...form,room_id:e.target.value,max_participants:newRoom?.game==="blackjack"?"6":"8"});
+            }} required>
               <option value="" disabled>Selecione Poker ou Blackjack</option>
               {(["poker","blackjack"] as Game[]).map(g=>{
                 const table=activeRooms.find(r=>r.game===g);
@@ -1132,7 +1181,7 @@ export default function PainelPage(){
           </div>
           <div className="mm-form-grid">
             <label className="mm-field">Entrada mínima (R$)<input type="number" min={0} step="0.01" required value={form.min_entry_brl} onChange={e=>setForm({...form,min_entry_brl:e.target.value})}/></label>
-            <label className="mm-field">Vagas<input type="number" min={1} max={500} step={1} required value={form.max_participants} onChange={e=>setForm({...form,max_participants:e.target.value})}/></label>
+            <label className="mm-field">Vagas (cadeiras)<input type="number" min={2} max={10} step={1} required value={form.max_participants} onChange={e=>setForm({...form,max_participants:e.target.value})}/></label>
           </div>
           <div className="mm-denom-event-setting">
             <label className="mm-denom-special-switch">
@@ -1148,6 +1197,9 @@ export default function PainelPage(){
               </label>)}
               <p className="mm-formfoot">Os preços personalizados ficam bloqueados após a primeira compra deste evento.</p>
             </div>:<p className="mm-formfoot">Padrão: ficha 1 = R$ 1,00 · ficha 5 = R$ 5,00 · ficha 10 = R$ 0,10 · ficha 25 = R$ 0,25 · ficha 50 = R$ 0,50.</p>}
+          </div>
+          <div className="mm-create-seat-preview"><strong>♠ ♦ Assentos interativos</strong>
+            <span>Após criar o evento, você irá diretamente para a mesa. Os convidados confirmados poderão escolher seus lugares{activeRooms.find(r=>r.id===form.room_id)?.game==="blackjack"?", inclusive a cadeira exclusiva do crupiê":""}.</span>
           </div>
           <p className="mm-formfoot">O valor é apenas informativo. Todos os usuários cadastrados poderão ver este evento.</p>
           {error&&<p className="mm-message error" role="alert">{error}</p>}

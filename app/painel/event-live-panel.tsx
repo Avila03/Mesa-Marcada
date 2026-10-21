@@ -41,7 +41,7 @@ const relativeTag=(startedAt:string,status:string)=>{
 export default function EventLivePanel({
   title,status,startedAt,requiresStart,canSee,host,admin,
   busy,loading,guestCount,paidCount,purchaseCount,checkedCount,
-  canFinish,activities,nameFor,onStart,onFinish,onRefresh,onFichas
+  canFinish,activities,nameFor,onStart,onFinish,onRefresh,onFichas,canStart,onSeats
 }:{
   title:string;
   status:"scheduled"|"finished"|"cancelled";
@@ -49,6 +49,7 @@ export default function EventLivePanel({
   requiresStart:boolean;
   canSee:boolean;host:boolean;admin:boolean;
   busy:boolean;loading:boolean;
+  canStart:boolean;onSeats:()=>void;
   guestCount:number;paidCount:number;purchaseCount:number;checkedCount:number;
   canFinish:boolean;
   activities:LiveActivity[];
@@ -82,8 +83,12 @@ export default function EventLivePanel({
           A linha do tempo será formada automaticamente pelos registros feitos na mesa.</p>}
       {status==="scheduled"&&!startedAt&&host&&
         <button type="button" className="btn gold mm-live-primary"
-          disabled={busy} onClick={onStart}>
+          disabled={busy||!canStart} onClick={onStart}>
           <UiIcon name="spade" size={20}/> Iniciar partida
+        </button>}
+      {status==="scheduled"&&!startedAt&&host&&!canStart&&
+        <button type="button" className="mm-seat-start-hint" onClick={onSeats}>
+          Para começar o Blackjack, alguém precisa ocupar a cadeira do crupiê. Abrir Assentos →
         </button>}
       {status==="scheduled"&&!startedAt&&!host&&
         <div className="mm-live-awaiting"><UiIcon name="clock" size={19}/>
