@@ -132,7 +132,8 @@ export default function PainelPage(){
       if(!signError&&signed){
         const urls:Record<string,string>={};
         for(let i=0;i<withPhotos.length;i++){
-          if(signed[i]?.signedUrl)urls[withPhotos[i].id]=signed[i].signedUrl;
+          const signedUrl=signed[i]?.signedUrl;
+          if(signedUrl)urls[withPhotos[i].id]=signedUrl;
         }
         setPhotoUrls(urls);
       }else setPhotoUrls({});
