@@ -540,7 +540,7 @@ export default function PainelPage(){
       {page==="ranking"&&<RankingPanel game={rankGame} onGameChange={setRankGame} ranking={ranking} photoUrls={photoUrls}
         onPlayer={id=>{setProfileReturn("ranking");setProfileId(id);go("perfil")}}/>}
 
-      {page==="perfil"&&<ProfilePanel
+      {page==="perfil"&&<><ProfilePanel
         profile={profiles.find(p=>p.id===(profileId||user.id))}
         userId={user.id} events={events} attendances={attendances} stats={ranking}
         photoUrl={photoUrls[profileId||user.id]}
@@ -556,7 +556,12 @@ export default function PainelPage(){
             await reload();setMessage("Perfil atualizado!");
           }finally{setWorking(false);}
         }}
+      />
+      {(profileId||user.id)===user.id&&<MySplitsSummary
+        splits={mySplits} userId={user.id} nameFor={nameFor}
+        onOpenEvent={eventId=>openEvent(eventId,"gastos")}
       />}
+      </>}
 
       {page==="detalhe"&&selected&&<>
         <button type="button" className="back" onClick={()=>go("eventos")}>← Voltar aos eventos</button>
@@ -670,12 +675,11 @@ export default function PainelPage(){
         </div>}
 
         {detailTab==="fichas"&&<>
-          <div className="mm-message" style={{marginBottom:18}}>Cada ficha tem um preço de compra e uma pontuação impressa. Os valores são calculados automaticamente e usados apenas para registros; o Mesa Marcada não processa pagamentos ou apostas.</div>
+          <div className="mm-message" style={{marginBottom:18}}>Registre apenas as fichas adquiridas e seus resultados. Para organizar as despesas com comida e bebidas, abra a aba Gastos.</div>
           {!privateVisible?<div className="panel"><h2>Informações restritas</h2><p>Confirme presença neste evento para consultar ou registrar informações financeiras.</p></div>:<>
             <div className="metrics" style={{gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))"}}>
               <div className="metric"><div className="mhead">Fichas distribuídas <span className="micon">♠</span></div><strong>{eventBuys.reduce((n,b)=>n+Number(b.chips_received),0).toLocaleString("pt-BR")}</strong><small>Compras e recompras</small></div>
               <div className="metric"><div className="mhead">Entradas registradas <span className="micon">▤</span></div><strong>{money(eventBuys.reduce((n,b)=>n+Number(b.amount_brl),0))}</strong><small>Valor informativo</small></div>
-              <div className="metric"><div className="mhead">Despesas <span className="micon">♦</span></div><strong>{money(eventExpenses.reduce((n,b)=>n+Number(b.amount_brl),0))}</strong><small>Gastos compartilhados</small></div>
             </div>
             <div className="mm-denom-layout">
               <ChipPurchaseForm key={selected.id} eventId={selected.id}
@@ -698,25 +702,7 @@ export default function PainelPage(){
                   <button className="btn gold" disabled={working||!meConfirmed||selected.status!=="scheduled"}>Salvar resultado</button>
                 </form>
               </section>
-              <section className="panel">
-                <h2>Adicionar despesa</h2><p style={{margin:"9px 0 16px"}}>Comidas, bebidas e materiais da noite.</p>
-                <form className="mm-form-stack" onSubmit={e=>{e.preventDefault();void act(async(db,id)=>{
-                  const {error:expenseError}=await db.from("session_expenses").insert({session_id:selected.id,created_by:id,paid_by:organizer&&guests.some(g=>g.user_id===expensePayer)?expensePayer:id,label:expenseName.trim(),category:expenseCategory,amount_brl:Number(expenseAmount)});
-                  if(expenseError)throw expenseError;setExpenseName("");setExpenseAmount("");
-                },"Despesa registrada!")}}>
-                  <label className="mm-field">Descrição<input minLength={2} required value={expenseName} onChange={e=>setExpenseName(e.target.value)} placeholder="Pizza e bebidas"/></label>
-                  <div className="mm-form-grid">
-                    <label className="mm-field">Valor (R$)<input type="number" min="0.01" step="0.01" required value={expenseAmount} onChange={e=>setExpenseAmount(e.target.value)}/></label>
-                    <label className="mm-field">Categoria<select value={expenseCategory} onChange={e=>setExpenseCategory(e.target.value)}><option value="food">Comida</option><option value="drinks">Bebidas</option><option value="materials">Materiais</option><option value="other">Outros</option></select></label>
-                  </div>
-                  <label className="mm-field">Quem pagou?
-                    {organizer?<select value={expensePayer||user.id} onChange={e=>setExpensePayer(e.target.value)}>
-                      {guests.map(g=><option key={g.user_id} value={g.user_id}>{nameFor(g.user_id)}{g.user_id===user.id?" (eu)":""}</option>)}
-                    </select>:<input disabled readOnly value={nickname+" (eu)"}/>}
-                  </label>
-                  <button className="btn gold" disabled={working||!meConfirmed||selected.status!=="scheduled"}>Salvar despesa</button>
-                </form>
-              </section>
+
               </div>
             </div>
             <section className="panel mm-v09-purchases" style={{marginTop:19}}>
@@ -756,7 +742,7 @@ export default function PainelPage(){
               </div>)}
               {!eventBuys.length&&<p>Nenhuma compra ou recompra registrada até agora.</p>}
             </section>
-            <div className="two" style={{marginTop:19}}>
+            <div className="mm-v11-night-ranking" style={{marginTop:19}}>
               <section className="panel">
                 <div className="panelhead"><h2>Ranking da noite</h2></div>
                 {nightRank.map((r,i)=><div className="item" key={r.id}>
@@ -766,23 +752,7 @@ export default function PainelPage(){
                 </div>)}
                 {!nightRank.length&&<p>Os resultados aparecerão conforme a participação.</p>}
               </section>
-              <section className="panel">
-                <div className="panelhead"><h2>Gastos registrados</h2></div>
-                {eventExpenses.map(e=><div className="item" key={e.id}>
-                  <div className="itemcontent"><strong>{e.label}</strong><small>Pago por {nameFor(e.paid_by||e.created_by)} · Registrado por {nameFor(e.created_by)}</small></div>
-                  <strong>{money(e.amount_brl)}</strong>
-                  {e.created_by===user.id&&selected.status==="scheduled"&&<button type="button" className="mm-v09-delete-entry"
-                    disabled={working} onClick={()=>{
-                      if(!window.confirm("Excluir esta despesa? O rateio de todos será recalculado."))return;
-                      void act(async(db,id)=>{
-                        const {error:deleteError}=await db.from("session_expenses").delete().eq("id",e.id).eq("created_by",id);
-                        if(deleteError)throw deleteError;
-                      },"Despesa excluída. Rateio atualizado.");
-                    }}>Excluir</button>}
-                </div>)}
-                {!eventExpenses.length&&<p>Nenhum gasto registrado.</p>}
-                {guests.length>0&&<p className="mm-formfoot" style={{marginTop:15}}>O rateio individual detalhado está abaixo, calculado com precisão de centavos.</p>}
-              </section>
+
             </div>
             <FinanceReviewBoard lines={financeRows} loading={financeLoading} organizer={organizer} pendingPaymentsByUser={pendingByUser} photoUrls={photoUrls}
               scheduled={selected.status==="scheduled"} busy={working}
@@ -800,6 +770,51 @@ export default function PainelPage(){
             />
           </>}
         </>}
+
+        {detailTab==="gastos"&&(!privateVisible?
+          <div className="panel"><h2>Gastos restritos</h2><p>Confirme sua presença para consultar e participar dos rachas deste evento.</p></div>:
+          <ExpenseSplitsPanel
+            expenses={eventExpenses} shares={expenseShares}
+            userId={user.id} canJoin={meConfirmed} canManage={organizer}
+            scheduled={selected.status==="scheduled"} busy={working}
+            nameFor={nameFor} photoUrls={photoUrls}
+            onJoin={(expenseId,join)=>void act(async(db)=>{
+              const {error:splitError}=await db.rpc("set_expense_split_membership",{p_expense_id:expenseId,p_join:join});
+              if(splitError)throw splitError;
+            },join?"Você entrou no racha.":"Você saiu do racha.")}
+            onToggleOpen={(expenseId,open)=>void act(async(db)=>{
+              const {error:splitError}=await db.rpc("set_expense_split_open",{p_expense_id:expenseId,p_open:open});
+              if(splitError)throw splitError;
+            },open?"Racha reaberto.":"Racha fechado.")}
+            onDelete={expenseId=>{
+              if(!window.confirm("Excluir esta despesa? O racha e as dívidas calculadas deixarão de existir."))return;
+              void act(async(db,id)=>{
+                const {error:deleteError}=await db.from("session_expenses").delete()
+                  .eq("id",expenseId).eq("created_by",id);
+                if(deleteError)throw deleteError;
+              },"Gasto e racha excluídos.");
+            }}
+            createForm={              <section className="panel">
+                <h2>Adicionar despesa</h2><p style={{margin:"9px 0 16px"}}>Comidas, bebidas e materiais da noite.</p>
+                <form className="mm-form-stack" onSubmit={e=>{e.preventDefault();void act(async(db,id)=>{
+                  const {error:expenseError}=await db.from("session_expenses").insert({session_id:selected.id,created_by:id,paid_by:organizer&&guests.some(g=>g.user_id===expensePayer)?expensePayer:id,label:expenseName.trim(),category:expenseCategory,amount_brl:Number(expenseAmount)});
+                  if(expenseError)throw expenseError;setExpenseName("");setExpenseAmount("");
+                },"Despesa registrada!")}}>
+                  <label className="mm-field">Descrição<input minLength={2} required value={expenseName} onChange={e=>setExpenseName(e.target.value)} placeholder="Pizza e bebidas"/></label>
+                  <div className="mm-form-grid">
+                    <label className="mm-field">Valor (R$)<input type="number" min="0.01" step="0.01" required value={expenseAmount} onChange={e=>setExpenseAmount(e.target.value)}/></label>
+                    <label className="mm-field">Categoria<select value={expenseCategory} onChange={e=>setExpenseCategory(e.target.value)}><option value="food">Comida</option><option value="drinks">Bebidas</option><option value="materials">Materiais</option><option value="other">Outros</option></select></label>
+                  </div>
+                  <label className="mm-field">Quem pagou?
+                    {organizer?<select value={expensePayer||user.id} onChange={e=>setExpensePayer(e.target.value)}>
+                      {guests.map(g=><option key={g.user_id} value={g.user_id}>{nameFor(g.user_id)}{g.user_id===user.id?" (eu)":""}</option>)}
+                    </select>:<input disabled readOnly value={nickname+" (eu)"}/>}
+                  </label>
+                  <button className="btn gold" disabled={working||!meConfirmed||selected.status!=="scheduled"}>Salvar despesa</button>
+                </form>
+              </section>}
+          />
+        )}
       </>}
 
       <footer className="mm-formfoot" style={{marginTop:35}}>Mesa Marcada · Organize seus encontros. Valores em reais são apenas registros informativos.</footer>
