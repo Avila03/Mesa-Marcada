@@ -1,5 +1,14 @@
 # Histórico de versões — Mesa Marcada
 
+## v0.9.1 — Compras por denominação (21/10/2026)
+- Tela de compra/recompra no evento com fichas físicas de 1, 5, 10, 25 e 50.
+- Tabela padrão do grupo: R$ 1,00; R$ 5,00; R$ 0,10; R$ 0,25; R$ 0,50 por ficha.
+- Eventos especiais permitem preços personalizados definidos ao criar o evento.
+- Cálculo de R$ e de pontos no PostgreSQL, não apenas no navegador.
+- Histórico mostra o detalhamento das denominações; compras anteriores são preservadas.
+- Preços não podem ser alterados depois da primeira compra, inclusive se uma compra for excluída.
+- Gravação transacional segura via RPC privada com checagem de presença e autorização.
+
 ## v0.9 — Eventos, perfis e revisão financeira (21/10/2026)
 - Confirmação de presença nos cards e convite por WhatsApp/nativo, link e calendário.
 - Redirecionamento seguro ao evento após autenticação.
