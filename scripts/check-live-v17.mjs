@@ -6,7 +6,7 @@ const read=path=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
 const panel=read("app/painel/mobile-first.tsx");
 const types=read("lib/mesa-types.ts");
 const component=read("app/painel/event-live-panel.tsx");
-const sql=read("supabase/migrations/20261021090000_evento_ao_vivo.sql");
+const sql=read("supabase/migrations/20261022010000_mesa_marcada_evento_ao_vivo.sql");
 const styles=read("app/event-live.css");
 
 for(const piece of [
