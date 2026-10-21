@@ -608,3 +608,50 @@ a{text-decoration:none}
  .mm-v1-payment-action{min-height:41px;flex:1}
  .mm-v1-payment-state{margin-left:auto}
 }
+
+/* v1.1: logo oficial e avatares de foto ou iniciais; nenhum emoji de perfil. */
+.mm-site-logo{display:flex;align-items:center;gap:11px;min-width:0}
+.mm-site-logo .mm-site-logo-mark{width:45px;height:45px;object-fit:cover;border-radius:12px;flex-shrink:0;box-shadow:0 1px 20px #1a81ee28}
+.mm-site-logo .brandname{font:850 19px/1.08 Arial,Helvetica,sans-serif;color:#f4f8ff;letter-spacing:-.7px;white-space:nowrap}
+.mm-site-logo .brandname em{color:#23a7ff;font-style:normal;font-weight:850}
+.mm-site-logo .brandsub{color:#9bb5ce;font-size:8.5px;letter-spacing:1.6px;font-family:Arial,Helvetica,sans-serif}
+.mm-site-logo-sidebar{padding:0 6px}
+.mm-site-logo-mobile{gap:7px;padding:0!important}
+.mm-site-logo-mobile .mm-site-logo-mark{width:35px;height:35px;border-radius:9px}
+.mm-site-logo-mobile .brandname{font-size:16px;letter-spacing:-.6px}
+.mm-login-card .mm-site-logo-login{flex-direction:column;gap:12px;margin:0 0 27px!important;padding:0!important;align-items:center}
+.mm-site-logo-login .mm-site-logo-mark{width:105px;height:105px;border-radius:24px;box-shadow:0 2px 32px #1b7ce83c}
+.mm-login-card .mm-site-logo-login .brandname{font-size:29px;line-height:1.2;letter-spacing:-1.25px}
+.mm-login-card #auth-title{text-align:center}
+.mm-player-avatar{overflow:hidden;border-radius:50%;background:linear-gradient(148deg,#203c5c,#101b2a);border:1px solid #3e5a77;
+  color:#dceeff;font:800 14px/1 Arial,Helvetica,sans-serif;letter-spacing:.3px}
+.mm-player-avatar.large{border-radius:50%;font-size:29px}
+.mm-player-photo{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.mm-v09-profile-link .mm-player-avatar,.mm-side-profile .mm-player-avatar{border-radius:50%}
+.mm-profile-upload-label{font-weight:700;color:#d8e9fa;font-size:14px}
+.mm-profile-upload{display:flex;align-items:flex-start;gap:19px;background:#0b1724;border:1px solid #30445e;padding:18px;border-radius:14px}
+.mm-profile-upload .mm-player-avatar{width:96px;height:96px;flex-shrink:0}
+.mm-profile-upload-input{min-width:0;flex:1;display:grid;gap:9px}
+.mm-profile-upload-input label{font-size:13px;color:#eaf6ff;font-weight:700}
+.mm-profile-upload-input input[type=file]{border:1px solid #304866;border-radius:9px;background:#101f2f;padding:9px;color:#cee3f6;font-size:12px;max-width:100%;min-height:44px;height:auto}
+.mm-profile-upload-input input::file-selector-button{background:#194771;border:1px solid #418cda;border-radius:7px;padding:9px;color:#f5faff;margin-right:8px;cursor:pointer}
+.mm-profile-upload-input small{font-size:11px;color:#94afca;line-height:1.5}
+.mm-profile-upload-actions{display:flex;flex-wrap:wrap;gap:9px}
+.mm-profile-upload-actions .btn{min-height:42px}
+.mm-profile-remove{color:#f6b9c3;border-color:#804252;background:#24161d}
+.mm-profile-upload .mm-player-avatar.large{box-shadow:0 0 0 3px #223e58,0 10px 30px #0005}
+.mm-v09-rank-player .mm-player-avatar{font-size:13px}
+.mm-v09-finance-person .mm-player-avatar{font-size:14px}
+@media(max-width:750px){
+ .mm-login-card .mm-site-logo-login .brandname{font-size:25px}
+ .mm-login-card .mm-site-logo-login .mm-site-logo-mark{width:89px;height:89px;border-radius:20px}
+ .mm-site-logo-sidebar{padding:0}
+ .mm-profile-upload{flex-direction:column;gap:13px}
+ .mm-profile-upload .mm-player-avatar{width:81px;height:81px}
+ .mm-profile-upload-input{width:100%}
+ .mm-profile-upload-actions .btn{flex:1}
+}
+@media(max-width:360px){
+ .mm-site-logo-mobile .brandname{font-size:14px}
+ .mm-site-logo-mobile .mm-site-logo-mark{width:30px;height:30px}
+}

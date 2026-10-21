@@ -4,6 +4,16 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Mesa Marcada | Suas noites de jogo",
   description: "Organize eventos, mesas, enquetes e resultados com seus amigos.",
+  icons: {
+    icon: [{url:"/mesa-marcada-logo.webp",type:"image/webp",sizes:"96x96"}],
+    shortcut:"/mesa-marcada-logo.webp",
+    apple:"/mesa-marcada-logo.webp"
+  },
+  openGraph:{
+    title:"Mesa Marcada",
+    description:"Poker, Blackjack e encontros entre amigos.",
+    images:[{url:"/mesa-marcada-logo.webp",width:96,height:96}]
+  },
 };
 export const viewport: Viewport = {
   width:"device-width",initialScale:1,viewportFit:"cover",themeColor:"#080a0e"

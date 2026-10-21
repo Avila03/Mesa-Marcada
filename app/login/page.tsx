@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase/browser";
 import "../v05-theme.css";
+import SiteLogo from "../painel/site-logo";
 
 function postLoginPath(){
   const next=new URLSearchParams(window.location.search).get("next");
@@ -54,10 +55,7 @@ export default function LoginPage() {
 
   return <main className="mm-login-shell">
     <section className="mm-login-card" aria-labelledby="auth-title">
-      <div className="brand">
-        <span className="brandmark">♠</span>
-        <span className="brandname">Mesa <em>Marcada</em></span>
-      </div>
+      <SiteLogo kind="login"/>
       <h1 id="auth-title">{signup?"Criar minha conta":"Entrar na mesa"}</h1>
       <form className="mm-form-stack" onSubmit={handleSubmit}>
         {signup&&<label className="mm-field">Nome de jogador
