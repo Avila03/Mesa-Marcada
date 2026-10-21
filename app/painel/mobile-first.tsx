@@ -20,7 +20,8 @@ import AdminPanel from "./admin-panel";
 import MobileAppCompanion from "./mobile-app-companion";
 import UiIcon from "./ui-icon";
 import DashboardV16 from "./dashboard-v16";
-import EventLivePanel from "./event-live-panel";
+import EventLivePanel,{LiveMovements} from "./event-live-panel";
+import NightSummary from "./night-summary";
 import SeatingTable from "./seating-table";
 import type {TableSeat} from "./seating-table";
 import {useStableDialog} from "./use-stable-dialog";
@@ -30,7 +31,7 @@ import AdvancedRankingPanel,{PlayerAchievements} from "./advanced-ranking";
 import type {AdvancedRank} from "./advanced-ranking";
 import type {HiddenEvent,AdminAudit} from "./admin-panel";
 
-type LiveSubtab="resumo"|"compra"|"movimentacoes"|"encerrar";
+type LiveSubtab="compra"|"resumo"|"encerrar";
 type ChipPriceKey="chip_price_1_brl"|"chip_price_5_brl"|"chip_price_10_brl"|"chip_price_25_brl"|"chip_price_50_brl";
 const chipPriceFields:{value:number;key:ChipPriceKey}[]=[
   {value:1,key:"chip_price_1_brl"},
@@ -128,7 +129,9 @@ export default function PainelPage(){
   const [form,setForm]=useState<CreateEvent>(defaultEvent);
   const [pollQuestion,setPollQuestion]=useState("");
   const [pollOptions,setPollOptions]=useState("Pizza\nHambúrguer\nChurrasco");
-    const [liveSubtab,setLiveSubtab]=useState<LiveSubtab>("resumo");
+    const [liveSubtab,setLiveSubtab]=useState<LiveSubtab>("compra");
+  const [showPastPolls,setShowPastPolls]=useState(false);
+  const [showCreatePoll,setShowCreatePoll]=useState(false);
   const [cashoutFor,setCashoutFor]=useState("");
   const [cashoutDraft,setCashoutDraft]=useState("");
   const [purchaseFor,setPurchaseFor]=useState("");
@@ -288,7 +291,7 @@ export default function PainelPage(){
   },[selectedId,user]);
 
   useEffect(()=>{
-    if(!user||!selectedId||page!=="detalhe"||detailTab!=="assentos")return;
+    if(!user||!selectedId||page!=="detalhe"||detailTab!=="visao")return;
     const db=getSupabase();
     if(!db)return;
     let active=true;
@@ -371,20 +374,21 @@ export default function PainelPage(){
       const {error:startError}=await db.rpc("start_live_event",{p_event_id:eventId});
       if(startError)throw startError;
       await reload();
-      setDetailTab("ao-vivo");setLiveSubtab("resumo");
+      setDetailTab("ao-vivo");setLiveSubtab("compra");
       setMessage("Evento ao Vivo iniciado! Os registros da mesa aparecem na linha do tempo.");
     }catch(e){setError(errText(e));}
     finally{setWorking(false);}
   }
 
   async function finishLiveEvent(eventId:string,isHost:boolean){
-    if(!window.confirm("Encerrar a partida? Verifique se todas as compras de fichas foram recebidas e os resultados estão aprovados."))return;
+    if(!window.confirm("Encerrar a partida e abrir o Resumo da noite? Confira se o valor final de todos os jogadores soma o total comprado."))return;
     await act(async db=>{
       const {error:finishError}=isHost
         ?await db.from("sessions").update({status:"finished"}).eq("id",eventId)
         :await db.rpc("admin_manage_event",{p_event_id:eventId,p_action:"finish"});
       if(finishError)throw finishError;
-    },"Partida encerrada com os resultados de fichas conferidos.");
+    },"Partida encerrada! Resumo da noite disponível.");
+    setDetailTab("resumo-evento");
   }
 
   async function act(fn:(db:SupabaseClient,id:string)=>Promise<void>,success:string){
@@ -444,9 +448,9 @@ export default function PainelPage(){
   const myPurchasedTotal=eventBuys.filter(b=>b.user_id===buyingTarget).reduce((total,b)=>total+Number(b.amount_brl),0);
   const minToComplete=Math.max(0,Number(selected?.min_entry_brl||0)-myPurchasedTotal);
   const pendingByUser=Object.fromEntries(guests.map(a=>[a.user_id,eventBuys.filter(b=>b.user_id===a.user_id&&b.payment_status!=="paid").length]));
-  const canFinish=(!selected?.live_start_required||Boolean(selectedLive))&&unpaid.length===0&&(
+  const canFinish=(!selected?.live_start_required||Boolean(selectedLive))&&(
     selected?.chip_settlement_brl
-      ?cashBalanced&&guests.every(g=>{const p=playerSettlement(g.user_id);return p.returned===0||eventPayouts.some(x=>x.user_id===g.user_id)})
+      ?cashBalanced
       :(selected?.chip_stock_legacy!==false||(stockBalanced&&guests.every(g=>{const p=playerSettlement(g.user_id);return p.returned===0||eventPayouts.some(x=>x.user_id===g.user_id)})))
          &&guests.length>0&&financeRows.length===guests.length
          &&financeRows.every(r=>r.approved&&r.chips_bought!==null&&r.chips_final!==null)
@@ -457,6 +461,8 @@ export default function PainelPage(){
   const eventResults=selected?results.filter(r=>r.session_id===selected.id):[];
   const eventExpenses=selected?expenses.filter(e=>e.session_id===selected.id):[];
   const eventPolls=selected?polls.filter(p=>p.session_id===selected.id):[];
+  const openPolls=eventPolls.filter(p=>!p.is_closed);
+  const eventExpenseShares=selected?expenseShares.filter(sh=>sh.session_id===selected.id):[];
   const nightRank=useMemo(()=>{
     if(!selected)return [];
     return guests.map(g=>{
@@ -533,13 +539,12 @@ export default function PainelPage(){
   }
 
   function openEvent(id:string,sub:DetailTab="visao"){
-    const active=events.some(ev=>ev.id===id&&ev.status==="scheduled")
-      &&liveStates.some(l=>l.session_id===id)
-      &&Boolean(isAdmin||events.some(e=>e.id===id&&e.organizer_id===user?.id)
-        ||attendances.some(a=>a.session_id===id&&a.user_id===user?.id));
     setSelectedId(id);setLiveActivities([]);
-    setDetailTab(sub==="fichas"?"ao-vivo":sub==="visao"&&active?"ao-vivo":sub);
-    setLiveSubtab(sub==="fichas"?"compra":"resumo");
+    const isFinished=events.some(ev=>ev.id===id&&ev.status==="finished");
+    setDetailTab(isFinished?"resumo-evento":sub==="fichas"?"ao-vivo":
+      (sub==="assentos"||sub==="enquetes"?"visao":sub));
+    setLiveSubtab("compra");
+    setShowPastPolls(false);setShowCreatePoll(false);
     setPage("detalhe");setError("");setMessage("");window.scrollTo({top:0,behavior:"auto"});
   }
   function go(next:View){
@@ -573,7 +578,7 @@ export default function PainelPage(){
         chip_price_50_brl:form.chip_pricing_special?Number(form.chip_price_50_brl):0.50
       }).select("id").single();
       if(eventError)throw eventError;
-      setModal(null);openEvent(data.id,"assentos");
+      setModal(null);openEvent(data.id,"visao");
     },"Evento criado! Seus amigos já podem confirmar presença.");
   }
   async function chooseSeat(seatNo:number|null){
@@ -850,17 +855,12 @@ export default function PainelPage(){
           </div>
         </section>
         <div className="mm-detail-tabs" role="tablist" aria-label="Conteúdo deste evento">
-          {([["visao","Visão geral"],["assentos","Assentos"],["ao-vivo","Ao vivo"],["enquetes","Enquetes"],["gastos","Gastos"]] as const).map(([id,title])=><button type="button" key={id} className={detailTab===id?"active":""} role="tab" aria-selected={detailTab===id} onClick={()=>{setDetailTab(id);if(id==="ao-vivo")setLiveSubtab("resumo")}}>{title}</button>)}
+          {([["visao","Visão geral"],["ao-vivo","Ao vivo"],["gastos","Despesas"],
+    ...(selected.status==="finished"?[["resumo-evento","Resumo do evento"] as const]:[])] as const).map(([id,title])=><button type="button" key={id} className={detailTab===id?"active":""} role="tab" aria-selected={detailTab===id} onClick={()=>{setDetailTab(id);if(id==="ao-vivo")setLiveSubtab("compra")}}>{title}</button>)}
         </div>
 
-        {detailTab==="assentos"&&<SeatingTable game={selectedGame}
-          capacity={selected.max_participants} seats={seatedGuests}
-          myId={user.id} confirmed={meConfirmed}
-          canChange={selected.status==="scheduled"&&!Boolean(selectedLive)}
-          busy={working} nameFor={nameFor}
-          onChoose={seatNo=>void chooseSeat(seatNo)}/>}
-        {detailTab==="ao-vivo"&&privateVisible&&selectedLive&&<div className="mm-live-subnav" role="tablist" aria-label="Áreas do Ao vivo">{([["resumo","Resumo"],["compra","Compra"],["movimentacoes","Movimentações"],["encerrar","Encerrar"]] as const).map(([id,title])=><button type="button" role="tab" aria-selected={liveSubtab===id} className={liveSubtab===id?"active":""} key={id} onClick={()=>setLiveSubtab(id)}>{title}</button>)}</div>}
-        {detailTab==="ao-vivo"&&(!selectedLive||liveSubtab==="resumo"||liveSubtab==="movimentacoes")&&<EventLivePanel
+        {detailTab==="ao-vivo"&&privateVisible&&selectedLive&&selected.status==="scheduled"&&<div className="mm-live-subnav" role="tablist" aria-label="Áreas do Ao vivo">{([["compra","Compra"],["resumo","Resumo"],["encerrar","Encerrar"]] as const).map(([id,title])=><button type="button" role="tab" aria-selected={liveSubtab===id} className={liveSubtab===id?"active":""} key={id} onClick={()=>setLiveSubtab(id)}>{title}</button>)}</div>}
+        {detailTab==="ao-vivo"&&(!selectedLive||liveSubtab==="resumo")&&selected.status==="scheduled"&&<EventLivePanel
           title={selected.title}
           status={selected.status}
           startedAt={selectedLive?.started_at||null}
@@ -878,14 +878,16 @@ export default function PainelPage(){
           activities={eventLiveActivities}
           nameFor={nameFor}
           canStart={blackjackDealerReady}
-          onSeats={()=>setDetailTab("assentos")}
+          onSeats={()=>setDetailTab("visao")}
           onStart={()=>void startLiveEvent(selected.id)}
           onFinish={()=>void finishLiveEvent(selected.id,organizer)}
           onRefresh={()=>void refreshLive(true).catch(e=>setError(errText(e)))}
           onFichas={()=>setLiveSubtab("encerrar")}
+          showTimeline={false}
         />}
 
-        {detailTab==="visao"&&<div className="two">
+        {detailTab==="visao"&&<>
+          <div className="two">
           <section className="panel">
             <div className="panelhead"><h2>Participantes</h2><span className="tag">{guests.length}/{selected.max_participants}</span></div>
             <div className="mm-progress"><div style={{width:(Math.min(1,guests.length/selected.max_participants)*100)+"%"}}/></div>
@@ -905,19 +907,32 @@ export default function PainelPage(){
             </div>
             <p style={{marginTop:16}}>Organizado por {nameFor(selected.organizer_id)}.</p>
             <div className="mm-action-row" style={{marginTop:15}}>
-              <button type="button" className="btn" onClick={()=>setDetailTab("enquetes")}>Ver enquetes →</button>
+              <button type="button" className="btn" onClick={()=>document.getElementById("event-polls")?.scrollIntoView({behavior:"smooth",block:"start"})}>Ver enquetes abertas →</button>
               <button type="button" className="btn" onClick={()=>{setDetailTab("ao-vivo");setLiveSubtab("compra")}}>Ver compras ao vivo →</button>
             </div>
           </section>
-        </div>}
+        </div>
+        {detailTab==="visao"&&<SeatingTable game={selectedGame}
+          capacity={selected.max_participants} seats={seatedGuests}
+          myId={user.id} confirmed={meConfirmed}
+          canChange={selected.status==="scheduled"&&!Boolean(selectedLive)}
+          busy={working} nameFor={nameFor}
+          onChoose={seatNo=>void chooseSeat(seatNo)}/>}
 
-        {detailTab==="enquetes"&&<div className="two">
+
+        <div id="event-polls" className="mm-overview-polls">
           <div className="stack">
             <section className="panel">
-              <div className="panelhead"><h2>Enquetes do evento</h2><span className="tag">{eventPolls.length}</span></div>
+              <div className="panelhead"><h2>Enquetes abertas</h2><span className="tag">{openPolls.length}</span></div>
+              <div className="mm-overview-poll-actions">
+                {eventPolls.some(p=>p.is_closed)&&<button type="button" className="btn" onClick={()=>setShowPastPolls(x=>!x)}>
+                  {showPastPolls?"Ocultar encerradas":"Ver enquetes encerradas"}</button>}
+                <button type="button" className="btn" onClick={()=>setShowCreatePoll(x=>!x)}>
+                  {showCreatePoll?"Fechar formulário":"＋ Nova enquete"}</button>
+              </div>
               {!privateVisible&&<p className="mm-message">Confirme presença para participar das enquetes. Os votos ficam visíveis apenas aos participantes e ao organizador.</p>}
               <div className="mm-poll-stack">
-                {eventPolls.map(p=>{
+                {eventPolls.filter(p=>!p.is_closed||showPastPolls).map(p=>{
                   const pollVotes=votes.filter(v=>v.poll_id===p.id);
                   return <div className="pollbox" key={p.id}>
                     <div className="panelhead"><div><h3>{p.question}</h3><p className="mm-note">{pollVotes.length} votos</p></div><span className={"tag "+(p.is_closed?"archive":"poker")}>{p.is_closed?"Encerrada":"Aberta"}</span></div>
@@ -938,11 +953,11 @@ export default function PainelPage(){
                     },"Enquete encerrada.")}>Encerrar votação</button>}
                   </div>;
                 })}
-                {!eventPolls.length&&<p>Nenhuma enquete ainda. Crie a primeira pergunta sobre comida, bebida ou qualquer detalhe da noite.</p>}
+                {!openPolls.length&&!showPastPolls&&<p>Nenhuma enquete aberta neste momento.</p>}
               </div>
             </section>
           </div>
-          <section className="panel">
+          {showCreatePoll&&<section className="panel">
             <h2>Criar enquete</h2>
             <p style={{margin:"9px 0 15px"}}>Cada participante pode votar uma vez e mudar de ideia até o encerramento.</p>
             <form className="mm-form-stack" onSubmit={createPoll}>
@@ -951,9 +966,10 @@ export default function PainelPage(){
               <button className="btn gold" disabled={!meConfirmed||selected.status!=="scheduled"||working}><UiIcon name="plus" size={18}/> Criar enquete</button>
             </form>
             {!meConfirmed&&<p className="mm-formfoot">Confirme sua presença neste evento antes de criar enquetes.</p>}
-          </section>
-        </div>}
+          </section>}
+        </div>
 
+        </>}
         {detailTab==="ao-vivo"&&selectedLive&&privateVisible&&(liveSubtab==="compra"||liveSubtab==="encerrar")&&<>
           {!privateVisible?<div className="panel"><h2>Informações restritas</h2><p>Confirme presença neste evento para consultar ou registrar informações financeiras.</p></div>:<>
             {liveSubtab==="compra"&&<><div className="metrics" style={{gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))"}}>
