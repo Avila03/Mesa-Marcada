@@ -17,6 +17,7 @@ import type {ExpenseSplitRow,MyExpenseSplitRow,ExpenseSettlement} from "./expens
 import AdminPanel from "./admin-panel";
 import MobileAppCompanion from "./mobile-app-companion";
 import UiIcon from "./ui-icon";
+import DashboardV16 from "./dashboard-v16";
 import type {UiIconName} from "./ui-icon";
 import AdvancedRankingPanel,{PlayerAchievements} from "./advanced-ranking";
 import type {AdvancedRank,RankingPeriod} from "./advanced-ranking";
@@ -450,16 +451,30 @@ export default function PainelPage(){
     ...(isAdmin?[["admin","Administração","settings"] as [View,string,UiIconName]]:[])
   ];
   const activePage=page==="detalhe"?"eventos":page==="mesa"?"mesas":page;
+  const mobileNavEntries=navEntries.filter(([id])=>
+    id==="inicio"||id==="eventos"||id==="ranking"||id==="perfil"
+  );
+  const mobileActivePage=page==="mesas"||page==="mesa"?"inicio":page==="admin"?"perfil":activePage;
   return <div className="layout">
     <aside className="sidebar">
       <SiteLogo kind="sidebar"/>
-      <nav className="nav" aria-label="Navegação principal">
+      <nav className="nav mm-desktop-nav" aria-label="Navegação lateral">
         <div className="navlabel">NAVEGAÇÃO</div>
         {navEntries.map(([id,label,icon])=><button className={"mm-nav-btn "+(activePage===id?"active":"")} key={id} type="button" title={label}
           aria-label={label} onClick={()=>{if(id==="perfil")setProfileId(user.id);go(id)}}
           aria-current={activePage===id?"page":undefined}>
           <span className="ico" aria-hidden="true"><UiIcon name={icon} size={22}/></span>
           <span className="mm-nav-label">{id==="admin"?"Admin":label}</span>
+        </button>)}
+      </nav>
+      <nav className="nav mm-bottom-nav" aria-label="Navegação inferior">
+        {mobileNavEntries.map(([id,label,icon])=><button
+          className={"mm-nav-btn "+(mobileActivePage===id?"active":"")}
+          key={id} type="button" title={label} aria-label={label}
+          aria-current={mobileActivePage===id?"page":undefined}
+          onClick={()=>{if(id==="perfil")setProfileId(user.id);go(id)}}>
+          <span className="ico" aria-hidden="true"><UiIcon name={icon} size={23}/></span>
+          <span className="mm-nav-label">{label}</span>
         </button>)}
       </nav>
       <div className="mm-side-profile">
@@ -481,64 +496,21 @@ export default function PainelPage(){
       {error&&<p className="mm-message error" role="alert" style={{marginBottom:16}}>{error}</p>}
       {message&&<p className="mm-message" role="status" style={{marginBottom:16}}>{message}</p>}
 
-      {page==="inicio"&&<>
-        <div className="heading">
-          <div><div className="eyebrow">BEM-VINDO DE VOLTA</div><h1>A próxima rodada<br/>começa aqui, {firstName}.</h1><p className="mm-page-intro">Encontre sua próxima noite e reúna todo mundo na mesa.</p></div>
-          <button type="button" className="btn gold mm-create" onClick={()=>openCreator()}><UiIcon name="plus" size={22}/> Criar evento</button>
-        </div>
-        {(myUpcoming[0]||upcoming[0])&&(()=>{
-          const next=myUpcoming[0]||upcoming[0];
-          const attending=attendances.some(a=>a.session_id===next.id&&a.user_id===user.id);
-          return <section className="mm-mobile-next-event">
-            <div><span className="eyebrow">SUA PRÓXIMA NOITE</span>
-              <h2>{next.title}</h2>
-              <p>{new Date(next.starts_at).toLocaleDateString("pt-BR",{dateStyle:"medium"})} · {eventTime(next.starts_at)} · {roomTitle(next.room_id)}</p>
-              <small>{attending?"✓ Você confirmou presença":"Sua presença ainda não foi confirmada"}</small>
-            </div>
-            <div className="mm-mobile-next-event-actions">
-              {!attending&&<button type="button" className="btn gold" disabled={working}
-                onClick={()=>void confirmAttendance(next.id)}>✓ Confirmar</button>}
-              <button type="button" className="btn" onClick={()=>openEvent(next.id)}>Ver evento →</button>
-            </div>
-          </section>;
-        })()}
-        <div className="metrics">
-          <div className="metric"><div className="mhead">Eventos agendados <span className="micon"><UiIcon name="calendar" size={22}/></span></div><strong>{upcoming.length}</strong><small>Próximas noites</small></div>
-          <div className="metric"><div className="mhead">Minhas presenças <span className="micon"><UiIcon name="check" size={22}/></span></div><strong>{myUpcoming.length}</strong><small>Confirmações ativas</small></div>
-          <div className="metric"><div className="mhead">Mesas de jogos <span className="micon"><UiIcon name="cards" size={22}/></span></div><strong>{activeRooms.length}</strong><small>Poker e Blackjack</small></div>
-          <div className="metric"><div className="mhead">Jogadores cadastrados <span className="micon"><UiIcon name="users" size={22}/></span></div><strong>{profiles.length}</strong><small>Na comunidade</small></div>
-        </div>
-        <div className="two">
-          <section className="panel">
-            <div className="panelhead"><h2>Próximos eventos</h2><button className="link" type="button" onClick={()=>go("eventos")}>Ver todos →</button></div>
-            {upcoming.length>0?upcoming.slice(0,5).map(ev=><div className="item" key={ev.id}>
-              <DateTile value={ev.starts_at}/>
-              <div className="itemcontent">
-                <button className="mm-itemlink" type="button" onClick={()=>openEvent(ev.id)}>{ev.title}</button>
-                <small>{eventTime(ev.starts_at)}　·　{roomTitle(ev.room_id)}　·　{attendances.filter(a=>a.session_id===ev.id).length}/{ev.max_participants} confirmados</small>
-              </div>
-              <button type="button" className="link" onClick={()=>openEvent(ev.id)}>Abrir →</button>
-            </div>):<div className="mm-empty"><span className="mm-empty-symbol">♠</span><strong>Nenhum evento marcado</strong><p>Comece criando o primeiro encontro.</p><button type="button" className="btn gold" onClick={()=>openCreator()}><UiIcon name="plus" size={18}/> Criar evento</button></div>}
-          </section>
-          <div className="stack">
-            <section className="hero">
-              <div><div className="eyebrow">TUDO EM UM SÓ LUGAR</div><h2 className="mm-hero-heading">Uma noite para<br/><span className="mm-hero-title-strong">ficar na memória.</span></h2><p>Escolha a mesa, marque o horário e organize seus amigos.</p><button className="btn gold mm-hero-cta" type="button" onClick={()=>openCreator()}><UiIcon name="plus" size={19}/> Criar evento</button></div>
-              <span className="mm-hero-symbol" aria-hidden="true">♠ <em>♦</em></span>
-            </section>
-            <section className="panel">
-              <div className="panelhead"><h2>As duas mesas</h2><button type="button" className="link" onClick={()=>go("mesas")}>Explorar →</button></div>
-              {(["poker","blackjack"] as Game[]).map(g=>{
-                const room=activeRooms.find(r=>r.game===g);
-                return <div className="item" key={g}>
-                  <span className="datebox" style={{fontSize:23,color:g==="poker"?"#439fff":"#ff4653"}}>{g==="poker"?"♠":"♦"}</span>
-                  <div className="itemcontent"><strong>{gameName(g)}</strong><small>{events.filter(e=>room&&e.room_id===room.id).length} eventos · Guia de regras</small></div>
-                  <button type="button" className="link" onClick={()=>openGame(g)}>Abrir →</button>
-                </div>;
-              })}
-            </section>
-          </div>
-        </div>
-      </>}
+      {page==="inicio"&&<DashboardV16
+        firstName={firstName} userId={user.id} upcoming={upcoming}
+        attendances={attendances} rooms={activeRooms}
+        mySplits={mySplits} settlements={settlements}
+        isAdmin={isAdmin} busy={working}
+        onCreate={openCreator}
+        onOpenEvent={id=>openEvent(id)}
+        onConfirm={id=>void confirmAttendance(id)}
+        onEvents={()=>go("eventos")}
+        onGame={openGame}
+        onTables={()=>go("mesas")}
+        onProfile={()=>{setProfileId(user.id);go("perfil")}}
+        onRanking={()=>go("ranking")}
+        onAdmin={()=>go("admin")}
+      />}
 
       {page==="eventos"&&<>
         <div className="heading"><div><div className="eyebrow">AGENDA DO GRUPO</div><h1>Eventos</h1><p>Confira as próximas noites ou marque um novo encontro.</p></div><button className="btn gold mm-create" type="button" onClick={()=>openCreator()}><UiIcon name="plus" size={18}/> Criar evento</button></div>
@@ -629,7 +601,14 @@ export default function PainelPage(){
         onOpen={id=>openEvent(id)}
       />}
 
-      {page==="perfil"&&<><ProfilePanel
+      {page==="perfil"&&<>
+      {isAdmin&&(!profileId||profileId===user.id)&&
+        <button type="button" className="mm-profile-admin-link" onClick={()=>go("admin")}>
+          <UiIcon name="settings" size={20}/>
+          <span><strong>Administração geral</strong><small>Gerenciar eventos, Anfitriões e auditoria</small></span>
+          <UiIcon name="arrow-right" size={18}/>
+        </button>}
+      <ProfilePanel
         profile={profiles.find(p=>p.id===(profileId||user.id))}
         userId={user.id} events={events} attendances={attendances} stats={ranking}
         photoUrl={photoUrls[profileId||user.id]}
