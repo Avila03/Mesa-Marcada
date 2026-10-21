@@ -893,7 +893,7 @@ export default function PainelPage(){
           myId={user.id} confirmed={meConfirmed}
           canChange={selected.status==="scheduled"&&!Boolean(selectedLive)}
           busy={working} nameFor={nameFor}
-          onChoose={seatNo=>void chooseSeat(seatNo)}/>}
+          onChoose={seatNo=>void chooseSeat(seatNo)}/>
 
           <div className="two">
           <section className="panel">
