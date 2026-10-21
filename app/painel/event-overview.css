@@ -22,3 +22,12 @@
  .mm-overview-polls .mm-poll-stack{grid-template-columns:1fr}
  .mm-overview-poll-actions>.btn{flex:1}
 }
+
+/* Despesas e rachas ficam junto da Visão geral; formulário só sob demanda. */
+.mm-overview-expenses{margin-top:18px;scroll-margin-top:26px;min-width:0}
+.mm-overview-expenses .mm-split-view{min-width:0}
+.mm-overview-expenses .mm-split-view-header{margin-bottom:10px}
+.mm-overview-expenses .mm-split-overview{margin-top:10px}
+.mm-overview-expense-tools{display:flex;justify-content:flex-end;margin-bottom:11px}
+.mm-overview-expense-tools>.btn{min-height:42px}
+@media(max-width:740px){.mm-overview-expenses{margin-top:14px;scroll-margin-top:16px}.mm-overview-expense-tools>.btn{flex:1}}

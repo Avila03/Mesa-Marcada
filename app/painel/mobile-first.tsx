@@ -133,6 +133,7 @@ export default function PainelPage(){
     const [liveSubtab,setLiveSubtab]=useState<LiveSubtab>("compra");
   const [showPastPolls,setShowPastPolls]=useState(false);
   const [showCreatePoll,setShowCreatePoll]=useState(false);
+  const [showAddExpense,setShowAddExpense]=useState(false);
   const [cashoutFor,setCashoutFor]=useState("");
   const [cashoutDraft,setCashoutDraft]=useState("");
   const [purchaseFor,setPurchaseFor]=useState("");
@@ -549,10 +550,11 @@ export default function PainelPage(){
     setSelectedId(id);setLiveActivities([]);
     const isFinished=events.some(ev=>ev.id===id&&ev.status==="finished");
     setDetailTab(isFinished?"resumo-evento":sub==="fichas"?"ao-vivo":
-      (sub==="assentos"||sub==="enquetes"?"visao":sub));
+      (sub==="assentos"||sub==="enquetes"||sub==="gastos"?"visao":sub));
     setLiveSubtab("compra");
-    setShowPastPolls(false);setShowCreatePoll(false);
+    setShowPastPolls(false);setShowCreatePoll(false);setShowAddExpense(false);
     setPage("detalhe");setError("");setMessage("");window.scrollTo({top:0,behavior:"auto"});
+    if(sub==="gastos")window.setTimeout(()=>document.getElementById("event-expenses")?.scrollIntoView({behavior:"smooth",block:"start"}),140);
   }
   function go(next:View){
     setPage(next);setError("");setMessage("");window.scrollTo({top:0,behavior:"auto"});
@@ -853,7 +855,7 @@ export default function PainelPage(){
           </div>
         </section>
         <div className="mm-detail-tabs" role="tablist" aria-label="Conteúdo deste evento">
-          {([["visao","Visão geral"],["ao-vivo","Ao vivo"],["gastos","Despesas"],
+          {([["visao","Visão geral"],["ao-vivo","Ao vivo"],
     ...(selected.status==="finished"?[["resumo-evento","Resumo do evento"] as const]:[])] as const).map(([id,title])=><button type="button" key={id} className={detailTab===id?"active":""} role="tab" aria-selected={detailTab===id} onClick={()=>{setDetailTab(id);if(id==="ao-vivo")setLiveSubtab("compra")}}>{title}</button>)}
         </div>
 
@@ -913,6 +915,7 @@ export default function PainelPage(){
             <p style={{marginTop:16}}>Organizado por {nameFor(selected.organizer_id)}.</p>
             <div className="mm-action-row" style={{marginTop:15}}>
               <button type="button" className="btn" onClick={()=>document.getElementById("event-polls")?.scrollIntoView({behavior:"smooth",block:"start"})}>Ver enquetes abertas →</button>
+              <button type="button" className="btn" onClick={()=>document.getElementById("event-expenses")?.scrollIntoView({behavior:"smooth",block:"start"})}>Ver despesas e rachas →</button>
               <button type="button" className="btn" onClick={()=>{setDetailTab("ao-vivo");setLiveSubtab("compra")}}>Ver compras ao vivo →</button>
             </div>
           </section>
@@ -967,6 +970,59 @@ export default function PainelPage(){
             {!meConfirmed&&<p className="mm-formfoot">Confirme sua presença neste evento antes de criar enquetes.</p>}
           </section>}
         </div>
+        <section id="event-expenses" className="mm-overview-expenses" aria-label="Despesas e rachas">
+          {privateVisible&&<div className="mm-overview-expense-tools">
+            <button type="button" className="btn" aria-expanded={showAddExpense}
+              onClick={()=>setShowAddExpense(open=>!open)}>
+              {showAddExpense?"Fechar formulário":"＋ Adicionar despesa"}
+            </button>
+          </div>}
+        {!privateVisible?
+          <div className="panel"><h2>Despesas restritas</h2><p>Confirme sua presença para consultar e participar dos rachas deste evento.</p></div>:
+          <ExpenseSplitsPanel
+            expenses={eventExpenses} shares={expenseShares} settlements={settlements}
+            userId={user.id} canJoin={meConfirmed} canManage={organizer}
+            scheduled={selected.status==="scheduled"} busy={working}
+            nameFor={nameFor} photoUrls={photoUrls}
+            onJoin={(expenseId,join)=>void act(async(db)=>{
+              const {error:splitError}=await db.rpc("set_expense_split_membership",{p_expense_id:expenseId,p_join:join});
+              if(splitError)throw splitError;
+            },join?"Você entrou no racha.":"Você saiu do racha.")}
+
+            onToggleOpen={(expenseId,open)=>void act(async(db)=>{
+              const {error:splitError}=await db.rpc("set_expense_split_open",{p_expense_id:expenseId,p_open:open});
+              if(splitError)throw splitError;
+            },open?"Racha reaberto.":"Racha fechado.")}
+            onDelete={expenseId=>{
+              if(!window.confirm("Excluir esta despesa? O racha e as dívidas calculadas deixarão de existir."))return;
+              void act(async(db,id)=>{
+                const {error:deleteError}=await db.from("session_expenses").delete()
+                  .eq("id",expenseId).eq("created_by",id);
+                if(deleteError)throw deleteError;
+              },"Gasto e racha excluídos.");
+            }}
+            createForm={showAddExpense?<section className="panel">
+                <h2>Adicionar despesa</h2><p style={{margin:"9px 0 16px"}}>Comidas, bebidas e materiais da noite.</p>
+                <form className="mm-form-stack" onSubmit={e=>{e.preventDefault();void act(async(db,id)=>{
+                  const {error:expenseError}=await db.from("session_expenses").insert({session_id:selected.id,created_by:id,paid_by:organizer&&guests.some(g=>g.user_id===expensePayer)?expensePayer:id,label:expenseName.trim(),category:expenseCategory,amount_brl:Number(expenseAmount)});
+                  if(expenseError)throw expenseError;setExpenseName("");setExpenseAmount("");
+                },"Despesa registrada!")}}>
+                  <label className="mm-field">Descrição<input minLength={2} required value={expenseName} onChange={e=>setExpenseName(e.target.value)} placeholder="Pizza e bebidas"/></label>
+                  <div className="mm-form-grid">
+                    <label className="mm-field">Valor (R$)<input type="number" min="0.01" step="0.01" required value={expenseAmount} onChange={e=>setExpenseAmount(e.target.value)}/></label>
+                    <label className="mm-field">Categoria<select value={expenseCategory} onChange={e=>setExpenseCategory(e.target.value)}><option value="food">Comida</option><option value="drinks">Bebidas</option><option value="materials">Materiais</option><option value="other">Outros</option></select></label>
+                  </div>
+                  <label className="mm-field">Quem pagou?
+                    {organizer?<select value={expensePayer||user.id} onChange={e=>setExpensePayer(e.target.value)}>
+                      {guests.map(g=><option key={g.user_id} value={g.user_id}>{nameFor(g.user_id)}{g.user_id===user.id?" (eu)":""}</option>)}
+                    </select>:<input disabled readOnly value={nickname+" (eu)"}/>}
+                  </label>
+                  <button className="btn gold" disabled={working||!meConfirmed||selected.status!=="scheduled"}>Salvar despesa</button>
+                </form>
+              </section>:null}
+          />
+        }
+        </section>
 
         </>}
         {detailTab==="ao-vivo"&&selectedLive&&selected.status==="scheduled"&&privateVisible&&(liveSubtab==="compra"||liveSubtab==="encerrar")&&<>
@@ -1089,51 +1145,6 @@ export default function PainelPage(){
             expenses={eventExpenses} shares={eventExpenseShares} hostId={selected.organizer_id}
             currentUserId={user.id} nameFor={nameFor} eventFinished title={selected.title}/>:
           <section className="panel"><p>Confirme sua presença para consultar o resumo financeiro do evento.</p></section>)}
-        {detailTab==="gastos"&&(!privateVisible?
-          <div className="panel"><h2>Gastos restritos</h2><p>Confirme sua presença para consultar e participar dos rachas deste evento.</p></div>:
-          <ExpenseSplitsPanel
-            expenses={eventExpenses} shares={expenseShares} settlements={settlements}
-            userId={user.id} canJoin={meConfirmed} canManage={organizer}
-            scheduled={selected.status==="scheduled"} busy={working}
-            nameFor={nameFor} photoUrls={photoUrls}
-            onJoin={(expenseId,join)=>void act(async(db)=>{
-              const {error:splitError}=await db.rpc("set_expense_split_membership",{p_expense_id:expenseId,p_join:join});
-              if(splitError)throw splitError;
-            },join?"Você entrou no racha.":"Você saiu do racha.")}
-
-            onToggleOpen={(expenseId,open)=>void act(async(db)=>{
-              const {error:splitError}=await db.rpc("set_expense_split_open",{p_expense_id:expenseId,p_open:open});
-              if(splitError)throw splitError;
-            },open?"Racha reaberto.":"Racha fechado.")}
-            onDelete={expenseId=>{
-              if(!window.confirm("Excluir esta despesa? O racha e as dívidas calculadas deixarão de existir."))return;
-              void act(async(db,id)=>{
-                const {error:deleteError}=await db.from("session_expenses").delete()
-                  .eq("id",expenseId).eq("created_by",id);
-                if(deleteError)throw deleteError;
-              },"Gasto e racha excluídos.");
-            }}
-            createForm={              <section className="panel">
-                <h2>Adicionar despesa</h2><p style={{margin:"9px 0 16px"}}>Comidas, bebidas e materiais da noite.</p>
-                <form className="mm-form-stack" onSubmit={e=>{e.preventDefault();void act(async(db,id)=>{
-                  const {error:expenseError}=await db.from("session_expenses").insert({session_id:selected.id,created_by:id,paid_by:organizer&&guests.some(g=>g.user_id===expensePayer)?expensePayer:id,label:expenseName.trim(),category:expenseCategory,amount_brl:Number(expenseAmount)});
-                  if(expenseError)throw expenseError;setExpenseName("");setExpenseAmount("");
-                },"Despesa registrada!")}}>
-                  <label className="mm-field">Descrição<input minLength={2} required value={expenseName} onChange={e=>setExpenseName(e.target.value)} placeholder="Pizza e bebidas"/></label>
-                  <div className="mm-form-grid">
-                    <label className="mm-field">Valor (R$)<input type="number" min="0.01" step="0.01" required value={expenseAmount} onChange={e=>setExpenseAmount(e.target.value)}/></label>
-                    <label className="mm-field">Categoria<select value={expenseCategory} onChange={e=>setExpenseCategory(e.target.value)}><option value="food">Comida</option><option value="drinks">Bebidas</option><option value="materials">Materiais</option><option value="other">Outros</option></select></label>
-                  </div>
-                  <label className="mm-field">Quem pagou?
-                    {organizer?<select value={expensePayer||user.id} onChange={e=>setExpensePayer(e.target.value)}>
-                      {guests.map(g=><option key={g.user_id} value={g.user_id}>{nameFor(g.user_id)}{g.user_id===user.id?" (eu)":""}</option>)}
-                    </select>:<input disabled readOnly value={nickname+" (eu)"}/>}
-                  </label>
-                  <button className="btn gold" disabled={working||!meConfirmed||selected.status!=="scheduled"}>Salvar despesa</button>
-                </form>
-              </section>}
-          />
-        )}
       </>}
 
       <MobileAppCompanion onUpdate={reload} visible={page==="inicio"}/>
