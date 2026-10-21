@@ -471,11 +471,11 @@ export default function PainelPage(){
     setPage("detalhe");setError("");setMessage("");window.scrollTo({top:0,behavior:"auto"});
   }
   function go(next:View){
-    setPage(next);setError("");setMessage("");window.scrollTo({top:0,behavior:"smooth"});
+    setPage(next);setError("");setMessage("");window.scrollTo({top:0,behavior:"auto"});
   }
   function openGame(game:Game,tab:"eventos"|"tutorial"="eventos"){
     setGameView(game);setGameTab(tab);setPage("mesa");setError("");setMessage("");
-    window.scrollTo({top:0,behavior:"smooth"});
+    window.scrollTo({top:0,behavior:"auto"});
   }
   function openCreator(roomId?:string){
     const room=(roomId?activeRooms.find(r=>r.id===roomId):undefined)||activeRooms.find(r=>r.game==="poker")||activeRooms[0];
