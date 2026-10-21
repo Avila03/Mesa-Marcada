@@ -1,0 +1,11 @@
+# Testes v1.0: entrada mínima, Anfitrião e recebimentos
+- [x] Supabase: R$ 1 inicial com entrada mínima de R$ 20 rejeitado.
+- [x] Supabase: primeira compra R$ 20 + recompra R$ 1 aceita.
+- [x] Supabase: aprovação financeira pendente de recebimento rejeitada.
+- [x] Supabase: recebimentos confirmados e evento encerrado após aprovação.
+- [x] Todas as operações de teste foram revertidas com ROLLBACK.
+- [ ] Teste em celular: mensagem da entrada mínima e botão de compra bloqueado até completar valor.
+- [ ] Teste em celular: Anfitrião marca uma compra como recebida e como pendente.
+- [ ] Teste em celular: Anfitrião cancela próprio evento, sem destruir histórico.
+- [ ] Teste em celular: administrador aparece identificado, sem permissões globais ainda.
+- [ ] Migração de permissões globais para exclusão/restauração de eventos administrativos.
