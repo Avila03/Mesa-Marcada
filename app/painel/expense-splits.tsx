@@ -45,7 +45,7 @@ export function ExpenseSplitsPanel({
   const joinedCount=shares.filter(row=>row.user_id===userId).length;
   const totalCents=shares.reduce((t,row)=>t+Math.round(Number(row.share_brl)*100),0);
   const settledKeys=new Set(settlements.map(x=>x.expense_id+":"+x.user_id));
-  const outstanding=shares.filter(x=>x.user_id!==x.paid_by&&!settledKeys.has(x.expense_id+":"+x.user_id))
+  const outstanding=shares.filter(x=>x.user_id!==x.paid_by)
     .reduce((sum,x)=>sum+Math.round(Number(x.share_brl)*100),0);
   return <div className="mm-split-view">
     <header className="mm-split-view-header">
@@ -56,7 +56,7 @@ export function ExpenseSplitsPanel({
       <div><small>Gastos cadastrados</small><strong>{expenses.length}</strong></div>
       <div><small>Rachas abertos</small><strong>{openCount}</strong></div>
       <div><small>Você participa</small><strong>{joinedCount}</strong></div>
-      <div><small>Valor pendente</small><strong>{money(outstanding/100)}</strong></div>
+      <div><small>Total a dividir</small><strong>{money(outstanding/100)}</strong></div>
     </div>
     {createForm}
     <div className="mm-section-title"><h2>Despesas da noite</h2><span className="tag">{expenses.length} registradas</span></div>
@@ -90,7 +90,7 @@ export function ExpenseSplitsPanel({
                 <strong>{money(member.share_brl)}</strong>
                 {member.user_id!==payer?
                   <small className={settledKeys.has(expense.id+":"+member.user_id)?"mm-v09-good":"mm-v09-pending"}>
-                    {settledKeys.has(expense.id+":"+member.user_id)?"✓ Acertado":"● Pendente"}
+                    {settledKeys.has(expense.id+":"+member.user_id)?"Histórico: acertado":"Parte no racha"}
                   </small>:<small className="mm-v09-good">✓ Pagou a despesa</small>}
                 
               </div>
@@ -132,10 +132,8 @@ export function MySplitsSummary({
   onOpenEvent:(eventId:string)=>void;
 }){
   const settledKeys=new Set(settlements.map(x=>x.expense_id+":"+x.user_id));
-  const toPay=splits.filter(row=>row.user_id===userId&&row.paid_by!==userId
-    &&!settledKeys.has(row.expense_id+":"+row.user_id));
-  const receivable=splits.filter(row=>row.paid_by===userId&&row.user_id!==userId
-    &&!settledKeys.has(row.expense_id+":"+row.user_id));
+  const toPay=splits.filter(row=>row.user_id===userId&&row.paid_by!==userId);
+  const receivable=splits.filter(row=>row.paid_by===userId&&row.user_id!==userId);
   const settledCount=splits.filter(row=>row.user_id!==row.paid_by
     &&settledKeys.has(row.expense_id+":"+row.user_id)).length;
   const payCents=toPay.reduce((sum,row)=>sum+Math.round(Number(row.share_brl)*100),0);
@@ -144,31 +142,31 @@ export function MySplitsSummary({
   return <section className="mm-profile-debts">
     <div className="mm-section-title"><h2>Meus rachas</h2></div>
     <p className="mm-formfoot">Valores de comida, bebidas e outros gastos dos quais você escolheu participar. Consulte o resumo do evento para os totais.</p>
-    {settledCount>0&&<p className="mm-split-ok">✓ {settledCount} {settledCount===1?"parcela já acertada":"parcelas já acertadas"} não entram nos valores pendentes.</p>}
+
     <div className="mm-split-overview mm-profile-split-summary">
-      <div><small>Você deve a outras pessoas</small><strong>{money(payCents/100)}</strong>
+      <div><small>Sua parte nos rachas</small><strong>{money(payCents/100)}</strong>
         <span>{peopleOwed} {peopleOwed===1?"pessoa":"pessoas"}</span></div>
-      <div><small>Outros devem a você</small><strong>{money(receiveCents/100)}</strong>
+      <div><small>Parte dos outros em gastos que você pagou</small><strong>{money(receiveCents/100)}</strong>
         <span>Gastos que você pagou</span></div>
     </div>
     <div className="mm-profile-debt-columns">
       <section className="panel">
-        <h3>A pagar</h3>
+        <h3>Sua participação</h3>
         {toPay.length>0?toPay.map(row=><button type="button" className="mm-profile-debt-line" key={row.expense_id}
           onClick={()=>onOpenEvent(row.session_id)}>
           <span><strong>{row.label}</strong><small>{row.event_title} · para {nameFor(row.paid_by)}</small></span>
           <strong className="mm-v09-pending">{money(row.share_brl)}</strong>
-        </button>):<p className="mm-formfoot">Você não entrou em nenhum racha que precisa acertar com outra pessoa.</p>}
+        </button>):<p className="mm-formfoot">Você não participa de nenhum racha pago por outra pessoa.</p>}
       </section>
       <section className="panel">
-        <h3>A receber</h3>
+        <h3>Outras participações</h3>
         {receivable.length>0?receivable.map(row=><div className="mm-profile-debt-settle" key={row.expense_id+row.user_id}>
           <button type="button" className="mm-profile-debt-line" onClick={()=>onOpenEvent(row.session_id)}>
             <span><strong>{row.label}</strong><small>{row.event_title} · de {nameFor(row.user_id)}</small></span>
             <strong className="mm-v09-pending">{money(row.share_brl)}</strong>
           </button>
           
-        </div>):<p className="mm-formfoot">Não há valores pendentes de outras pessoas.</p>}
+        </div>):<p className="mm-formfoot">Ninguém participa de rachas pagos por você.</p>}
       </section>
     </div>
     <p className="mm-formfoot">Os valores são registros informativos e não representam pagamentos pelo aplicativo.</p>
