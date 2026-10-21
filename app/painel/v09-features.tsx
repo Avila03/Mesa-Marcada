@@ -161,7 +161,7 @@ export function ProfilePanel({
     </section>}
 
     <section className="mm-v09-profile-overview">
-      <Stat name="Presenças confirmadas" value={number(allConfirmations.length)}/>
+      <Stat name="Eventos participados" value={number(allConfirmations.length)}/>
       <Stat name="Próximos eventos" value={number(upcoming.length)}/>
       <Stat name="Noites contabilizadas" value={number(playerStats.reduce((s,r)=>s+Number(r.sessions_played),0))}/>
     </section>
@@ -209,7 +209,7 @@ function utcIcs(value:Date){return value.toISOString().replace(/[-:]/g,"").repla
 export function EventShareActions({id,title,date,room}:{id:string;title:string;date:string;room:string}){
   const [result,setResult]=useState("");
   const url=typeof window==="undefined"?"":window.location.origin+"/evento/"+id;
-  const caption=[title,room,fullDate(date),"Confirme sua presença no Mesa Marcada:",url].join("\n");
+  const caption=[title,room,fullDate(date),"Escolha seu assento no Mesa Marcada:",url].join("\n");
   async function share(){
     if(!url)return;
     const canShare=typeof navigator!=="undefined"&&typeof navigator.share==="function";
@@ -234,7 +234,7 @@ export function EventShareActions({id,title,date,room}:{id:string;title:string;d
       "DTSTART:"+utcIcs(starts),
       "DTEND:"+utcIcs(ends),
       "SUMMARY:"+escapeIcs(title),
-      "DESCRIPTION:"+escapeIcs("Evento de "+room+". Veja local e confirme presença no site: "+url),
+      "DESCRIPTION:"+escapeIcs("Evento de "+room+". Veja o local e escolha seu assento: "+url),
       "URL:"+url,"END:VEVENT","END:VCALENDAR"
     ].join("\r\n");
     const address=URL.createObjectURL(new Blob([ics],{type:"text/calendar;charset=utf-8"}));

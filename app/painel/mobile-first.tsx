@@ -61,20 +61,19 @@ function GameBanner({game,name,large=false}:{game:Game;name?:string;large?:boole
   </div>;
 }
 
-function EventTile({value,room,count,confirmed,live,busy,open,onConfirm}:{value:Event;room?:Room;count:number;confirmed:boolean;live:boolean;busy:boolean;open:()=>void;onConfirm:()=>void}){
+function EventTile({value,room,count,confirmed,live,open}:{value:Event;room?:Room;count:number;confirmed:boolean;live:boolean;open:()=>void}){
   const game=room?.game||"poker";
   return <article className="mm-event-card">
     <GameBanner game={game}/>
     <div className="mm-event-content">
       <div className="mm-title-actions"><h3>{value.title}</h3><span className={"tag "+(value.status==="scheduled"?game:"archive")}>{value.status==="scheduled"?(live?"Ao vivo":"Agendado"):value.status==="finished"?"Encerrado":"Cancelado"}</span></div>
       <div className="mm-event-info"><span>◷ {fullDate(value.starts_at)}</span><span>⌖ {value.location}</span></div>
-      <div className="mm-event-occupancy"><span>{count} de {value.max_participants} confirmados</span><span>{Math.max(0,value.max_participants-count)} vagas</span></div>
+      <div className="mm-event-occupancy"><span>{count} de {value.max_participants} participantes</span><span>{Math.max(0,value.max_participants-count)} vagas</span></div>
       <div className="mm-progress" aria-hidden="true"><div style={{width:(Math.min(1,count/value.max_participants)*100)+"%"}}/></div>
       <div className="mm-v09-event-actions">
-        <button type="button" className={confirmed?"btn mm-v09-confirmed":"btn gold"}
-          disabled={confirmed||busy||value.status!=="scheduled"||count>=value.max_participants}
-          onClick={onConfirm}>{confirmed?"✓ Presença confirmada":"✓ Confirmar presença"}</button>
-        <button type="button" className="btn" onClick={open}>Detalhes →</button>
+        <button type="button" className={confirmed?"btn mm-v09-confirmed":"btn gold"} onClick={open}>
+          {value.status!=="scheduled"?"Ver evento →":live?"Ver partida ao vivo →":confirmed?"✓ Ver meu assento →":"Escolher assento →"}
+        </button>
       </div>
     </div>
   </article>;
@@ -522,7 +521,7 @@ export default function PainelPage(){
     const db=getSupabase();
     if(!db||!user||!selected){setError("Entre em um evento para registrar fichas.");return false;}
     if(!(organizer||isAdmin)&&!attendances.some(a=>a.session_id===selected.id&&a.user_id===user.id)){
-      setError("Confirme sua presença antes de comprar fichas.");
+      setError("Escolha uma cadeira antes de comprar fichas.");
       return false;
     }
     setWorking(true);setError("");setMessage("");
@@ -536,14 +535,6 @@ export default function PainelPage(){
       return true;
     }catch(e){setError(errText(e));return false;}
     finally{setWorking(false);}
-  }
-
-  async function confirmAttendance(eventId:string){
-    await act(async(db,id)=>{
-      const {error:attendanceError}=await db.from("session_attendance")
-        .insert({session_id:eventId,user_id:id});
-      if(attendanceError)throw attendanceError;
-    },"Presença confirmada!");
   }
 
   function openEvent(id:string,sub:DetailTab="visao"){
@@ -595,7 +586,7 @@ export default function PainelPage(){
     await act(async db=>{
       const {error:seatError}=await db.rpc("choose_table_seat",{p_event_id:selected.id,p_seat_no:seatNo});
       if(seatError)throw seatError;
-    },seatNo===null?"Você levantou da cadeira.":seatNo===0?"Você assumiu a cadeira de crupiê.":"Assento reservado com sucesso!");
+    },seatNo===null?"Você saiu da mesa.":seatNo===0?"Você assumiu o crupiê e entrou no evento.":"Você entrou no evento! Assento reservado.");
   }
 
   async function createPoll(e:FormEvent<HTMLFormElement>){
@@ -676,10 +667,10 @@ export default function PainelPage(){
         firstName={firstName} userId={user.id} upcoming={upcoming}
         attendances={attendances} rooms={activeRooms}
         mySplits={mySplits} settlements={settlements}
-        isAdmin={isAdmin} busy={working}
+        isAdmin={isAdmin}
         onCreate={openCreator}
         onOpenEvent={id=>openEvent(id)}
-        onConfirm={id=>void confirmAttendance(id)}
+
         onEvents={()=>go("eventos")}
         onGame={openGame}
         onTables={()=>go("mesas")}
@@ -696,7 +687,7 @@ export default function PainelPage(){
           )}
         </div>
         <div className="mm-eventgrid">
-          {visibleEvents.map(ev=><EventTile key={ev.id} value={ev} room={roomFor(ev.room_id)} count={attendances.filter(a=>a.session_id===ev.id).length} confirmed={attendances.some(a=>a.session_id===ev.id&&a.user_id===user.id)} live={ev.status==="scheduled"&&liveStates.some(l=>l.session_id===ev.id)} busy={working} onConfirm={()=>void confirmAttendance(ev.id)} open={()=>openEvent(ev.id)}/>)}
+          {visibleEvents.map(ev=><EventTile key={ev.id} value={ev} room={roomFor(ev.room_id)} count={attendances.filter(a=>a.session_id===ev.id).length} confirmed={attendances.some(a=>a.session_id===ev.id&&a.user_id===user.id)} live={ev.status==="scheduled"&&liveStates.some(l=>l.session_id===ev.id)} open={()=>openEvent(ev.id)}/>)}
         </div>
         {!visibleEvents.length&&<div className="panel mm-empty"><span className="mm-empty-symbol">♠</span><h2>Nenhum evento por aqui</h2><p>Que tal organizar a próxima noite?</p><button className="btn gold" onClick={()=>openCreator()}><UiIcon name="plus" size={18}/> Criar evento</button></div>}
       </>}
@@ -750,7 +741,7 @@ export default function PainelPage(){
           <div className="mm-eventgrid">
             {events.filter(e=>roomFor(e.room_id)?.game===gameView)
               .sort((a,b)=>new Date(a.starts_at).getTime()-new Date(b.starts_at).getTime())
-              .map(ev=><EventTile key={ev.id} value={ev} room={roomFor(ev.room_id)} count={attendances.filter(a=>a.session_id===ev.id).length} confirmed={attendances.some(a=>a.session_id===ev.id&&a.user_id===user.id)} live={ev.status==="scheduled"&&liveStates.some(l=>l.session_id===ev.id)} busy={working} onConfirm={()=>void confirmAttendance(ev.id)} open={()=>openEvent(ev.id)}/>)}
+              .map(ev=><EventTile key={ev.id} value={ev} room={roomFor(ev.room_id)} count={attendances.filter(a=>a.session_id===ev.id).length} confirmed={attendances.some(a=>a.session_id===ev.id&&a.user_id===user.id)} live={ev.status==="scheduled"&&liveStates.some(l=>l.session_id===ev.id)} open={()=>openEvent(ev.id)}/>)}
           </div>
           {events.filter(e=>roomFor(e.room_id)?.game===gameView).length===0&&<div className="panel mm-empty">
             <span className="mm-empty-symbol">{gameView==="poker"?"♠":"♦"}</span>
@@ -823,12 +814,7 @@ export default function PainelPage(){
             <div className="mm-event-meta"><span>◷ {fullDate(selected.starts_at)}</span><span>⌖ {selected.location}</span><span>♠ {guests.length}/{selected.max_participants} participantes</span></div>
             <div className="mm-action-row">
 
-              {meConfirmed?
-                <button className="mm-btn-destructive" type="button" disabled={working||selected.status!=="scheduled"} onClick={()=>void act(async(db,id)=>{
-                  const {error:leaveError}=await db.from("session_attendance").delete().eq("session_id",selected.id).eq("user_id",id);
-                  if(leaveError)throw leaveError;
-                },"Sua presença foi cancelada.")}>Cancelar presença</button>
-              :<button className="btn gold" type="button" disabled={working||selected.status!=="scheduled"||guests.length>=selected.max_participants} onClick={()=>void confirmAttendance(selected.id)}>✓ Confirmar minha presença</button>}
+              
               {(organizer||isAdmin)&&selected.status==="scheduled"&&!selectedLive&&
                 !selected.live_start_required&&
                 <button className="btn" type="button" disabled={working||!canFinish}
@@ -902,8 +888,8 @@ export default function PainelPage(){
               onClick={()=>{setProfileReturn("detalhe");setProfileId(g.user_id);go("perfil")}}>
               <AttendeeMiniCard photoUrl={photoUrls[g.user_id]} name={nameFor(g.user_id)}/>
             </button>)}</div>
-            {!guests.length&&<p>Ainda não há presenças confirmadas. Convide seus amigos!</p>}
-            {organizer&&!meConfirmed&&<p className="mm-formfoot">Como organizador, você também pode confirmar sua presença para votar e registrar fichas.</p>}
+            {!guests.length&&<p>Ainda não há participantes sentados. Convide seus amigos para escolher uma cadeira!</p>}
+            {organizer&&!meConfirmed&&<p className="mm-formfoot">Como anfitrião, escolha uma cadeira para participar da partida.</p>}
           </section>
           <section className="panel">
             <div className="panelhead"><h2>Informações do evento</h2></div>
@@ -967,7 +953,7 @@ export default function PainelPage(){
               <label className="mm-field">Opções, uma por linha<textarea required rows={5} value={pollOptions} onChange={e=>setPollOptions(e.target.value)}/></label>
               <button className="btn gold" disabled={!meConfirmed||selected.status!=="scheduled"||working}><UiIcon name="plus" size={18}/> Criar enquete</button>
             </form>
-            {!meConfirmed&&<p className="mm-formfoot">Confirme sua presença neste evento antes de criar enquetes.</p>}
+            {!meConfirmed&&<p className="mm-formfoot">Escolha uma cadeira para participar das enquetes.</p>}
           </section>}
         </div>
         <section id="event-expenses" className="mm-overview-expenses" aria-label="Despesas e rachas">

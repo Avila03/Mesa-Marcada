@@ -14,10 +14,8 @@ type DashboardProps={
   mySplits:MyExpenseSplitRow[];
   settlements:ExpenseSettlement[];
   isAdmin:boolean;
-  busy:boolean;
   onCreate:()=>void;
   onOpenEvent:(id:string)=>void;
-  onConfirm:(id:string)=>void;
   onEvents:()=>void;
   onGame:(game:Game)=>void;
   onTables:()=>void;
@@ -31,8 +29,8 @@ const categoryNames:Record<string,string>={
 };
 
 export default function DashboardV16({
-  firstName,userId,upcoming,attendances,rooms,mySplits,settlements,isAdmin,busy,
-  onCreate,onOpenEvent,onConfirm,onEvents,onGame,onTables,onProfile,onRanking,onAdmin
+  firstName,userId,upcoming,attendances,rooms,mySplits,settlements,isAdmin,
+  onCreate,onOpenEvent,onEvents,onGame,onTables,onProfile,onRanking,onAdmin
 }:DashboardProps){
   const next=upcoming[0];
   const confirmed=new Set(attendances.filter(a=>a.user_id===userId).map(a=>a.session_id));
@@ -61,7 +59,7 @@ export default function DashboardV16({
         <span className="mm-home-label"><UiIcon name="calendar" size={15}/> PRÓXIMO EVENTO</span>
         <span className={"mm-home-presence "+(confirmed.has(next.id)?"yes":"waiting")}>
           <UiIcon name={confirmed.has(next.id)?"check":"clock"} size={14}/>
-          {confirmed.has(next.id)?"Presença confirmada":"Aguardando sua confirmação"}
+          {confirmed.has(next.id)?"Participando":"Escolha um assento"}
         </span>
       </div>
       <h2>{next.title}</h2>
@@ -72,13 +70,11 @@ export default function DashboardV16({
       </div>
       <div className="mm-home-event-info mm-home-location">
         <span><UiIcon name="map-pin" size={16}/>{next.location}</span>
-        <span><UiIcon name="users" size={16}/>{nextGuests}/{next.max_participants} confirmados</span>
+        <span><UiIcon name="users" size={16}/>{nextGuests}/{next.max_participants} participantes</span>
       </div>
       <div className="mm-home-featured-actions">
-        {!confirmed.has(next.id)&&<button type="button" className="mm-home-primary" disabled={busy}
-          onClick={()=>onConfirm(next.id)}><UiIcon name="check" size={18}/> Confirmar presença</button>}
-        <button type="button" className={confirmed.has(next.id)?"mm-home-primary":"mm-home-secondary"}
-          onClick={()=>onOpenEvent(next.id)}>Ver detalhes <UiIcon name="arrow-right" size={17}/></button>
+        <button type="button" className="mm-home-primary"
+          onClick={()=>onOpenEvent(next.id)}>{confirmed.has(next.id)?"Ver meu assento":"Escolher assento"} <UiIcon name="arrow-right" size={17}/></button>
       </div>
     </section>:<section className="mm-home-featured mm-home-no-event">
       <span className="mm-home-label"><UiIcon name="calendar" size={15}/> AGENDA LIVRE</span>
@@ -121,7 +117,7 @@ export default function DashboardV16({
             <small>{gameName(gameRoomId(ev.room_id,rooms))} · {eventTime(ev.starts_at)}</small>
           </span>
           <span className={"mm-home-rowstatus "+(confirmed.has(ev.id)?"joined":"")}>
-            {confirmed.has(ev.id)?"Confirmado":"Pendente"}
+            {confirmed.has(ev.id)?"Participando":"Escolher lugar"}
           </span>
         </button>):<div className="mm-home-empty">Ainda não há eventos. Você pode criar o primeiro!</div>}
       </section>

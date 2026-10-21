@@ -29,7 +29,7 @@ export default function SeatingTable({game,capacity,seats,myId,confirmed,canChan
  const dealer=seats.find(s=>s.seat_no===0);
  const occupied=seats.length;
  const select=(n:number)=>{
-   if(!canChange||!confirmed||busy)return;
+   if(!canChange||busy)return;
    if(seats.some(s=>s.seat_no===n&&s.user_id!==myId))return;
    onChoose(mine?.seat_no===n?null:n);
  };
@@ -38,7 +38,7 @@ export default function SeatingTable({game,capacity,seats,myId,confirmed,canChan
      <div>
        <span className="mm-seat-eyebrow">{blackjack?"♦ BLACKJACK · 21":"♠ POKER · TEXAS HOLD’EM"}</span>
        <h2>Escolha seu lugar à mesa</h2>
-       <p>{canChange?"Clique numa cadeira livre para sentar ou trocar de posição.":"Posições da mesa. As cadeiras ficam bloqueadas depois que a partida começa."}</p>
+       <p>{canChange?"Clique numa cadeira livre para participar do evento. Também é possível trocar de lugar.":"Posições da mesa. As cadeiras ficam bloqueadas depois que a partida começa."}</p>
      </div>
      <span className="mm-seat-counter">{occupied} / {maxPlayers+(blackjack?1:0)} ocupados</span>
    </div>
@@ -55,7 +55,7 @@ export default function SeatingTable({game,capacity,seats,myId,confirmed,canChan
          type="button"
          className={"mm-seat-chair mm-seat-dealer "+(dealer?(dealer.user_id===myId?"is-mine":"is-taken"):"is-free")}
          style={{left:"50%",top:"11%"}}
-         disabled={!canChange||!confirmed||busy||Boolean(dealer&&dealer.user_id!==myId)}
+         disabled={!canChange||busy||Boolean(dealer&&dealer.user_id!==myId)}
          aria-label={dealer?"Crupiê: "+nameFor(dealer.user_id):"Ocupar a cadeira do crupiê"}
          title={dealer?nameFor(dealer.user_id):"Sentar como crupiê"}
          aria-pressed={dealer?.user_id===myId}
@@ -72,7 +72,7 @@ export default function SeatingTable({game,capacity,seats,myId,confirmed,canChan
          return <button key={n} type="button"
            className={"mm-seat-chair "+(mineHere?"is-mine":seat?"is-taken":"is-free")}
            style={{left:x+"%",top:y+"%"}}
-           disabled={!canChange||!confirmed||busy||Boolean(seat&&!mineHere)}
+           disabled={!canChange||busy||Boolean(seat&&!mineHere)}
            aria-label={seat?"Cadeira "+n+": "+nameFor(seat.user_id):"Ocupar cadeira "+n}
            title={seat?nameFor(seat.user_id):"Cadeira "+n}
            aria-pressed={mineHere}
@@ -89,10 +89,10 @@ export default function SeatingTable({game,capacity,seats,myId,confirmed,canChan
        <div className="mm-seat-fact"><span>Seu lugar</span><strong>{mine?(mine.seat_no===0?"Crupiê":"Cadeira "+mine.seat_no):"Não selecionado"}</strong></div>
        {blackjack&&<div className="mm-seat-fact"><span>Crupiê</span><strong>{dealer?nameFor(dealer.user_id):"Não definido"}</strong></div>}
        {blackjack&&!dealer&&<p className="mm-seat-warning">É necessário alguém ocupar a cadeira dourada para iniciar o Blackjack.</p>}
-       {!confirmed&&<p className="mm-seat-note">Confirme presença no evento para escolher uma cadeira.</p>}
+       {!confirmed&&<p className="mm-seat-note">Basta selecionar uma cadeira: sua participação será confirmada automaticamente.</p>}
        {capacity>10&&<p className="mm-seat-note">Esta visualização apresenta até 10 assentos. Os demais convidados continuam confirmados no evento.</p>}
-       {mine&&canChange&&<button className="mm-seat-stand" type="button" disabled={busy} onClick={()=>onChoose(null)}>Levantar da cadeira</button>}
-       <p className="mm-seat-note">Os lugares são reservados para os participantes confirmados. A distribuição fica travada quando a partida começa.</p>
+       {mine&&canChange&&<button className="mm-seat-stand" type="button" disabled={busy} onClick={()=>onChoose(null)}>Sair da mesa</button>}
+       <p className="mm-seat-note">Escolher uma cadeira confirma a participação. Sair da mesa cancela sua inscrição antes do início da partida.</p>
        <div className="mm-seat-legend"><span><i className="free"/> Livre</span><span><i className="taken"/> Ocupada</span><span><i className="mine"/> Você</span>{blackjack&&<span><i className="dealer"/> Crupiê</span>}</div>
      </aside>
    </div>
