@@ -795,12 +795,7 @@ export default function PainelPage(){
       {(profileId||user.id)===user.id&&<MySplitsSummary
         splits={mySplits} settlements={settlements} userId={user.id} nameFor={nameFor}
         onOpenEvent={eventId=>openEvent(eventId,"gastos")}
-        onSettle={(expenseId,memberId,settled)=>void act(async(db)=>{
-          const {error:payError}=await db.rpc("set_expense_settled",{
-            p_expense_id:expenseId,p_user_id:memberId,p_settled:settled
-          });
-          if(payError)throw payError;
-        },settled?"Recebimento confirmado!":"Acerto reaberto.")}
+
       />}
       </>}
 
@@ -970,7 +965,7 @@ export default function PainelPage(){
         </div>
 
         </>}
-        {detailTab==="ao-vivo"&&selectedLive&&privateVisible&&(liveSubtab==="compra"||liveSubtab==="encerrar")&&<>
+        {detailTab==="ao-vivo"&&selectedLive&&selected.status==="scheduled"&&privateVisible&&(liveSubtab==="compra"||liveSubtab==="encerrar")&&<>
           {!privateVisible?<div className="panel"><h2>Informações restritas</h2><p>Confirme presença neste evento para consultar ou registrar informações financeiras.</p></div>:<>
             {liveSubtab==="compra"&&<><div className="metrics" style={{gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))"}}>
               <div className="metric"><div className="mhead">Fichas distribuídas <span className="micon"><UiIcon name="check" size={22}/></span></div><strong>{eventBuys.reduce((n,b)=>n+Number(b.chips_received),0).toLocaleString("pt-BR")}</strong><small>Compras e recompras</small></div>
@@ -1025,34 +1020,31 @@ export default function PainelPage(){
                     setCashoutDraft("");
                   },"Valor final em reais registrado!")}>Salvar valor final</button>
                 {cashoutTarget&&eventCashouts.some(c=>c.user_id===cashoutTarget)&&
-                  <p className="mm-formfoot">Valor salvo para {nameFor(cashoutTarget)}: <strong>{money(Number(eventCashouts.find(c=>c.user_id===cashoutTarget)?.final_brl||0))}</strong>. Você pode atualizar o valor antes de confirmar qualquer repasse.</p>}
+                  <p className="mm-formfoot">Valor salvo para {nameFor(cashoutTarget)}: <strong>{money(Number(eventCashouts.find(c=>c.user_id===cashoutTarget)?.final_brl||0))}</strong>. Você pode corrigir esse valor até encerrar o evento.</p>}
                 {eventCashouts.length>0&&<p className="mm-formfoot">A conferência financeira começou: novas compras ficam bloqueadas para evitar diferenças no caixa.</p>}
               </div>}
               {!cashBalanced&&<p className="mm-message error">
                 {checkedCount<guests.length?`Faltam valores finais de ${guests.length-checkedCount} jogador(es).`:
                 "O total final precisa ser exatamente igual ao valor das compras."}
               </p>}
-              <h3>Acerto com o Anfitrião</h3>
-              <p>Primeiro o Anfitrião confirma os recebimentos na área Compra. Depois registra os repasses abaixo.</p>
-              {guests.map(g=>{const v=playerSettlement(g.user_id);const payout=eventPayouts.some(p=>p.user_id===g.user_id);
+              <h3>Resultado final dos jogadores</h3>
+              <p>Confira os valores finais. O encerramento exige que a soma em reais corresponda exatamente às compras.</p>
+              {guests.map(g=>{const v=playerSettlement(g.user_id);
                 const submitted=eventCashouts.some(c=>c.user_id===g.user_id);
                 return <div className="mm-live-settle-row" key={g.user_id}>
                   <div><strong>{nameFor(g.user_id)}</strong>
                     <small>Compras: {money(v.purchased)} · A receber: {submitted?money(v.returned):"Pendente"}</small>
                     <small>Lucro / prejuízo: {submitted?(v.net>0?"+":"")+money(v.net):"—"}</small>
                   </div>
-                  {submitted&&v.returned>0&&(organizer||isAdmin)&&<button className="btn" disabled={!cashBalanced||unpaid.length>0||working||selected.status!=="scheduled"}
-                    onClick={()=>void act(async db=>{const {error:e}=await db.rpc("set_chip_payout",{p_event_id:selected.id,p_user_id:g.user_id,p_confirmed:!payout});
-                      if(e)throw e;},payout?"Repasse reaberto.":"Repasse confirmado.")}>{payout?"✓ Repassado":"Marcar repassado"}</button>}
                   {submitted&&v.returned===0&&<span className="mm-cash-zero">Sem repasse</span>}
                 </div>})}
               {(organizer||isAdmin)&&selected.status==="scheduled"&&<button className="btn gold" disabled={!canFinish||working}
-                onClick={()=>void finishLiveEvent(selected.id,organizer)}>Encerrar partida</button>}
+                onClick={()=>void finishLiveEvent(selected.id,organizer)}>Encerrar Ao vivo e ver resumo →</button>}
             </section>}
             {liveSubtab==="compra"&&<><section className="panel mm-v09-purchases" style={{marginTop:19}}>
               <div className="panelhead"><h2>Compras e recompras registradas</h2><span className="tag">{eventBuys.length} lançamentos</span></div>
-              <p className="mm-v1-payment-explain">O Anfitrião confirma o dinheiro recebido presencialmente. O site não realiza pagamentos ou transferências.</p>
-              {organizer&&unpaid.length>0&&<p className="mm-message">Há {unpaid.length} {unpaid.length===1?"compra pendente":"compras pendentes"} de confirmação.</p>}
+              <p className="mm-v1-payment-explain">Compras registradas em reais. Não há confirmação manual de pagamentos.</p>
+
               {eventBuys.map(b=><div className="item mm-v09-finance-history" key={b.id}>
                 <div className="itemcontent"><strong>{nameFor(b.user_id)}</strong>
                   <small>{Number(b.chips_received).toLocaleString("pt-BR")} pontos em fichas · {money(b.amount_brl)}</small>
@@ -1062,18 +1054,6 @@ export default function PainelPage(){
                       .map(item=>item.quantity+"× ficha "+item.chip_value).join(" · ")}
                   </small>}
                 </div>
-                <span className={"mm-v1-payment-state "+(b.payment_status==="paid"?"received":"pending")}>
-                  {b.payment_status==="paid"?"✓ Recebido":"● Aguardando"}
-                </span>
-                {(organizer||isAdmin)&&selected.status==="scheduled"&&<button type="button" className="btn mm-v1-payment-action"
-                  disabled={working} onClick={()=>{
-                    const paid=b.payment_status!=="paid";
-                    if(!window.confirm(paid?"Confirmar que este valor foi recebido presencialmente?":"Reabrir a confirmação de recebimento?"))return;
-                    void act(async(db)=>{
-                      const {error:paymentError}=await db.rpc("confirm_chip_payment",{p_purchase_id:b.id,p_paid:paid});
-                      if(paymentError)throw paymentError;
-                    },paid?"Recebimento confirmado!":"Recebimento voltou para pendente.");
-                  }}>{b.payment_status==="paid"?"Marcar pendente":"✓ Marcar recebido"}</button>}
                 {b.user_id===user.id&&selected.status==="scheduled"&&(!selected.chip_settlement_brl||eventCashouts.length===0)&&<button type="button"
                   className="mm-v09-delete-entry" disabled={working} onClick={()=>{
                     if(!window.confirm("Excluir este lançamento de fichas? Se o resultado já estava aprovado, a aprovação será retirada."))return;
@@ -1087,36 +1067,24 @@ export default function PainelPage(){
               {!eventBuys.length&&<p>Nenhuma compra ou recompra registrada até agora.</p>}
             </section>
 </>}
-            {liveSubtab==="encerrar"&&<>
-              {selected.chip_settlement_brl?<section className="panel" style={{marginTop:19}}>
-                <div className="panelhead"><h2>Resultado da noite em reais</h2><span className="tag">R$</span></div>
-                {guests.map(g=>{const v=playerSettlement(g.user_id);const reported=eventCashouts.some(c=>c.user_id===g.user_id);return <div className="item" key={g.user_id}>
-                  <div className="itemcontent"><strong>{nameFor(g.user_id)}</strong>
-                    <small>Comprou {money(v.purchased)} · Recebe {reported?money(v.returned):"Pendente"}</small></div>
-                  <strong>{reported?(v.net>0?"+":"")+money(v.net):"—"}</strong>
-                </div>})}
-              </section>:<><div className="mm-v11-night-ranking" style={{marginTop:19}}>
-                <section className="panel"><div className="panelhead"><h2>Ranking da noite</h2></div>
-                  {nightRank.map((r,i)=><div className="item" key={r.id}><span className="datebox">{i+1}º</span>
-                    <div className="itemcontent"><strong>{nameFor(r.id)}</strong><small>{r.acquired} fichas adquiridas · {r.total??"Pendente"} finais</small></div>
-                    <strong>{r.difference===null?"—":(r.difference>0?"+":"")+r.difference}</strong></div>)}
-                </section>
-              </div>
-              <FinanceReviewBoard lines={financeRows} loading={financeLoading} organizer={organizer||isAdmin} pendingPaymentsByUser={pendingByUser} photoUrls={photoUrls}
-                scheduled={selected.status==="scheduled"} busy={working}
-                onApprove={userId=>void act(async(db,id)=>{
-                  const {error:approveError}=await db.from("session_finance_approvals").insert({session_id:selected.id,user_id:userId,reviewed_by:id});
-                  if(approveError)throw approveError;
-                },"Resultado aprovado!")}
-                onReopen={userId=>void act(async(db)=>{
-                  const {error:revokeError}=await db.from("session_finance_approvals").delete().eq("session_id",selected.id).eq("user_id",userId);
-                  if(revokeError)throw revokeError;
-                },"Revisão reaberta.")}
-              /></>}
-            </>}
+            {liveSubtab==="encerrar"&&<details className="mm-live-history">
+              <summary>Histórico de movimentações <span>Opcional</span></summary>
+              <LiveMovements activities={eventLiveActivities} nameFor={nameFor}
+                loading={liveLoading} busy={working}
+                onRefresh={()=>void refreshLive(true).catch(e=>setError(errText(e)))}/>
+            </details>}
           </>}
         </>}
 
+        {selected.status==="finished"&&detailTab==="ao-vivo"&&<section className="panel mm-night-redirect">
+          <h2>Partida encerrada</h2><p>O Ao vivo terminou. Consulte os resultados no Resumo do evento.</p>
+          <button className="btn gold" type="button" onClick={()=>setDetailTab("resumo-evento")}>Ver Resumo da noite →</button>
+        </section>}
+        {detailTab==="resumo-evento"&&selected.status==="finished"&&
+          (privateVisible?<NightSummary guests={guests} buys={eventBuys} cashouts={eventCashouts}
+            expenses={eventExpenses} shares={eventExpenseShares} hostId={selected.organizer_id}
+            currentUserId={user.id} nameFor={nameFor} eventFinished title={selected.title}/>:
+          <section className="panel"><p>Confirme sua presença para consultar o resumo financeiro do evento.</p></section>)}
         {detailTab==="gastos"&&(!privateVisible?
           <div className="panel"><h2>Gastos restritos</h2><p>Confirme sua presença para consultar e participar dos rachas deste evento.</p></div>:
           <ExpenseSplitsPanel
@@ -1128,12 +1096,7 @@ export default function PainelPage(){
               const {error:splitError}=await db.rpc("set_expense_split_membership",{p_expense_id:expenseId,p_join:join});
               if(splitError)throw splitError;
             },join?"Você entrou no racha.":"Você saiu do racha.")}
-            onSettle={(expenseId,memberId,settled)=>void act(async(db)=>{
-              const {error:settleError}=await db.rpc("set_expense_settled",{
-                p_expense_id:expenseId,p_user_id:memberId,p_settled:settled
-              });
-              if(settleError)throw settleError;
-            },settled?"Recebimento confirmado!":"Acerto marcado como pendente.")}
+
             onToggleOpen={(expenseId,open)=>void act(async(db)=>{
               const {error:splitError}=await db.rpc("set_expense_split_open",{p_expense_id:expenseId,p_open:open});
               if(splitError)throw splitError;
