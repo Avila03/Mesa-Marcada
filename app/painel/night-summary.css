@@ -1,0 +1,24 @@
+.mm-night-summary{display:grid;gap:17px}.mm-night-hero{background:radial-gradient(ellipse at 80% 0%,#112b46,transparent 62%),linear-gradient(145deg,#111a26,#0d1119);border-color:#355074}
+.mm-night-kicker{font-size:10px;letter-spacing:1.65px;font-weight:850;color:#55a9ff;margin-bottom:9px}
+.mm-night-hero h2{font-size:clamp(23px,3vw,32px);margin-bottom:9px}
+.mm-night-hero>p{font-size:12px;color:#aac0d7}
+.mm-night-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:19px 0 0}
+.mm-night-metrics>div,.mm-night-personal-grid>div{border:1px solid #304a65;background:#0d1b2a;border-radius:11px;display:grid;gap:8px;padding:14px;min-width:0}
+.mm-night-metrics small,.mm-night-personal-grid small{color:#a2b7d0;font-size:11px}
+.mm-night-metrics strong,.mm-night-personal-grid strong{font-size:clamp(16px,2vw,22px);color:#f1f5fb;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.mm-night-reconcile{margin-top:13px;font-size:12px;color:#a5c5e3}
+.mm-night-personal{background:linear-gradient(135deg,#142339,#11151d);border-color:#365272}
+.mm-night-personal h3{margin:0 0 15px;font-size:21px}
+.mm-night-personal-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.mm-night-personal>p{font-size:12px;margin-top:16px}
+.mm-night-summary .is-positive{color:#72daa8!important}.mm-night-summary .is-negative{color:#ff8490!important}
+.mm-night-players{display:grid;gap:2px}.mm-night-player,.mm-night-expense{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid #293d51;padding:13px 0}
+.mm-night-player:last-child,.mm-night-expense:last-child{border:0}
+.mm-night-player>div,.mm-night-expense>div{display:grid;gap:5px;min-width:0}
+.mm-night-player strong,.mm-night-expense strong{font-size:13px;color:#eef6ff}
+.mm-night-player small,.mm-night-expense small{font-size:11px;color:#9eb6d0;line-height:1.4}
+.mm-night-player>span{font-weight:850;white-space:nowrap;font-size:14px}
+.mm-night-footnote{margin:15px 0 0!important;font-size:11px;color:#9eb6cb;line-height:1.6}
+.mm-game-blackjack .mm-night-kicker{color:#ff6977}.mm-game-blackjack .mm-night-hero{border-color:#734050;background:radial-gradient(ellipse at 80% 0%,#3a1625,transparent 65%),#11151d}
+@media(max-width:830px){.mm-night-metrics,.mm-night-personal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.mm-night-metrics>div,.mm-night-personal-grid>div{padding:11px}.mm-night-player,.mm-night-expense{align-items:flex-start}.mm-night-player>span{font-size:12px}}
