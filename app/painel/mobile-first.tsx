@@ -18,6 +18,8 @@ import AdminPanel from "./admin-panel";
 import MobileAppCompanion from "./mobile-app-companion";
 import UiIcon from "./ui-icon";
 import DashboardV16 from "./dashboard-v16";
+import EventLivePanel from "./event-live-panel";
+import type {LiveState,LiveActivity} from "./event-live-panel";
 import type {UiIconName} from "./ui-icon";
 import AdvancedRankingPanel,{PlayerAchievements} from "./advanced-ranking";
 import type {AdvancedRank} from "./advanced-ranking";
@@ -91,6 +93,9 @@ export default function PainelPage(){
   const [error,setError]=useState("");
   const [rooms,setRooms]=useState<Room[]>([]);
   const [events,setEvents]=useState<Event[]>([]);
+  const [liveStates,setLiveStates]=useState<LiveState[]>([]);
+  const [liveActivities,setLiveActivities]=useState<LiveActivity[]>([]);
+  const [liveLoading,setLiveLoading]=useState(false);
   const [profiles,setProfiles]=useState<Profile[]>([]);
   const [photoUrls,setPhotoUrls]=useState<Record<string,string>>({});
   const [attendances,setAttendances]=useState<Attendance[]>([]);
@@ -143,11 +148,13 @@ export default function PainelPage(){
       db.from("expense_split_settlements").select("expense_id,session_id,user_id,confirmed_at"),
       db.from("admin_hidden_events").select("session_id,previous_status,hidden_by,hidden_at"),
       db.from("event_admin_audit").select("id,session_id,action,performed_by,occurred_at,description").order("occurred_at",{ascending:false}).limit(30),
-      db.rpc("get_player_stats_period",{p_game:null,p_period:"ano"})
+      db.rpc("get_player_stats_period",{p_game:null,p_period:"ano"}),
+      db.from("session_live_state").select("session_id,started_at,started_by")
     ]);
     requests.forEach(r=>{if(r.error)throw r.error});
     setRooms((requests[0].data||[]) as Room[]);
     setEvents((requests[1].data||[]) as Event[]);
+    setLiveStates((requests[19].data||[]) as LiveState[]);
     const currentProfiles=(requests[2].data||[]) as Profile[];
     setProfiles(currentProfiles);
     const withPhotos=currentProfiles.filter(profile=>Boolean(profile.avatar_path));
@@ -233,6 +240,49 @@ export default function PainelPage(){
     window.history.replaceState(null,"","/painel");
   },[user,events]);
 
+  const refreshLive=useCallback(async(showLoading=false)=>{
+    if(!selectedId||!user)return;
+    const db=getSupabase();
+    if(!db)throw new Error("Conexão indisponível para consultar a linha do tempo.");
+    if(showLoading)setLiveLoading(true);
+    try{
+      const [state,activity]=await Promise.all([
+        db.from("session_live_state")
+          .select("session_id,started_at,started_by").eq("session_id",selectedId).maybeSingle(),
+        db.from("session_live_activity")
+          .select("id,session_id,kind,actor_id,subject_id,occurred_at")
+          .eq("session_id",selectedId).order("occurred_at",{ascending:false}).limit(100)
+      ]);
+      if(state.error)throw state.error;
+      if(activity.error)throw activity.error;
+      setLiveStates(prev=>[
+        ...prev.filter(item=>item.session_id!==selectedId),
+        ...(state.data?[state.data as LiveState]:[])
+      ]);
+      setLiveActivities((activity.data||[]) as LiveActivity[]);
+    }finally{
+      if(showLoading)setLiveLoading(false);
+    }
+  },[selectedId,user]);
+
+  useEffect(()=>{
+    if(!user||!selectedId||page!=="detalhe"||detailTab!=="ao-vivo")return;
+    let active=true;
+    const tick=()=>{
+      if(document.visibilityState==="hidden")return;
+      void refreshLive().catch(e=>{if(active)setError("Linha do tempo: "+errText(e));});
+    };
+    tick();
+    const handleVisibility=()=>{if(document.visibilityState==="visible")tick()};
+    document.addEventListener("visibilitychange",handleVisibility);
+    const timer=window.setInterval(tick,15000);
+    return()=>{
+      active=false;
+      document.removeEventListener("visibilitychange",handleVisibility);
+      window.clearInterval(timer);
+    };
+  },[user,selectedId,page,detailTab,refreshLive]);
+
   useEffect(()=>{
     if(!user||!selectedId){setFinanceRows([]);setExpenseShares([]);return;}
     const db=getSupabase();
@@ -276,6 +326,31 @@ export default function PainelPage(){
     },action==="hide"?"Evento excluído da agenda.":"Alteração administrativa registrada.");
   }
 
+  async function startLiveEvent(eventId:string){
+    if(!window.confirm("Iniciar o Evento ao Vivo? Os participantes confirmados poderão acompanhar a linha do tempo da partida."))return;
+    const db=getSupabase();
+    if(!db||!user)return;
+    setWorking(true);setMessage("");setError("");
+    try{
+      const {error:startError}=await db.rpc("start_live_event",{p_event_id:eventId});
+      if(startError)throw startError;
+      await reload();
+      setDetailTab("ao-vivo");
+      setMessage("Evento ao Vivo iniciado! Os registros da mesa aparecem na linha do tempo.");
+    }catch(e){setError(errText(e));}
+    finally{setWorking(false);}
+  }
+
+  async function finishLiveEvent(eventId:string,isHost:boolean){
+    if(!window.confirm("Encerrar a partida? Verifique se todas as compras de fichas foram recebidas e os resultados estão aprovados."))return;
+    await act(async db=>{
+      const {error:finishError}=isHost
+        ?await db.from("sessions").update({status:"finished"}).eq("id",eventId)
+        :await db.rpc("admin_manage_event",{p_event_id:eventId,p_action:"finish"});
+      if(finishError)throw finishError;
+    },"Partida encerrada com os resultados de fichas conferidos.");
+  }
+
   async function act(fn:(db:SupabaseClient,id:string)=>Promise<void>,success:string){
     const db=getSupabase();
     if(!db||!user)return;
@@ -297,6 +372,8 @@ export default function PainelPage(){
     .sort((a,b)=>new Date(a.starts_at).getTime()-new Date(b.starts_at).getTime());
   const myUpcoming=upcoming.filter(e=>attendances.some(a=>a.session_id===e.id&&a.user_id===user?.id));
   const selected=events.find(e=>e.id===selectedId);
+  const selectedLive=liveStates.find(l=>l.session_id===selectedId);
+  const eventLiveActivities=liveActivities.filter(a=>a.session_id===selectedId);
   const guests=selected?attendances.filter(a=>a.session_id===selected.id):[];
   const meConfirmed=Boolean(user&&guests.some(a=>a.user_id===user.id));
   const organizer=Boolean(user&&selected?.organizer_id===user.id);
@@ -306,7 +383,11 @@ export default function PainelPage(){
   const myPurchasedTotal=eventBuys.filter(b=>b.user_id===user?.id).reduce((total,b)=>total+Number(b.amount_brl),0);
   const minToComplete=Math.max(0,Number(selected?.min_entry_brl||0)-myPurchasedTotal);
   const pendingByUser=Object.fromEntries(guests.map(a=>[a.user_id,eventBuys.filter(b=>b.user_id===a.user_id&&b.payment_status!=="paid").length]));
-  const canFinish=unpaid.length===0&&guests.length>0&&financeRows.length===guests.length&&financeRows.every(r=>r.approved&&r.chips_bought!==null&&r.chips_final!==null);
+  const canFinish=(!selected?.live_start_required||Boolean(selectedLive))&&unpaid.length===0
+    &&guests.length>0&&financeRows.length===guests.length
+    &&financeRows.every(r=>r.approved&&r.chips_bought!==null&&r.chips_final!==null);
+  const checkedCount=financeRows.filter(r=>r.approved&&r.chips_bought!==null&&r.chips_final!==null).length;
+  const paidCount=eventBuys.filter(b=>b.payment_status==="paid").length;
   const eventResults=selected?results.filter(r=>r.session_id===selected.id):[];
   const eventExpenses=selected?expenses.filter(e=>e.session_id===selected.id):[];
   const eventPolls=selected?polls.filter(p=>p.session_id===selected.id):[];
@@ -386,7 +467,7 @@ export default function PainelPage(){
   }
 
   function openEvent(id:string,sub:DetailTab="visao"){
-    setSelectedId(id);setDetailTab(sub);setPage("detalhe");setError("");setMessage("");window.scrollTo({top:0,behavior:"smooth"});
+    setSelectedId(id);setLiveActivities([]);setDetailTab(sub);setPage("detalhe");setError("");setMessage("");window.scrollTo({top:0,behavior:"smooth"});
   }
   function go(next:View){
     setPage(next);setError("");setMessage("");window.scrollTo({top:0,behavior:"smooth"});
@@ -644,7 +725,9 @@ export default function PainelPage(){
             <div className="mm-event-head">
               <div><div className="eyebrow">{roomTitle(selected.room_id)}　·　{gameName(roomFor(selected.room_id)?.game||"poker")}</div><h1 style={{marginBottom:6}}>{selected.title}</h1>
               <span className="mm-v1-host-label">♠ Anfitrião: {nameFor(selected.organizer_id)}{organizer?" (você)":""}</span></div>
-              <span className={"tag "+(selected.status==="scheduled"?(roomFor(selected.room_id)?.game||"poker"):"archive")}>{selected.status==="scheduled"?"Agendado":selected.status==="finished"?"Encerrado":"Cancelado"}</span>
+              <span className={"tag "+(selected.status==="scheduled"?(roomFor(selected.room_id)?.game||"poker"):"archive")}>
+                {selected.status==="scheduled"?(selectedLive?"Ao vivo":"Agendado"):selected.status==="finished"?"Encerrado":"Cancelado"}
+              </span>
             </div>
             <div className="mm-event-meta"><span>◷ {fullDate(selected.starts_at)}</span><span>⌖ {selected.location}</span><span>♠ {guests.length}/{selected.max_participants} participantes</span></div>
             <div className="mm-action-row">
@@ -654,14 +737,12 @@ export default function PainelPage(){
                   if(leaveError)throw leaveError;
                 },"Sua presença foi cancelada.")}>Cancelar presença</button>
               :<button className="btn gold" type="button" disabled={working||selected.status!=="scheduled"||guests.length>=selected.max_participants} onClick={()=>void confirmAttendance(selected.id)}>✓ Confirmar minha presença</button>}
-              {(organizer||isAdmin)&&selected.status==="scheduled"&&<button className="btn" type="button" disabled={working||!canFinish} onClick={()=>{
-                if(window.confirm("Encerrar este evento com os registros financeiros aprovados?"))void act(async db=>{
-                  const {error:endError}=!organizer&&isAdmin
-                    ?await db.rpc("admin_manage_event",{p_event_id:selected.id,p_action:"finish"})
-                    :await db.from("sessions").update({status:"finished"}).eq("id",selected.id);
-                  if(endError)throw endError;
-                },"Evento encerrado.");
-              }}>Encerrar evento</button>}
+              {(organizer||isAdmin)&&selected.status==="scheduled"&&!selectedLive&&
+                !selected.live_start_required&&
+                <button className="btn" type="button" disabled={working||!canFinish}
+                  onClick={()=>void finishLiveEvent(selected.id,organizer)}>
+                  Encerrar evento antigo
+                </button>}
               {(organizer||isAdmin)&&selected.status==="scheduled"&&<button className="mm-btn-destructive" type="button"
                 disabled={working} onClick={()=>{
                   if(!window.confirm("Cancelar este evento? Os registros e o histórico serão preservados, mas os participantes não poderão realizar novos lançamentos."))return;
@@ -674,13 +755,39 @@ export default function PainelPage(){
                   },"Evento cancelado. O histórico foi mantido.");
                 }}>Cancelar evento</button>}
             </div>
-            {(organizer||isAdmin)&&selected.status==="scheduled"&&!canFinish&&<p className="mm-formfoot">Para encerrar, confirme o recebimento das compras e aprove os resultados na aba Financeiro.</p>}
+            {(organizer||isAdmin)&&selected.status==="scheduled"&&!canFinish&&
+              <p className="mm-formfoot">{selected.live_start_required&&!selectedLive
+                ?"Inicie a partida na aba Ao vivo para liberar o encerramento.":"Para encerrar, confirme os pagamentos de fichas e aprove todos os resultados na aba Fichas."}
+              </p>}
             <EventShareActions id={selected.id} title={selected.title} date={selected.starts_at} room={roomTitle(selected.room_id)}/>
           </div>
         </section>
         <div className="mm-detail-tabs" role="tablist" aria-label="Conteúdo deste evento">
-          {([["visao","Visão geral"],["enquetes","Enquetes"],["fichas","Fichas"],["gastos","Gastos"]] as const).map(([id,title])=><button type="button" key={id} className={detailTab===id?"active":""} role="tab" aria-selected={detailTab===id} onClick={()=>setDetailTab(id)}>{title}</button>)}
+          {([["visao","Visão geral"],["ao-vivo","Ao vivo"],["enquetes","Enquetes"],["fichas","Fichas"],["gastos","Gastos"]] as const).map(([id,title])=><button type="button" key={id} className={detailTab===id?"active":""} role="tab" aria-selected={detailTab===id} onClick={()=>setDetailTab(id)}>{title}</button>)}
         </div>
+
+        {detailTab==="ao-vivo"&&<EventLivePanel
+          title={selected.title}
+          status={selected.status}
+          startedAt={selectedLive?.started_at||null}
+          requiresStart={selected.live_start_required}
+          canSee={privateVisible}
+          host={organizer}
+          admin={isAdmin}
+          busy={working}
+          loading={liveLoading}
+          guestCount={guests.length}
+          purchaseCount={eventBuys.length}
+          paidCount={paidCount}
+          checkedCount={checkedCount}
+          canFinish={canFinish}
+          activities={eventLiveActivities}
+          nameFor={nameFor}
+          onStart={()=>void startLiveEvent(selected.id)}
+          onFinish={()=>void finishLiveEvent(selected.id,organizer)}
+          onRefresh={()=>void refreshLive(true).catch(e=>setError(errText(e)))}
+          onFichas={()=>setDetailTab("fichas")}
+        />}
 
         {detailTab==="visao"&&<div className="two">
           <section className="panel">
