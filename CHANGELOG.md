@@ -1,5 +1,14 @@
 # Histórico de versões — Mesa Marcada
 
+## v1.6.1 — Ranking anual consolidado
+- Remove os filtros Mês e Histórico da interface; avaliação exclusivamente pelo ano em curso.
+- Todos os resultados válidos do ano aparecem consolidados em um único saldo por jogador.
+- Ranking mostra juntos saldo anual de pontos, rendimento total e noites jogadas, sem cartões de métricas repetidos.
+- Ordena pelo rendimento consolidado (saldo total ÷ pontos totais comprados) para evitar média de percentuais desconectados do volume de fichas.
+- Mantém Poker e Blackjack separados porque as escalas de pontos não são necessariamente comparáveis.
+- Conquistas passam a considerar somente eventos encerrados e aprovados do ano atual.
+- Nenhum histórico de dados anteriores é apagado no Supabase.
+
 ## v1.6 — Dashboard de jogo e quatro destinos no celular
 - Novo Dashboard compacto, orientado à próxima partida e à confirmação de presença.
 - Resumo de eventos, presenças e valores próprios pendentes nos rachas.

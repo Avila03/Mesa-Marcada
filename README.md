@@ -21,7 +21,7 @@ lateral mantém todos os destinos.
 - **Perfis:** apelido, foto enviada pelo próprio jogador (Supabase Storage privado), jogo favorito, descrição, histórico e aba **Meus rachas** com valores a pagar e a receber.
 - **Enquetes** somente dentro dos eventos; um voto por participante, alterável enquanto aberta.
 - **Fichas e financeiro:** Fichas e Gastos em abas separadas. Compras/recompras por denominações 1/5/10/25/50; Anfitrião confirma os recebimentos. Em **Gastos**, cada participante confirmado escolhe entrar ou sair do racha individual de cada despesa; o perfil mostra valores a pagar e a receber, divididos exatamente em centavos.
-- **Rankings:** Poker e Blackjack separados, filtros de mês/ano/histórico, sequências de noites positivas, melhores resultados, estatísticas e conquistas desbloqueadas nos perfis. Só entram eventos completos, revisados e não excluídos.
+- **Ranking anual:** Poker e Blackjack com classificações separadas, sem visão mensal. Cada jogador tem um saldo acumulado de pontos e rendimento total do ano em uma única linha. Conquistas anuais nos perfis; só entram eventos encerrados, completos, revisados e não excluídos.
 - **Segurança:** RLS em todas as tabelas públicas, validação de capacidade e autorizações no Supabase. Não são realizadas apostas, cobranças nem pagamentos pelo aplicativo.
 
 ## Executar localmente
