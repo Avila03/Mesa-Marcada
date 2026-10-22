@@ -58,7 +58,8 @@ REVOKE ALL ON FUNCTION app_private.is_league_member(uuid),app_private.is_league_
 GRANT EXECUTE ON FUNCTION app_private.is_league_member(uuid),app_private.is_league_owner(uuid) TO authenticated;
 
 CREATE POLICY leagues_visible ON public.leagues FOR SELECT TO authenticated USING
- (visibility='public' OR app_private.is_league_member(id) OR owner_id=(SELECT auth.uid()) OR app_private.is_app_admin());
+ (visibility='public' OR app_private.is_league_member(id) OR owner_id=(SELECT auth.uid()) OR app_private.is_app_admin() OR
+ EXISTS(SELECT 1 FROM public.league_requests q WHERE q.league_id=id AND q.user_id=(SELECT auth.uid()) AND q.status='pending'));
 CREATE POLICY league_members_visible ON public.league_members FOR SELECT TO authenticated USING
  (app_private.is_league_member(league_id) OR app_private.is_league_owner(league_id) OR app_private.is_app_admin());
 CREATE POLICY league_requests_visible ON public.league_requests FOR SELECT TO authenticated USING
@@ -178,7 +179,8 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
   WHERE q.league_id=l.id AND q.user_id=(SELECT auth.uid()))
  FROM public.leagues l WHERE (SELECT auth.uid()) IS NOT NULL AND
  (l.visibility='public' OR l.owner_id=(SELECT auth.uid()) OR
- EXISTS(SELECT 1 FROM public.league_members m WHERE m.league_id=l.id AND m.user_id=(SELECT auth.uid())))
+ EXISTS(SELECT 1 FROM public.league_members m WHERE m.league_id=l.id AND m.user_id=(SELECT auth.uid())) OR
+ EXISTS(SELECT 1 FROM public.league_requests q WHERE q.league_id=l.id AND q.user_id=(SELECT auth.uid()) AND q.status='pending'))
  ORDER BY l.created_at DESC LIMIT 150;
 $$;
 
