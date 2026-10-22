@@ -1,5 +1,5 @@
 "use client";
-import {useCallback,useEffect,useState} from "react";
+import {useCallback,useEffect,useRef,useState} from "react";
 import {getSupabase} from "@/lib/supabase/browser";
 import type {Event,Profile,Room,Game} from "@/lib/mesa-types";
 import UiIcon from "./ui-icon";
@@ -39,6 +39,8 @@ function LeagueCard({item,onClick}:{item:League;onClick:()=>void}){
  </button>;
 }
 export function LeagueHomePreview({onBrowse,onOpen}:{onBrowse:()=>void;onOpen:(id:string)=>void}){
+ const changed=useRef(onMembershipChanged);
+ useEffect(()=>{changed.current=onMembershipChanged},[onMembershipChanged]);
  const [leagues,setLeagues]=useState<League[]>([]);
  const [busy,setBusy]=useState(true);
  useEffect(()=>{
@@ -70,9 +72,10 @@ type Props={
  events:Event[];profiles:Profile[];rooms:Room[];
  onOpenLeague:(id:string,manage?:boolean)=>void;
  onBack:()=>void;onOpenEvent:(id:string)=>void;onCreateEvent:(id:string)=>void;
+ onMembershipChanged?:()=>void;
 };
 export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,
- onOpenLeague,onBack,onOpenEvent,onCreateEvent}:Props){
+ onOpenLeague,onBack,onOpenEvent,onCreateEvent,onMembershipChanged}:Props){
  const [leagues,setLeagues]=useState<League[]>([]);
  const [busy,setBusy]=useState(true);
  const [working,setWorking]=useState(false);
@@ -128,7 +131,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,
    .on("postgres_changes",{event:"*",schema:"public",table:"league_requests",filter:"league_id=eq."+leagueId},
      ()=>{void refreshDetails().catch(()=>{})})
    .on("postgres_changes",{event:"*",schema:"public",table:"league_members",filter:"league_id=eq."+leagueId},
-     ()=>{void Promise.all([refresh(),refreshDetails()]).catch(()=>{})})
+     ()=>{void Promise.all([refresh(),refreshDetails()]).catch(()=>{});changed.current?.()})
    .subscribe();
   const timer=setInterval(()=>{if(document.visibilityState==="visible")void Promise.all([refresh(),refreshDetails()]).catch(()=>{})},30000);
   return()=>{clearInterval(timer);void db.removeChannel(channel)};
@@ -164,6 +167,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,
    const db=getSupabase();if(!db)throw new Error("Sem conexão");
    const {error:err}=await db.rpc("decide_league_request",{p_league_id:current.id,p_user_id:id,p_approve:approve});
    if(err)throw err;
+   if(approve)changed.current?.();
   },approve?"Participante aprovado.":"Solicitação recusada.");
  }
  async function remove(id:string){

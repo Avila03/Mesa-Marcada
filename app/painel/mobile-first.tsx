@@ -884,6 +884,7 @@ export default function PainelPage(){
           onOpenLeague={openLeague}
           onOpenEvent={id=>openEvent(id)}
           onCreateEvent={leagueId=>openCreator(undefined,leagueId)}
+          onMembershipChanged={()=>{void refreshScope("catalog")}}
         />}
       {page==="eventos"&&<>
         <div className="heading"><div><div className="eyebrow">AGENDA DO GRUPO</div><h1>Eventos</h1><p>Confira as próximas noites ou marque um novo encontro.</p></div><button className="btn gold mm-create" type="button" onClick={()=>openCreator()}><UiIcon name="plus" size={18}/> Criar evento</button></div>
