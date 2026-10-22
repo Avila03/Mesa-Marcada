@@ -806,7 +806,7 @@ export default function PainelPage(){
   ];
   const activePage=page==="detalhe"?"eventos":page==="mesa"?"mesas":page==="liga"||page==="liga-admin"?"ligas":page;
   const mobileNavEntries=navEntries.filter(([id])=>
-    id==="inicio"||id==="eventos"||id==="ranking"||id==="perfil"
+    id==="inicio"||id==="eventos"||id==="ligas"||id==="perfil"
   );
   const mobileActivePage=page==="mesas"||page==="mesa"?"inicio":page==="admin"?"perfil":activePage;
   return <div className={"layout "+(page==="mesa"&&gameView==="blackjack"||page==="detalhe"&&selectedGame==="blackjack"?"mm-game-blackjack":page==="mesa"&&gameView==="poker"||page==="detalhe"&&selectedGame==="poker"?"mm-game-poker":"")}>
