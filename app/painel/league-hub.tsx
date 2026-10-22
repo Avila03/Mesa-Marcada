@@ -3,6 +3,7 @@ import {useCallback,useEffect,useRef,useState} from "react";
 import {getSupabase} from "@/lib/supabase/browser";
 import type {Attendance} from "@/lib/mesa-types";
 import LeagueNotifications from "./league-notifications";
+import LeagueFinalizationControls from "@/app/(app)/ligas/[id]/league-finalization-controls";
 import "./league-notifications.css";
 import type {Event,Profile,Room,Game} from "@/lib/mesa-types";
 import UiIcon from "./ui-icon";
@@ -12,7 +13,7 @@ import "./league-hub.css";
 
 export type League={
  id:string;owner_id:string;name:string;description:string;rules:string;
- visibility:"public"|"private";emblem:CrestConfig;created_at:string;member_count:number;event_count:number;
+ visibility:"public"|"private";emblem:CrestConfig;finished_at:string|null;created_at:string;member_count:number;event_count:number;
  my_role:"owner"|"organizer"|"member"|null;request_status:"pending"|"approved"|"rejected"|null;
 };
 type Member={league_id:string;user_id:string;role:"owner"|"organizer"|"member";joined_at:string};
@@ -35,7 +36,7 @@ function LeagueCard({item,onClick}:{item:League;onClick:()=>void}){
    <strong>{item.name}</strong>
    <small>{item.description||"Poker, Blackjack e encontros da galera"}</small>
    <span className="mm-league-tags"><LeagueBadge item={item}/>
-    <span>{item.member_count} membros</span><span>{item.event_count} eventos</span>
+    <span>{item.member_count} membros</span><span>{item.event_count} eventos</span>{item.finished_at&&<span>Finalizada</span>}
    </span>
   </span>
   <span className="mm-league-card-action">
@@ -50,7 +51,7 @@ export function LeagueHomePreview({onBrowse,onOpen}:{onBrowse:()=>void;onOpen:(i
  useEffect(()=>{
   let alive=true;const db=getSupabase();
   if(!db)return;
-  void Promise.resolve(db.rpc("get_league_catalog_premium")).then(({data,error})=>{
+  void Promise.resolve(db.rpc("get_league_catalog_final")).then(({data,error})=>{
    if(alive&&!error)setLeagues(((data||[]) as League[]).filter(x=>x.my_role));
   }).finally(()=>{if(alive)setBusy(false)});
   return()=>{alive=false};
@@ -106,7 +107,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
  const joined=Boolean(current?.my_role);
  const refresh=useCallback(async()=>{
   const db=getSupabase();if(!db)return;
-  const {data,error:readError}=await db.rpc("get_league_catalog_premium");
+  const {data,error:readError}=await db.rpc("get_league_catalog_final");
   if(readError)throw readError;
   setLeagues((data||[]) as League[]);
  },[]);
@@ -316,7 +317,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
     <section className="mm-league-overview" aria-label="Painel principal da liga">
      <header className="mm-league-overview-head">
       <div><span className="mm-home-kicker">VISÃO GERAL</span><h2>Próxima rodada</h2></div>
-      {canOrganize&&<button className="btn gold" type="button" onClick={()=>onCreateEvent(current.id)}>
+      {canOrganize&&!current.finished_at&&<button className="btn gold" type="button" onClick={()=>onCreateEvent(current.id)}>
         <UiIcon name="plus" size={16}/> Criar evento</button>}
      </header>
      <div className="mm-league-overview-grid">
@@ -359,7 +360,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
     </div>
     <section className="panel">
       <div className="panelhead"><h2>Eventos da liga</h2>
-       {canOrganize&&<button className="btn gold" onClick={()=>onCreateEvent(current.id)}>+ Criar evento</button>}</div>
+       {canOrganize&&!current.finished_at&&<button className="btn gold" onClick={()=>onCreateEvent(current.id)}>+ Criar evento</button>}</div>
       {leagueEvents.length?<div className="mm-league-event-list">
        {leagueEvents.slice(0,12).map(ev=><button key={ev.id} onClick={()=>onOpenEvent(ev.id)}>
         <span><strong>{ev.title}</strong><small>{new Date(ev.starts_at).toLocaleString("pt-BR",{dateStyle:"medium",timeStyle:"short"})} · {rooms.find(r=>r.id===ev.room_id)?.name||"Mesa"}</small></span>
@@ -470,5 +471,6 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
     </div>
    </div>
   </div>}
+  {mode!=="list"&&current&&<LeagueFinalizationControls mode={mode==="manage"?"manage":"detail"} leagueId={current.id}/>}
  </div>;
 }

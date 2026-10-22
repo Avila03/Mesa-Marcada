@@ -16,7 +16,7 @@ for(const s of [
  "TO authenticated"
 ])assert.ok(db.includes(s),"Missing Premium DB security: "+s);
 for(const s of [
- "create_league_premium","p_emblem:emblem","get_league_catalog_premium",
+ "create_league_premium","p_emblem:emblem","get_league_catalog_final",
  "update_league_emblem","CrestMark","CrestCustomizer",
  "createStep","Personalizar brasão","Editar brasão","Salvar brasão"
 ])assert.ok(hub.includes(s),"Missing integrated league UI: "+s);
@@ -25,7 +25,7 @@ assert.ok(editor.includes('useId'),"Unique SVG IDs required for multiple visible
 for(const s of ['"joker"','"two-jokers"','"roulette"','"poker-table"','"shield"','"circle"','"hex"','"card"'])
  assert.ok(editor.includes(s),"Missing shape or symbol: "+s);
 assert.ok(css.includes("mm-league-modal-wide"),"Responsive embedded editor missing");
-assert.ok(read("app/painel/mobile-first.tsx").includes("get_league_catalog_premium"),"Event editor catalog out of date");
+assert.ok(read("app/painel/mobile-first.tsx").includes("get_league_catalog_final"),"Event editor catalog out of date");
 assert.ok(read("app/brasoes/demo/page.tsx").includes("CrestEditor"),"Demo route must remain available");
 assert.ok(!db.includes("DISABLE ROW LEVEL SECURITY"),"Do not bypass RLS");
 console.log("✓ Brasões Premium: schema validation, owner authorization, creation wizard, display and editing");
