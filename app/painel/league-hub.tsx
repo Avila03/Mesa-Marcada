@@ -49,7 +49,7 @@ export function LeagueHomePreview({onBrowse,onOpen}:{onBrowse:()=>void;onOpen:(i
  useEffect(()=>{
   let alive=true;const db=getSupabase();
   if(!db)return;
-  void Promise.resolve(db.rpc("get_league_catalog")).then(({data,error})=>{
+  void Promise.resolve(db.rpc("get_league_catalog_premium")).then(({data,error})=>{
    if(alive&&!error)setLeagues(((data||[]) as League[]).filter(x=>x.my_role));
   }).finally(()=>{if(alive)setBusy(false)});
   return()=>{alive=false};
@@ -105,7 +105,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
  const joined=Boolean(current?.my_role);
  const refresh=useCallback(async()=>{
   const db=getSupabase();if(!db)return;
-  const {data,error:readError}=await db.rpc("get_league_catalog");
+  const {data,error:readError}=await db.rpc("get_league_catalog_premium");
   if(readError)throw readError;
   setLeagues((data||[]) as League[]);
  },[]);
@@ -154,7 +154,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
  async function saveNew(){
   await run(async()=>{
    const db=getSupabase();if(!db)throw new Error("Sem conexão");
-   const {data,error:err}=await db.rpc("create_league",{
+   const {data,error:err}=await db.rpc("create_league_premium",{
     p_name:name.trim(),p_description:description.trim(),p_visibility:visibility,p_rules:rules.trim(),p_emblem:emblem
    });
    if(err)throw err;
@@ -224,7 +224,23 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
    if(err)throw err;setInvite(String(data||""));
   },"Convite privado gerado. Envie-o para quem deseja solicitar entrada.");
  }
- async function update(){
+ async function saveIdentity(){
+   if(!current)return;
+   if(!/^[A-Z0-9]{1,4}$/.test(emblem.initials)||(emblem.withYear&&!/^\d{4}$/.test(emblem.year))){
+    setError("Informe uma sigla e um ano de quatro dígitos.");return;
+   }
+   await run(async()=>{
+    const db=getSupabase();if(!db)throw new Error("Sem conexão");
+    const {error:err}=await db.rpc("update_league_emblem",{p_league_id:current.id,p_emblem:emblem});
+    if(err)throw err;
+    setIdentityOpen(false);
+   },"Brasão atualizado com sucesso.");
+  }
+  function openIdentity(){
+   if(!current)return;
+   setEmblem(normalizeCrest(current.emblem));setIdentityOpen(true);setError("");setMessage("");
+  }
+  async function update(){
   if(!current)return;
   await run(async()=>{
    const db=getSupabase();if(!db)throw new Error("Sem conexão");
@@ -235,7 +251,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
   },"Informações da liga atualizadas.");
  }
  function editLeague(){if(!current)return;setName(current.name);setDescription(current.description);
-  setRules(current.rules);setVisibility(current.visibility);setCreate(true)}
+  setRules(current.rules);setVisibility(current.visibility);setCreateStep("info");setCreate(true)}
  const own=leagues.filter(l=>l.my_role);
  const available=leagues.filter(l=>!l.my_role);
  const leagueEvents=events.filter(ev=>ev.league_id===leagueId)
