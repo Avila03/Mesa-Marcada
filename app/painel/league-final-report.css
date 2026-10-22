@@ -22,3 +22,4 @@
 .mm-final-event div{display:grid;gap:5px}.mm-final-event strong{font-size:12px}.mm-final-event small,.mm-final-event>span{font-size:10px;color:#b4c6da}
 .mm-final-actions{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px}.mm-final-actions p{font-size:11px;color:#b4c8db}
 @media(max-width:600px){.mm-league-final-report{padding:15px}.mm-final-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.mm-final-tabs{width:100%}.mm-final-tabs button{flex:1}.mm-final-actions button{width:100%}}
+.mm-final-header{min-width:0}
