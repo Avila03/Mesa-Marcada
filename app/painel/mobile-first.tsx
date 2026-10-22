@@ -367,7 +367,7 @@ export default function PainelPage(){
         const {data:adminRow}=await db.from("app_admins").select("user_id").eq("user_id",data.user.id).maybeSingle();
         if(alive)setIsAdmin(Boolean(adminRow));
         const entry=readClubRoute(window.location.pathname,window.location.search);
-        const lean=["inicio","eventos","mesas","mesa"].includes(entry.page);
+        const lean=["inicio","eventos","mesas","mesa","ligas","liga","liga-admin"].includes(entry.page);
         await reload(lean?"list":"full");
       }catch(e){if(alive)setError(errText(e));}
       finally{if(alive)setLoading(false);}
