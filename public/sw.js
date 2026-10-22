@@ -1,21 +1,39 @@
-/* Mesa Marcada: offline shell only. No personal data, sessions, Supabase or
-   authenticated Next.js pages are ever cached. */
-const CACHE_NAME="mesa-static-v1-4";
-const STATIC=["/offline.html","/mesa-marcada-logo.webp"];
-self.addEventListener("install",event=>{
-  event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(STATIC)));
-  self.skipWaiting();
+/* Mesa Marcada PWA: sem cache de informações privadas ou financeiras. */
+const VERSION="mm-pwa-4.0";
+self.addEventListener("install",e=>{
+ e.waitUntil(caches.open(VERSION).then(cache=>cache.add("/offline.html")));
+ self.skipWaiting();
 });
-self.addEventListener("activate",event=>{
-  event.waitUntil(caches.keys().then(keys=>Promise.all(
-    keys.filter(k=>k.startsWith("mesa-static-")&&k!==CACHE_NAME).map(k=>caches.delete(k))
-  )));
-  self.clients.claim();
+self.addEventListener("activate",e=>{
+ e.waitUntil(Promise.all([
+  caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith("mm-pwa-")&&k!==VERSION).map(k=>caches.delete(k)))),
+  self.clients.claim()
+ ]));
 });
-self.addEventListener("fetch",event=>{
-  const req=event.request;
-  if(req.mode==="navigate"){
-    event.respondWith(fetch(req).catch(()=>caches.match("/offline.html")));
+self.addEventListener("fetch",e=>{
+ if(e.request.mode!=="navigate")return;
+ e.respondWith(fetch(e.request).catch(async()=>await caches.match("/offline.html")||Response.error()));
+});
+self.addEventListener("push",e=>{
+ if(!e.data)return;
+ let data;try{data=e.data.json()}catch{return}
+ const valid=typeof data.url==="string"&&/^\/eventos\/[0-9a-f-]{36}(?:\/(?:ao-vivo|resumo))?$/.test(data.url);
+ e.waitUntil(self.registration.showNotification(
+  String(data.title||"Mesa Marcada").slice(0,90),{
+   body:String(data.body||"Há novidades no seu evento.").slice(0,160),
+   icon:"/mesa-marcada-logo.webp",badge:"/mesa-marcada-logo.webp",
+   tag:"mm-event-update",renotify:false,
+   data:{url:valid?data.url:"/eventos"}
   }
-  // All other requests—including auth and financial data—pass through untouched.
+ ));
+});
+self.addEventListener("notificationclick",e=>{
+ e.notification.close();
+ const target=e.notification.data?.url||"/eventos";
+ e.waitUntil(self.clients.matchAll({type:"window",includeUncontrolled:true}).then(async clients=>{
+  for(const c of clients){if(new URL(c.url).origin===self.location.origin){
+   await c.focus();if("navigate" in c)await c.navigate(target);return;
+  }}
+  await self.clients.openWindow(target);
+ }));
 });
