@@ -175,3 +175,9 @@ assert.ok(realtimeSql.includes("ALTER PUBLICATION supabase_realtime ADD TABLE"),
 assert.ok(!realtimeSql.includes("DISABLE ROW LEVEL SECURITY"),"Never disable RLS");
 assert.ok(login.includes("validPostLoginRoute"),"Safe deep-link login return missing");
 console.log("✓ v3.0: distinct routes, persistent layout, scoped data and realtime updates");
+
+const financeEngine=read("lib/finance-report.ts");
+const nightSummary=read("app/painel/night-summary.tsx");
+assert.ok(financeEngine.includes("export function calculateFinance"),"Finance engine missing");
+assert.ok(financeEngine.includes("toCents"),"Cent-exact settlement required");
+console.log("✓ Finance engine versioned with the live system");

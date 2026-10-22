@@ -10,7 +10,8 @@
     "smoke": "node scripts/smoke-v09.mjs",
     "check:ui": "node scripts/check-ui-v151.mjs",
     "check:live": "node scripts/check-live-v17.mjs",
-    "check:scroll": "node scripts/check-scroll-v171.mjs"
+    "check:scroll": "node scripts/check-scroll-v171.mjs",
+    "check:finance": "node scripts/check-finance-report.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.0",
