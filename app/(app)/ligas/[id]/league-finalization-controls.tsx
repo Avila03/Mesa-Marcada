@@ -22,6 +22,7 @@ export default function LeagueFinalizationControls({mode,leagueId}:{mode:"detail
 
  useEffect(()=>{
   if(!leagueId)return;
+  setLoading(true);setLeague(null);setError("");
   let active=true;
   void(async()=>{
    try{
@@ -59,7 +60,7 @@ export default function LeagueFinalizationControls({mode,leagueId}:{mode:"detail
  }
 
  if(loading)return null;
- if(!league)return null;
+ if(!league)return error&&mode==="manage"?<div className="mm-message error" role="alert">Não foi possível carregar o encerramento: {error}</div>:null;
 
  if(league.finished_at)return <div className="mm-closed-overlay">
   <div className="mm-closed-document">
