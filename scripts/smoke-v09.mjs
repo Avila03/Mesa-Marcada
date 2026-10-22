@@ -38,8 +38,13 @@ try{
   await verify("/login",200);
   await verify("/painel",200);
   const eventId="00000000-0000-4000-8000-000000000001";
-  await verify("/evento/"+eventId,307,"/painel?evento="+eventId);
-  await verify("/evento/invalid",307,"/painel");
+  await verify("/evento/"+eventId,307,"/eventos/"+eventId);
+  await verify("/evento/invalid",307,"/eventos");
+  for(const path of [
+    "/eventos","/eventos/"+eventId,"/eventos/"+eventId+"/ao-vivo",
+    "/eventos/"+eventId+"/resumo","/mesas","/mesas/poker","/mesas/blackjack",
+    "/ranking","/perfil","/administracao"
+  ])await verify(path,200);
   const manifest=await verify("/manifest.webmanifest",200);
   const manifestJson=await manifest.json();
   assert.equal(manifestJson.name,"Mesa Marcada");
@@ -56,7 +61,7 @@ try{
   const offline=await verify("/offline.html",200);
   assert.ok((await offline.text()).includes("Você está sem internet"));
   console.log("✓ PWA HTTP: manifest, service worker e offline sem cache financeiro");
-  console.log("✓ Smoke HTTP: /, /login, /painel e links /evento/[id]");
+  console.log("✓ Smoke HTTP: rotas próprias, navegação de evento e links antigos");
   passed=true;
 }finally{
   // npm spawns Next.js as a child. Terminate the process group so CI cannot
