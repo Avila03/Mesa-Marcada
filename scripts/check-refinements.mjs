@@ -11,7 +11,7 @@ const reconfirm=read("app/painel/event-reconfirmation.tsx");
 const finalizeCss=read("app/(app)/ligas/[id]/league-finalization-controls.css");
 for(const p of ["ENABLE ROW LEVEL SECURITY","respond_event_reconfirmation","auth.uid()",
  "reconfirm_attendees_on_reschedule","ON CONFLICT(event_id,user_id) DO UPDATE",
- "status='pending'","status='confirmed'","status='declined'","session_attendance",
+ "status='pending'","'confirmed'","'declined'","session_attendance",
  "GRANT SELECT ON public.event_reconfirmations"])assert.ok(db.includes(p),"Missing reconfirmation protection: "+p);
 assert.ok(!db.includes("DELETE FROM public.session_table_seats"),"Reschedule must preserve seats");
 assert.ok(realtime.includes("ALTER PUBLICATION supabase_realtime"),"Realtime notifications missing");
