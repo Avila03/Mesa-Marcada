@@ -33,6 +33,9 @@ CREATE TABLE public.league_invites(
  created_by uuid NOT NULL REFERENCES auth.users(id)
 );
 CREATE INDEX league_requests_status_idx ON public.league_requests(league_id,status);
+ALTER TABLE public.sessions ADD COLUMN league_id uuid REFERENCES public.leagues(id) ON DELETE RESTRICT;
+CREATE INDEX idx_sessions_league_date ON public.sessions(league_id,starts_at);
+
 ALTER TABLE public.leagues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.league_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.league_requests ENABLE ROW LEVEL SECURITY;
@@ -201,8 +204,6 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
  FROM totals t GROUP BY t.user_id,t.game;
 $$;
 
-ALTER TABLE public.sessions ADD COLUMN league_id uuid REFERENCES public.leagues(id) ON DELETE RESTRICT;
-CREATE INDEX idx_sessions_league_date ON public.sessions(league_id,starts_at);
 
 -- Nonmembers cannot attach events to another owner's league, even via REST.
 DROP POLICY IF EXISTS sessions_insert_organizer ON public.sessions;
