@@ -37,6 +37,6 @@ export function clubHref(page:View,selectedId:string,tab:DetailTab,game:Game,gam
 }
 export function validPostLoginRoute(value:string){
  if(value.startsWith("/")&&!value.startsWith("//")&&
- /^(?:\/painel(?:\?evento=[0-9a-f-]{36})?|\/eventos(?:\/[0-9a-f-]{36}(?:\/(?:ao-vivo|resumo))?)?|\/mesas(?:\/(?:poker|blackjack)(?:\?aba=tutorial)?)?|\/ranking|\/perfil|\/administracao)$/i.test(value))return value;
+ /^(?:\/convite\/[0-9a-f]{64}|\/painel(?:\?evento=[0-9a-f-]{36})?|\/eventos(?:\/[0-9a-f-]{36}(?:\/(?:ao-vivo|resumo))?)?|\/mesas(?:\/(?:poker|blackjack)(?:\?aba=tutorial)?)?|\/ranking|\/perfil|\/administracao)$/i.test(value))return value;
  return "/painel";
 }

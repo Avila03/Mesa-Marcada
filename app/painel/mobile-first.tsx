@@ -24,6 +24,7 @@ import UiIcon from "./ui-icon";
 import DashboardV16 from "./dashboard-v16";
 import EventLivePanel,{LiveMovements} from "./event-live-panel";
 import NightSummary from "./night-summary";
+import PrivateInviteShare from "./private-invite-share";
 import SeatingTable from "./seating-table";
 import type {TableSeat} from "./seating-table";
 import {useStableDialog} from "./use-stable-dialog";
@@ -45,8 +46,8 @@ const chipPriceFields:{value:number;key:ChipPriceKey}[]=[
   {value:25,key:"chip_price_25_brl"},
   {value:50,key:"chip_price_50_brl"}
 ];
-type CreateEvent = {room_id:string;name:string;starts_at:string;location:string;min_entry_brl:string;max_participants:string;chip_pricing_special:boolean}&Record<ChipPriceKey,string>;
-const defaultEvent:CreateEvent={room_id:"",name:"",starts_at:"",location:"",min_entry_brl:"0",max_participants:"10",chip_pricing_special:false,chip_price_1_brl:"1.00",chip_price_5_brl:"5.00",chip_price_10_brl:"0.10",chip_price_25_brl:"0.25",chip_price_50_brl:"0.50"};
+type CreateEvent = {room_id:string;name:string;starts_at:string;location:string;min_entry_brl:string;max_participants:string;visibility:"public"|"private";chip_pricing_special:boolean}&Record<ChipPriceKey,string>;
+const defaultEvent:CreateEvent={room_id:"",name:"",starts_at:"",location:"",min_entry_brl:"0",max_participants:"10",visibility:"public",chip_pricing_special:false,chip_price_1_brl:"1.00",chip_price_5_brl:"5.00",chip_price_10_brl:"0.10",chip_price_25_brl:"0.25",chip_price_50_brl:"0.50"};
 type Modal = "evento" | null;
 const MONTHS=["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 
@@ -721,6 +722,7 @@ export default function PainelPage(){
         room_id:room.id,organizer_id:id,title:form.name.trim(),
         starts_at:new Date(form.starts_at).toISOString(),location:form.location.trim(),
         min_entry_brl:Number(form.min_entry_brl),max_participants:Number(form.max_participants),
+         visibility:form.visibility,
         chip_pricing_special:form.chip_pricing_special,
         chip_price_1_brl:form.chip_pricing_special?Number(form.chip_price_1_brl):1,
         chip_price_5_brl:form.chip_pricing_special?Number(form.chip_price_5_brl):5,
@@ -996,7 +998,11 @@ export default function PainelPage(){
               <p className="mm-formfoot">{selected.live_start_required&&!selectedLive
                 ?"Inicie a partida na aba Ao vivo para liberar o encerramento.":"Para encerrar, confira compras, resultados e repasses no Ao vivo."}
               </p>}
-            <EventShareActions id={selected.id} title={selected.title} date={selected.starts_at} room={roomTitle(selected.room_id)}/>
+            {selected.visibility==="private"
+               ?<PrivateInviteShare eventId={selected.id} title={selected.title}
+                   canInvite={organizer||isAdmin} status={selected.status}/>
+               :<EventShareActions id={selected.id} title={selected.title} date={selected.starts_at} room={roomTitle(selected.room_id)}/>}
+
           </div>
         </section>
         <div className="mm-detail-tabs" role="tablist" aria-label="Conteúdo deste evento">
@@ -1316,7 +1322,13 @@ export default function PainelPage(){
             </select>
           </label>
           <label className="mm-field">Nome do evento<input required minLength={2} maxLength={100} placeholder="Ex.: Poker de Sexta" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label>
-          <div className="mm-form-grid">
+          <label className="mm-field">Privacidade do evento
+             <select value={form.visibility} onChange={e=>setForm({...form,visibility:e.target.value as "public"|"private"})}>
+               <option value="public">Público · visível aos jogadores cadastrados</option>
+               <option value="private">Privado · somente convidados com link ou QR Code</option>
+             </select>
+           </label>
+           <div className="mm-form-grid">
             <label className="mm-field">Data e horário<input type="datetime-local" required value={form.starts_at} onChange={e=>setForm({...form,starts_at:e.target.value})}/></label>
             <label className="mm-field">Local<input minLength={2} maxLength={200} required placeholder="Ex.: Casa do Bruno" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></label>
           </div>
@@ -1342,7 +1354,7 @@ export default function PainelPage(){
           <div className="mm-create-seat-preview"><strong>♠ ♦ Assentos interativos</strong>
             <span>Após criar o evento, você irá diretamente para a mesa. Os convidados confirmados poderão escolher seus lugares{activeRooms.find(r=>r.id===form.room_id)?.game==="blackjack"?", inclusive a cadeira exclusiva do crupiê":""}.</span>
           </div>
-          <p className="mm-formfoot">O valor é apenas informativo. Todos os usuários cadastrados poderão ver este evento.</p>
+          <p className="mm-formfoot">{form.visibility==="private"?"Somente convidados autorizados terão acesso. Após criar, gere o convite e compartilhe o QR Code.":"Todos os usuários cadastrados poderão ver este evento."}</p>
           {error&&<p className="mm-message error" role="alert">{error}</p>}
           <div className="mm-form-actions"><button type="button" className="btn" onClick={()=>setModal(null)}>Cancelar</button><button type="submit" className="btn gold" disabled={working}>{working?"Salvando...":"Criar evento →"}</button></div>
         </form>

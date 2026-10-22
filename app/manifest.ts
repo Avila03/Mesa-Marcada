@@ -19,8 +19,8 @@ export default function manifest():MetadataRoute.Manifest{
       {src:"/mesa-marcada-logo.webp",sizes:"96x96",type:"image/webp",purpose:"any"}
     ],
     shortcuts:[
-      {name:"Eventos",short_name:"Eventos",url:"/painel"},
-      {name:"Mesa Marcada",short_name:"Mesa",url:"/painel"}
+      {name:"Eventos",short_name:"Eventos",url:"/eventos"},
+      {name:"Mesas",short_name:"Mesas",url:"/mesas"}
     ]
   };
 }
