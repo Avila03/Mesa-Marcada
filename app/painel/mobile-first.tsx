@@ -598,7 +598,7 @@ export default function PainelPage(){
     const db=getSupabase();if(!db)return;
     let alive=true;
     async function refreshPending(){
-      const {data}=await db.from("event_reconfirmations")
+      const {data}=await db!.from("event_reconfirmations")
         .select("event_id").eq("user_id",uid).eq("status","pending")
         .order("changed_at",{ascending:false}).limit(30);
       if(alive)setPendingReconfirmEventId((data||[]).find(r=>upcoming.some(ev=>ev.id===r.event_id))?.event_id);
