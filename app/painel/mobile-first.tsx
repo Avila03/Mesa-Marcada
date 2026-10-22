@@ -13,6 +13,7 @@ import ChipPurchaseForm from "./chip-purchase-form";
 import "../live-checkout.css";
 import "./duo-theme.css";
 import "./event-overview.css";
+import "./connection-indicator.css";
 import SiteLogo from "./site-logo";
 import {prepareProfilePhoto} from "./photo-utils";
 import {ExpenseSplitsPanel,MySplitsSummary} from "./expense-splits";
@@ -27,6 +28,8 @@ import SeatingTable from "./seating-table";
 import type {TableSeat} from "./seating-table";
 import {useStableDialog} from "./use-stable-dialog";
 import {readClubRoute,clubHref} from "@/lib/app-routes";
+import {useClubRealtime} from "./use-club-realtime";
+import type {UpdateScope} from "./use-club-realtime";
 import type {LiveState,LiveActivity} from "./event-live-panel";
 import type {UiIconName} from "./ui-icon";
 import AdvancedRankingPanel,{PlayerAchievements} from "./advanced-ranking";
@@ -236,6 +239,97 @@ export default function PainelPage(){
     const now=window.location.pathname+window.location.search;
     if(next!==now)window.history.pushState({mesaMarcada:true},"",next);
   },[routeReady,page,selectedId,detailTab,gameView,gameTab]);
+
+  // Leituras incrementais por área: evita as 24 consultas de reload()
+  // quando outro participante escolhe cadeira, vota ou registra fichas.
+  const refreshScope=useCallback(async(scope:UpdateScope)=>{
+    const db=getSupabase();
+    if(!db)return;
+    const unwrap=<T,>(result:{data:T|null;error:{message:string}|null}):T=>{
+      if(result.error)throw new Error(result.error.message);
+      return result.data as T;
+    };
+    const merge=<T extends {session_id:string}>(prev:T[],data:T[],id:string):T[]=>[
+      ...prev.filter(row=>row.session_id!==id),...data
+    ];
+    if(scope==="catalog"){
+      const [eventRows,attendeeRows,hiddenRows]=await Promise.all([
+        db.from("sessions").select("*").order("starts_at",{ascending:true}),
+        db.from("session_attendance").select("session_id,user_id"),
+        db.from("admin_hidden_events").select("session_id,previous_status,hidden_by,hidden_at")
+      ]);
+      setEvents(unwrap(eventRows) as Event[]);
+      setAttendances(unwrap(attendeeRows) as Attendance[]);
+      setHiddenEvents(unwrap(hiddenRows) as HiddenEvent[]);
+      return;
+    }
+    if(scope==="profiles"){
+      const result=await db.from("profiles").select("id,display_name,avatar_symbol,favorite_game,bio,avatar_path");
+      setProfiles(unwrap(result) as Profile[]);
+      return;
+    }
+    if(!selectedId)return;
+    if(scope==="presence"){
+      const [attendance,seats,event]=await Promise.all([
+        db.from("session_attendance").select("session_id,user_id").eq("session_id",selectedId),
+        db.from("session_table_seats").select("session_id,user_id,seat_no,chosen_at").eq("session_id",selectedId),
+        db.from("sessions").select("*").eq("id",selectedId).maybeSingle()
+      ]);
+      setAttendances(prev=>merge(prev,unwrap(attendance) as Attendance[],selectedId));
+      setTableSeats(prev=>merge(prev,unwrap(seats) as TableSeat[],selectedId));
+      const updated=unwrap(event) as Event|null;
+      if(updated)setEvents(prev=>prev.map(ev=>ev.id===selectedId?updated:ev));
+      return;
+    }
+    if(scope==="polls"){
+      const [survey,options,voting]=await Promise.all([
+        db.from("session_polls").select("*").eq("session_id",selectedId).order("created_at",{ascending:false}),
+        db.from("session_poll_options").select("*").order("position"),
+        db.from("session_poll_votes").select("poll_id,option_id,user_id")
+      ]);
+      setPolls(prev=>merge(prev,unwrap(survey) as Poll[],selectedId));
+      setChoices(unwrap(options) as Choice[]);
+      setVotes(unwrap(voting) as Vote[]);
+      return;
+    }
+    if(scope==="expenses"){
+      const [expensesForEvent,members,payments,personal,shares]=await Promise.all([
+        db.from("session_expenses").select("*").eq("session_id",selectedId),
+        db.from("expense_split_members").select("expense_id,session_id,user_id,joined_at").eq("session_id",selectedId),
+        db.from("expense_split_settlements").select("expense_id,session_id,user_id,confirmed_at").eq("session_id",selectedId),
+        db.rpc("get_my_expense_splits"),
+        db.rpc("get_expense_split_shares",{p_event_id:selectedId})
+      ]);
+      setExpenses(prev=>merge(prev,unwrap(expensesForEvent) as Expense[],selectedId));
+      setExpenseMembers(prev=>merge(prev,unwrap(members) as {expense_id:string;session_id:string;user_id:string;joined_at:string}[],selectedId));
+      setSettlements(prev=>merge(prev,unwrap(payments) as ExpenseSettlement[],selectedId));
+      setMySplits(unwrap(personal) as MyExpenseSplitRow[]);
+      setExpenseShares(unwrap(shares) as ExpenseSplitRow[]);
+      return;
+    }
+    if(scope==="chips"){
+      const [purchases,items,resultsRows,finals,payouts,cashouts,approvalsRows,live]=await Promise.all([
+        db.from("session_chip_purchases").select("*").eq("session_id",selectedId),
+        db.from("session_chip_purchase_items").select("*"),
+        db.from("session_chip_results").select("*").eq("session_id",selectedId),
+        db.from("session_chip_final_items").select("session_id,user_id,chip_value,quantity").eq("session_id",selectedId),
+        db.from("session_chip_payouts").select("session_id,user_id,confirmed_at").eq("session_id",selectedId),
+        db.from("session_chip_cashouts").select("session_id,user_id,final_brl,updated_at").eq("session_id",selectedId),
+        db.from("session_finance_approvals").select("session_id,user_id,reviewed_at").eq("session_id",selectedId),
+        db.from("session_live_state").select("session_id,started_at,started_by").eq("session_id",selectedId)
+      ]);
+      setBuys(prev=>merge(prev,unwrap(purchases) as Buy[],selectedId));
+      setChipItems(unwrap(items) as BuyItem[]);
+      setResults(prev=>merge(prev,unwrap(resultsRows) as ChipResult[],selectedId));
+      setFinalItems(prev=>merge(prev,unwrap(finals) as {session_id:string;user_id:string;chip_value:number;quantity:number}[],selectedId));
+      setChipPayouts(prev=>merge(prev,unwrap(payouts) as {session_id:string;user_id:string;confirmed_at:string}[],selectedId));
+      setChipCashouts(prev=>merge(prev,unwrap(cashouts) as {session_id:string;user_id:string;final_brl:number;updated_at:string}[],selectedId));
+      setApprovals(prev=>merge(prev,unwrap(approvalsRows) as {session_id:string;user_id:string;reviewed_at:string}[],selectedId));
+      setLiveStates(prev=>merge(prev,unwrap(live) as LiveState[],selectedId));
+    }
+  },[selectedId]);
+
+  const connection=useClubRealtime({enabled:Boolean(user),eventId:selectedId,onRefresh:refreshScope});
 
   useEffect(()=>{
     let alive=true;
@@ -686,7 +780,14 @@ export default function PainelPage(){
       </div>
       <div className="mm-breadcrumb-row">
         <div className="breadcrumb">Mesa Marcada　/　{page==="inicio"?"Visão geral":page==="detalhe"?"Evento":page==="mesa"?"Mesa de "+gameName(gameView):page==="eventos"?"Eventos":page==="mesas"?"Mesas":page==="perfil"?"Perfil":page==="admin"?"Administração":"Ranking"}</div>
-        <span className="pill"><UiIcon name={isAdmin?"settings":"user"} size={14}/>{isAdmin?"Administrador":firstName}</span>
+        <div className="mm-connection-group">
+          <span className={"mm-sync-pill "+connection} role="status" aria-live="polite"
+            title={connection==="connected"?"Atualizações em tempo real ativas":connection==="offline"?"Sem conexão; atualiza ao reconectar":"Sincronizando dados"}>
+            <span className="mm-sync-dot" aria-hidden="true"/>
+            {connection==="connected"?"Em tempo real":connection==="offline"?"Sem conexão":"Sincronizando"}
+          </span>
+          <span className="pill"><UiIcon name={isAdmin?"settings":"user"} size={14}/>{isAdmin?"Administrador":firstName}</span>
+        </div>
       </div>
       {error&&<p className="mm-message error" role="alert" style={{marginBottom:16}}>{error}</p>}
       {message&&<p className="mm-message" role="status" style={{marginBottom:16}}>{message}</p>}

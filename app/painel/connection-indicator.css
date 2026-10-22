@@ -1,0 +1,13 @@
+/* Dark Cards: sinal discreto de sincronização para todos os dispositivos. */
+.mm-connection-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.mm-sync-pill{display:inline-flex;gap:7px;align-items:center;border-radius:999px;
+ padding:7px 10px;border:1px solid #2a4b65;background:#102232;font-size:10px;
+ font-weight:700;color:#b9dbf3;white-space:nowrap}
+.mm-sync-dot{width:7px;height:7px;border-radius:50%;background:#268bff;box-shadow:0 0 8px #258bff75}
+.mm-sync-pill.connected .mm-sync-dot{background:#65d8a3;box-shadow:0 0 7px #65d8a366}
+.mm-sync-pill.offline{border-color:#6a3a42;color:#ffb5bc}
+.mm-sync-pill.offline .mm-sync-dot{background:#ff424d;box-shadow:0 0 7px #ff424d66}
+.mm-sync-pill.reconnecting .mm-sync-dot,.mm-sync-pill.connecting .mm-sync-dot{animation:mm-sync-pulse 1.6s infinite}
+@keyframes mm-sync-pulse{50%{opacity:.3}}
+@media(max-width:650px){.mm-connection-group .pill{display:none}.mm-sync-pill{font-size:9px;padding:5px 8px}}
+@media(prefers-reduced-motion:reduce){.mm-sync-pill .mm-sync-dot{animation:none!important}}
