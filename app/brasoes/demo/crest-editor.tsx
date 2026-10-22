@@ -219,9 +219,9 @@ async function downloadPng(svg:SVGSVGElement,filename:string){
 }
 
 export type CrestConfig={
- shape:ShapeId;symbol:SymbolId;colorIndex:number;initials:string;withYear:boolean;year:string;
+ shape:ShapeId;symbol:SymbolId;colorIndex:number;initials:string;withYear:boolean;year:string;finish:CrestFinish;
 };
-export const DEFAULT_CREST:CrestConfig={shape:"shield",symbol:"joker",colorIndex:0,initials:"MM",withYear:true,year:"2026"};
+export const DEFAULT_CREST:CrestConfig={shape:"shield",symbol:"joker",colorIndex:0,initials:"MM",withYear:true,year:"2026",finish:"premium"};
 export function normalizeCrest(input:unknown):CrestConfig{
  const o=input && typeof input==="object" && !Array.isArray(input)?input as Partial<CrestConfig>:{};
  return {
@@ -230,28 +230,45 @@ export function normalizeCrest(input:unknown):CrestConfig{
   colorIndex:typeof o.colorIndex==="number" && Number.isInteger(o.colorIndex)&&o.colorIndex>=0&&o.colorIndex<COLORS.length?o.colorIndex:0,
   initials:typeof o.initials==="string"&&/^[A-Z0-9]{1,4}$/.test(o.initials)?o.initials:"MM",
   withYear:typeof o.withYear==="boolean"?o.withYear:true,
-  year:typeof o.year==="string" && /^\d{4}$/.test(o.year)?o.year:"2026"
+  year:typeof o.year==="string" && /^\d{4}$/.test(o.year)?o.year:"2026",
+   finish:FINISHES.some(item=>item.id===o.finish)?o.finish!:"premium"
  };
 }
 export function CrestMark({value,className=""}:{value:unknown;className?:string}){
  const crest=normalizeCrest(value);
  return <span className={className}><CrestSvg shape={crest.shape} symbol={crest.symbol} accent={COLORS[crest.colorIndex]}
- initials={crest.initials} year={crest.year} withYear={crest.withYear}/></span>;
+ initials={crest.initials} year={crest.year} withYear={crest.withYear} finish={crest.finish}/></span>;
+}
+
+function FinishSelector({value,onChange,shape,symbol,accent,initials,year,withYear}:{
+ value:CrestFinish;onChange:(finish:CrestFinish)=>void;shape:ShapeId;symbol:SymbolId;
+ accent:Accent;initials:string;year:string;withYear:boolean;
+}){
+ return <div className="mm-crest-finishes" role="group" aria-label="Escolher acabamento do brasão">
+  {FINISHES.map(item=><button type="button" key={item.id}
+   className={"mm-crest-finish-option mm-crest-option-"+item.id+(value===item.id?" selected":"")}
+   aria-label={"Acabamento "+item.name} aria-pressed={value===item.id} onClick={()=>onChange(item.id)}>
+    <span className="mm-crest-finish-image"><CrestSvg shape={shape} symbol={symbol}
+     accent={accent} initials={initials||"MM"} year={year} withYear={withYear} finish={item.id}/></span>
+    <strong>{item.name}</strong><small>{item.description}</small>
+    <span className="mm-crest-finish-indicator">{value===item.id?"✓ Selecionado":"Selecionar"}</span>
+   </button>)}
+ </div>;
 }
 export function CrestCustomizer({value,onChange}:{value:CrestConfig;onChange:(value:CrestConfig)=>void}){
  const [group,setGroup]=useState("Todos");
  const accent=COLORS[value.colorIndex]||COLORS[0];
  const shown=useMemo(()=>SYMBOLS.filter(item=>group==="Todos"||item.group===group),[group]);
  const update=(patch:Partial<CrestConfig>)=>onChange({...value,...patch});
- return <div className="mm-crest-shell mm-crest-inline">
+ return <div className={"mm-crest-shell mm-crest-inline mm-crest-finish-"+value.finish}>
   <div className="mm-crest-inline-grid">
    <section className="mm-crest-stage" aria-label="Prévia instantânea do brasão">
-    <div className="mm-crest-stage-bar"><span><span className="mm-crest-live-dot"/> PRÉVIA EM TEMPO REAL</span><span>PREMIUM</span></div>
+    <div className="mm-crest-stage-bar"><span><span className="mm-crest-live-dot"/> PRÉVIA EM TEMPO REAL</span><span>{finishName(value.finish).toUpperCase()}</span></div>
     <div className="mm-crest-display"><CrestSvg shape={value.shape} symbol={value.symbol} accent={accent}
-     initials={value.initials} year={value.year} withYear={value.withYear}/></div>
+     initials={value.initials} year={value.year} withYear={value.withYear} finish={value.finish}/></div>
     <div className="mm-crest-stage-caption"><div><small>IDENTIDADE DA LIGA</small>
      <strong>{value.initials||"MM"}</strong><span>{accent.name} · {SYMBOLS.find(x=>x.id===value.symbol)?.name}</span></div>
-     <span className="mm-crest-premium-tag">◆ PREMIUM</span></div>
+     <span className="mm-crest-premium-tag">{finishName(value.finish)}</span></div>
    </section>
    <div className="mm-crest-controls">
     <div className="mm-crest-step">
@@ -275,7 +292,7 @@ export function CrestCustomizer({value,onChange}:{value:CrestConfig;onChange:(va
         </g></svg><span>{item.name}</span></button>)}</div>
     </div>
     <div className="mm-crest-step">
-     <div className="mm-crest-step-head"><span className="mm-crest-step-no">03</span><div><h3>Cor de destaque</h3><p>Seis cores da família Premium.</p></div></div>
+     <div className="mm-crest-step-head"><span className="mm-crest-step-no">03</span><div><h3>Cor de destaque</h3><p>Seis cores aprovadas.</p></div></div>
      <div className="mm-crest-colors">{COLORS.map((item,index)=><button type="button" key={item.name}
       title={item.name} aria-label={item.name} aria-pressed={value.colorIndex===index}
       className={"mm-crest-color "+(value.colorIndex===index?"selected":"")} onClick={()=>update({colorIndex:index})}>
@@ -283,7 +300,17 @@ export function CrestCustomizer({value,onChange}:{value:CrestConfig;onChange:(va
      <div className="mm-crest-color-name">{accent.name} <span>{accent.hex}</span></div>
     </div>
     <div className="mm-crest-step">
-     <div className="mm-crest-step-head"><span className="mm-crest-step-no">04</span><div><h3>Identificação</h3><p>Uma sigla e um ano opcional.</p></div></div>
+    <div className="mm-crest-step-head"><span className="mm-crest-step-no">04</span><div><h3>Acabamento</h3><p>Três estilos visualmente diferentes.</p></div></div>
+    <FinishSelector value={value.finish} onChange={finish=>update({finish})} shape={value.shape}
+     symbol={value.symbol} accent={accent} initials={value.initials} year={value.year} withYear={value.withYear}/>
+   </div>
+   <div className="mm-crest-step">
+    <div className="mm-crest-step-head"><span className="mm-crest-step-no">04</span><div><h3>Acabamento</h3><p>Escolha entre os três estilos finalizados.</p></div></div>
+    <FinishSelector value={finish} onChange={setFinish} shape={shape}
+     symbol={symbol} accent={accent} initials={initials} year={year} withYear={withYear}/>
+   </div>
+   <div className="mm-crest-step">
+     <div className="mm-crest-step-head"><span className="mm-crest-step-no">05</span><div><h3>Identificação</h3><p>Uma sigla e um ano opcional.</p></div></div>
      <label className="mm-crest-label" htmlFor="mm-crest-edit-initials">SIGLA · ATÉ 4 CARACTERES</label>
      <input id="mm-crest-edit-initials" required maxLength={4} spellCheck={false} autoCapitalize="characters"
       value={value.initials} onChange={e=>update({initials:e.target.value.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9]/g,"").toUpperCase().slice(0,4)})}/>
@@ -302,6 +329,7 @@ export default function CrestEditor(){
  const [shape,setShape]=useState<ShapeId>("shield");
  const [symbol,setSymbol]=useState<SymbolId>("joker");
  const [colorIndex,setColorIndex]=useState(0);
+ const [finish,setFinish]=useState<CrestFinish>("premium");
  const [initials,setInitials]=useState("MM");
  const [withYear,setWithYear]=useState(true);
  const [year,setYear]=useState("2026");
@@ -320,7 +348,7 @@ export default function CrestEditor(){
    setFeedback("Arquivo "+kind.toUpperCase()+" gerado. Verifique seus downloads.");
   }catch(e){setFeedback(e instanceof Error?e.message:"Não foi possível exportar.");}
  }
- return <main className="mm-crest-shell">
+ return <main className={"mm-crest-shell mm-crest-finish-"+finish}>
   <header className="mm-crest-nav">
    <a href="/" className="mm-crest-wordmark" aria-label="Ir para Mesa Marcada">
     <span className="mm-crest-wordmark-mark">♠</span><span>MESA <b>MARCADA</b></span>
@@ -330,18 +358,18 @@ export default function CrestEditor(){
   <section className="mm-crest-intro">
    <span className="mm-crest-eyebrow">IDENTIDADE DAS LIGAS / LABORATÓRIO VISUAL</span>
    <h1>Seu brasão. <em>Sua liga.</em></h1>
-   <p>Construa uma identidade única com o acabamento Premium do Mesa Marcada. Escolha dentro das regras do sistema e veja o resultado em tempo real.</p>
+   <p>Construa uma identidade única com os acabamentos Minimalista, Clássico e Premium. Escolha dentro das regras do sistema e veja o resultado em tempo real.</p>
    <div className="mm-crest-preview-warning"><span className="mm-crest-live-dot"/>Prévia interativa · não salva dados da liga</div>
   </section>
   <div className="mm-crest-layout">
    <section className="mm-crest-stage" aria-label="Prévia do brasão">
-    <div className="mm-crest-stage-bar"><span><span className="mm-crest-live-dot"/> PRÉVIA EM TEMPO REAL</span><span>ESTILO PREMIUM</span></div>
-    <div className="mm-crest-display"><div className="mm-crest-ambient" style={{background:accent.hex}}/>
-     <CrestSvg shape={shape} symbol={symbol} accent={accent} initials={initials} year={year} withYear={withYear} svgRef={svgRef}/>
+    <div className="mm-crest-stage-bar"><span><span className="mm-crest-live-dot"/> PRÉVIA EM TEMPO REAL</span><span>ESTILO {finishName(finish).toUpperCase()}</span></div>
+    <div className="mm-crest-display">{finish==="premium"&&<div className="mm-crest-ambient" style={{background:accent.hex}}/>}
+     <CrestSvg shape={shape} symbol={symbol} accent={accent} initials={initials} year={year} withYear={withYear} finish={finish} svgRef={svgRef}/>
     </div>
     <div className="mm-crest-stage-caption">
      <div><small>BRASÃO PERSONALIZADO</small><strong>{initials||"MM"} · {shapeFor(shape).name}</strong><span>{SYMBOLS.find(x=>x.id===symbol)?.name} · {accent.name}</span></div>
-     <span className="mm-crest-premium-tag">◆ PREMIUM</span>
+     <span className="mm-crest-premium-tag">{finishName(finish)}</span>
     </div>
     <div className="mm-crest-export">
      <button type="button" onClick={()=>void exportFile("png")} className="mm-crest-primary">Exportar PNG ↓</button>
@@ -350,7 +378,7 @@ export default function CrestEditor(){
     {feedback&&<p className="mm-crest-feedback" role="status">{feedback}</p>}
    </section>
    <section className="mm-crest-controls" aria-label="Personalização do brasão">
-    <div className="mm-crest-controls-head"><div><span>EDITOR DE BRASÕES</span><h2>Monte o seu emblema</h2></div><span className="mm-crest-counter">01 / PREMIUM</span></div>
+    <div className="mm-crest-controls-head"><div><span>EDITOR DE BRASÕES</span><h2>Monte o seu emblema</h2></div><span className="mm-crest-counter">{finishName(finish).toUpperCase()}</span></div>
     <div className="mm-crest-step">
      <div className="mm-crest-step-head"><span className="mm-crest-step-no">01</span><div><h3>Formato</h3><p>Quatro silhuetas padronizadas.</p></div></div>
      <div className="mm-crest-shapes">
@@ -388,7 +416,7 @@ export default function CrestEditor(){
      {withYear&&<><label htmlFor="mm-crest-year" className="mm-crest-label">ANO</label>
       <input id="mm-crest-year" type="text" inputMode="numeric" maxLength={4} value={year} onChange={e=>setYear(e.target.value.replace(/\D/g,"").slice(0,4))}/></>}
     </div>
-    <div className="mm-crest-guidelines"><strong>PADRÃO VISUAL PRESERVADO</strong><p>Os elementos têm posição e proporção fixas. Sem uploads, arrastar, girar ou redimensionar. O acabamento Premium é aplicado automaticamente.</p></div>
+    <div className="mm-crest-guidelines"><strong>PADRÃO VISUAL PRESERVADO</strong><p>Os elementos têm posição e proporção fixas. Sem uploads, arrastar, girar ou redimensionar. O acabamento escolhido determina contornos, ornamentos e brilhos.</p></div>
    </section>
   </div>
   <footer className="mm-crest-footer"><span>MESA MARCADA · DARK CARDS</span><span>Editor experimental · a criação e a edição das ligas permanecem inalteradas</span></footer>
