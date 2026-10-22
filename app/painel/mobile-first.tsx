@@ -15,7 +15,8 @@ import "./duo-theme.css";
 import "./event-overview.css";
 import "./connection-indicator.css";
 import SiteLogo from "./site-logo";
-import EventChangeNotices from "./event-change-notices";
+import NotificationCenter from "./notification-center";
+import EventReconfirmation from "./event-reconfirmation";
 import {prepareProfilePhoto} from "./photo-utils";
 import {ExpenseSplitsPanel,MySplitsSummary} from "./expense-splits";
 import type {ExpenseSplitRow,MyExpenseSplitRow,ExpenseSettlement} from "./expense-splits";
@@ -136,6 +137,7 @@ export default function PainelPage(){
   const [expenseShares,setExpenseShares]=useState<ExpenseSplitRow[]>([]);
   const [settlements,setSettlements]=useState<ExpenseSettlement[]>([]);
   const [mySplits,setMySplits]=useState<MyExpenseSplitRow[]>([]);
+  const [pendingReconfirmEventId,setPendingReconfirmEventId]=useState<string|undefined>();
   const [ranking,setRanking]=useState<Rank[]>([]);
   const [periodRanking,setPeriodRanking]=useState<AdvancedRank[]>([]);
   const [annualStats,setAnnualStats]=useState<AdvancedRank[]>([]);
@@ -589,6 +591,22 @@ export default function PainelPage(){
   const upcoming=agendaEvents.filter(e=>e.status==="scheduled"&&new Date(e.starts_at).getTime()>=Date.now())
     .sort((a,b)=>new Date(a.starts_at).getTime()-new Date(b.starts_at).getTime());
   const myUpcoming=upcoming.filter(e=>attendances.some(a=>a.session_id===e.id&&a.user_id===user?.id));
+  useEffect(()=>{
+    if(!user)return;
+    const db=getSupabase();if(!db)return;
+    let alive=true;
+    async function refreshPending(){
+      const {data}=await db.from("event_reconfirmations")
+        .select("event_id").eq("user_id",user.id).eq("status","pending")
+        .order("changed_at",{ascending:false}).limit(30);
+      if(alive)setPendingReconfirmEventId((data||[]).find(r=>upcoming.some(ev=>ev.id===r.event_id))?.event_id);
+    }
+    void refreshPending();
+    const focus=()=>{if(document.visibilityState==="visible")void refreshPending()};
+    document.addEventListener("visibilitychange",focus);
+    const timer=window.setInterval(focus,45000);
+    return()=>{alive=false;clearInterval(timer);document.removeEventListener("visibilitychange",focus)};
+  },[user?.id,upcoming.map(e=>e.id+e.starts_at).join(",")]);
   const selected=events.find(e=>e.id===selectedId);
   const selectedLive=liveStates.find(l=>l.session_id===selectedId);
   const eventLiveActivities=liveActivities.filter(a=>a.session_id===selectedId);
@@ -901,7 +919,7 @@ export default function PainelPage(){
       {error&&<p className="mm-message error" role="alert" style={{marginBottom:16}}>{error}</p>}
       {message&&<p className="mm-message" role="status" style={{marginBottom:16}}>{message}</p>}
 
-      {(page==="inicio"||page==="eventos")&&<EventChangeNotices userId={user.id} onOpenEvent={id=>openEvent(id)}/>}
+      <NotificationCenter userId={user.id} onOpenEvent={id=>openEvent(id)} onOpenLeague={openLeague}/>
 
        {page==="inicio"&&<DashboardV16
         firstName={firstName} userId={user.id} upcoming={upcoming}
@@ -919,6 +937,7 @@ export default function PainelPage(){
         onAdmin={()=>go("admin")}
         onLeagues={()=>go("ligas")}
         onOpenLeague={id=>openLeague(id)}
+        pendingReconfirmEventId={pendingReconfirmEventId}
       />}
 
       {(page==="ligas"||page==="liga"||page==="liga-admin")&&
@@ -1052,6 +1071,7 @@ export default function PainelPage(){
       </>}
 
       {page==="detalhe"&&selected&&<>
+        {selected.status==="scheduled"&&<EventReconfirmation eventId={selected.id} startsAt={selected.starts_at} userId={user.id} attending={meConfirmed} host={organizer}/>}
         <button type="button" className="back" onClick={()=>selected.league_id?openLeague(selected.league_id):go("eventos")}>← {selected.league_id?"Voltar à liga":"Voltar aos eventos"}</button>
         <section className="detailblock" style={{padding:0,overflow:"hidden"}}>
           <GameBanner game={roomFor(selected.room_id)?.game||"poker"} large/>
@@ -1402,7 +1422,7 @@ export default function PainelPage(){
       <footer className="mm-formfoot" style={{marginTop:35}}>Mesa Marcada · Organize seus encontros. Valores em reais são apenas registros informativos.</footer>
     </main>
 
-    <button className="mm-fab" aria-label="Criar evento" title="Criar evento" type="button" onClick={()=>openCreator()}><UiIcon name="plus" size={29}/></button>
+    {(page==="inicio"||page==="eventos")&&!modal&&<button className="mm-fab" aria-label="Criar evento" title="Criar evento" type="button" onClick={()=>openCreator()}><UiIcon name="plus" size={29}/></button>}
 
     {(modal==="evento"||modal==="editar-evento")&&<div ref={modalOverlayRef} className="mm-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setModal(null)}}>
       <div className="mm-modal" role="dialog" aria-modal="true" aria-labelledby="new-event-title" tabIndex={-1}>
