@@ -1,6 +1,5 @@
 "use client";
 import {useEffect,useState} from "react";
-import {useParams} from "next/navigation";
 import {getSupabase} from "@/lib/supabase/browser";
 import {CrestMark,type CrestConfig} from "@/app/brasoes/demo/crest-editor";
 import LeagueFinalReport,{type LeagueFinalSummary} from "@/app/painel/league-final-report";
@@ -11,9 +10,7 @@ type LeagueArchiveRow={
  finished_at:string|null;final_summary:LeagueFinalSummary|null;emblem:CrestConfig;
 };
 
-export default function LeagueFinalizationControls({mode}:{mode:"detail"|"manage"}){
- const params=useParams<{id:string}>();
- const leagueId=typeof params.id==="string"?params.id:"";
+export default function LeagueFinalizationControls({mode,leagueId}:{mode:"detail"|"manage";leagueId:string}){
  const [league,setLeague]=useState<LeagueArchiveRow|null>(null);
  const [userId,setUserId]=useState("");
  const [scheduled,setScheduled]=useState(0);
