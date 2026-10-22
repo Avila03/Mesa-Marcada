@@ -2,9 +2,7 @@
 import {useCallback,useEffect,useRef,useState} from "react";
 import {getSupabase} from "@/lib/supabase/browser";
 import type {Attendance} from "@/lib/mesa-types";
-import LeagueNotifications from "./league-notifications";
 import LeagueFinalizationControls from "@/app/(app)/ligas/[id]/league-finalization-controls";
-import "./league-notifications.css";
 import type {Event,Profile,Room,Game} from "@/lib/mesa-types";
 import UiIcon from "./ui-icon";
 import {CrestMark,CrestCustomizer,DEFAULT_CREST,normalizeCrest,type CrestConfig} from "@/app/brasoes/demo/crest-editor";
@@ -52,7 +50,7 @@ export function LeagueHomePreview({onBrowse,onOpen}:{onBrowse:()=>void;onOpen:(i
   let alive=true;const db=getSupabase();
   if(!db)return;
   void Promise.resolve(db.rpc("get_league_catalog_final")).then(({data,error})=>{
-   if(alive&&!error)setLeagues(((data||[]) as League[]).filter(x=>x.my_role));
+   if(alive&&!error)setLeagues(((data||[]) as League[]).filter(x=>x.my_role&&!x.finished_at));
   }).finally(()=>{if(alive)setBusy(false)});
   return()=>{alive=false};
  },[]);
@@ -101,6 +99,8 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
  const [rank,setRank]=useState<LeagueRank[]>([]);
  const [invite,setInvite]=useState("");
  const [game,setGame]=useState<Game>("poker");
+ const [leagueFilter,setLeagueFilter]=useState<"active"|"finished">("active");
+ const [showAllEvents,setShowAllEvents]=useState(false);
  const current=leagues.find(l=>l.id===leagueId);
  const owner=current?.owner_id===userId;
  const canOrganize=owner||current?.my_role==="organizer";
@@ -256,7 +256,8 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
  function editLeague(){if(!current)return;setName(current.name);setDescription(current.description);
   setRules(current.rules);setVisibility(current.visibility);setCreateStep("info");setCreate(true)}
  const own=leagues.filter(l=>l.my_role);
- const available=leagues.filter(l=>!l.my_role);
+ const filteredOwn=own.filter(l=>leagueFilter==="finished"?Boolean(l.finished_at):!l.finished_at);
+ const available=leagues.filter(l=>!l.my_role&&!l.finished_at);
  const leagueEvents=events.filter(ev=>ev.league_id===leagueId)
   .sort((a,b)=>new Date(b.starts_at).getTime()-new Date(a.starts_at).getTime());
  const rankings=rank.filter(r=>r.game===game).sort((a,b)=>Number(b.net_chips)-Number(a.net_chips));
@@ -273,7 +274,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
      current?.description||"Encontros, rankings e participantes em um só lugar."}</p>
    </div>
    <div className="mm-league-header-actions">
-   {mode==="list"?<><a className="btn" href="/brasoes/demo">Prévia dos acabamentos</a><button className="btn gold" onClick={()=>{setName("");setDescription("");setRules("");setVisibility("public");setEmblem(DEFAULT_CREST);setCreateStep("info");setCreate(true)}}><UiIcon name="plus" size={17}/> Criar liga</button></>:
+   {mode==="list"?<><button className="btn gold" onClick={()=>{setName("");setDescription("");setRules("");setVisibility("public");setEmblem(DEFAULT_CREST);setCreateStep("info");setCreate(true)}}><UiIcon name="plus" size={17}/> Criar liga</button></>:
     <button className="btn" onClick={mode==="manage"?()=>onOpenLeague(leagueId):onBack}>← Voltar</button>}
    </div>
   </header>
@@ -281,19 +282,23 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
   {message&&<p className="mm-message" role="status">{message}</p>}
   {busy&&<p className="mm-formfoot">Atualizando ligas...</p>}
   {mode==="list"&&<>
+   <nav className="mm-league-list-switch" aria-label="Estado das Ligas">
+    <button type="button" aria-pressed={leagueFilter==="active"} className={leagueFilter==="active"?"active":""} onClick={()=>setLeagueFilter("active")}>Ativas</button>
+    <button type="button" aria-pressed={leagueFilter==="finished"} className={leagueFilter==="finished"?"active":""} onClick={()=>setLeagueFilter("finished")}>Finalizadas</button>
+   </nav>
    <section className="panel">
-    <div className="panelhead"><h2>Minhas ligas</h2><span className="tag">{own.length}</span></div>
-    {own.length?<div className="mm-league-grid">{own.map(item=>
+    <div className="panelhead"><h2>{leagueFilter==="active"?"Minhas ligas ativas":"Arquivo de Ligas"}</h2><span className="tag">{filteredOwn.length}</span></div>
+    {filteredOwn.length?<div className="mm-league-grid">{filteredOwn.map(item=>
      <LeagueCard key={item.id} item={item} onClick={()=>onOpenLeague(item.id)}/>)}</div>:
-     <p className="mm-league-empty">Você ainda não é membro de nenhuma liga. Crie a sua ou solicite entrada em uma liga pública.</p>}
+     <p className="mm-league-empty">{leagueFilter==="finished"?"Nenhuma Liga finalizada no seu histórico.":"Você ainda não participa de uma Liga ativa. Crie uma ou solicite entrada em uma Liga pública."}</p>}
    </section>
-   <section className="panel">
+   {leagueFilter==="active"&&<section className="panel">
     <div className="panelhead"><h2>Explorar ligas</h2><span className="tag">{available.length}</span></div>
     <p className="mm-formfoot">Ligas públicas são visíveis. Ligas privadas aparecem apenas após um convite ou solicitação existente.</p>
     {available.length?<div className="mm-league-grid">{available.map(item=>
      <LeagueCard key={item.id} item={item} onClick={()=>onOpenLeague(item.id)}/>)}</div>:
      <p className="mm-league-empty">Nenhuma liga pública disponível no momento.</p>}
-   </section>
+   </section>}
   </>}
   {mode!=="list"&&!current&&!busy&&<section className="panel">Liga não encontrada ou você ainda não tem acesso. <button className="btn" onClick={onBack}>Explorar ligas</button></section>}
   {mode==="detail"&&current&&<>
@@ -305,7 +310,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
      {current.rules&&joined&&<p className="mm-league-rules">{current.rules}</p>}
     </div>
    </section>
-   {!joined&&<section className="panel mm-league-join">
+   {!joined&&!current.finished_at&&<section className="panel mm-league-join">
     <h2>{current.request_status==="pending"?"Solicitação em análise":"Participar desta liga"}</h2>
     <p>{current.request_status==="pending"?"O dono ainda não analisou seu pedido.":
      "A entrada exige aprovação do dono. Você terá acesso aos eventos e rankings após ser aprovado."}</p>
@@ -352,7 +357,6 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
       </div>)}</div>
      </div>}
     </section>
-    <LeagueNotifications userId={userId} onOpenLeague={onOpenLeague} onOpenEvent={onOpenEvent}/>
     <div className="mm-league-stats">
       <div><small>Membros</small><strong>{current.member_count}</strong></div>
       <div><small>Eventos</small><strong>{current.event_count}</strong></div>
@@ -362,10 +366,11 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
       <div className="panelhead"><h2>Eventos da liga</h2>
        {canOrganize&&!current.finished_at&&<button className="btn gold" onClick={()=>onCreateEvent(current.id)}>+ Criar evento</button>}</div>
       {leagueEvents.length?<div className="mm-league-event-list">
-       {leagueEvents.slice(0,12).map(ev=><button key={ev.id} onClick={()=>onOpenEvent(ev.id)}>
+       {(showAllEvents?leagueEvents:leagueEvents.slice(0,12)).map(ev=><button key={ev.id} onClick={()=>onOpenEvent(ev.id)}>
         <span><strong>{ev.title}</strong><small>{new Date(ev.starts_at).toLocaleString("pt-BR",{dateStyle:"medium",timeStyle:"short"})} · {rooms.find(r=>r.id===ev.room_id)?.name||"Mesa"}</small></span>
         <UiIcon name="arrow-right" size={18}/>
        </button>)}</div>:<p className="mm-league-empty">Ainda não existem eventos nesta liga. Os eventos independentes permanecem na agenda geral.</p>}
+      {leagueEvents.length>12&&<button type="button" className="btn" onClick={()=>setShowAllEvents(v=>!v)}>{showAllEvents?"Mostrar menos":"Ver todos os "+leagueEvents.length+" eventos"}</button>}
     </section>
     <section className="panel">
      <div className="panelhead"><h2>Ranking da liga</h2><span className="tag">Eventos encerrados</span></div>
