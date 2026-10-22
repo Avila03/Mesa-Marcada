@@ -181,3 +181,16 @@ const nightSummary=read("app/painel/night-summary.tsx");
 assert.ok(financeEngine.includes("export function calculateFinance"),"Finance engine missing");
 assert.ok(financeEngine.includes("toCents"),"Cent-exact settlement required");
 console.log("✓ Finance engine versioned with the live system");
+
+const financeReport=read("app/painel/night-report-export.ts");
+for(const token of ["makeReportText","printFinancialReport","saveFinancialImage",
+ "canvas.toDataURL","window.print","escapeHtml"]){
+ assert.ok(financeReport.includes(token),"Financial report export missing: "+token);
+}
+for(const token of ["Acerto inteligente","Salvar PDF","Salvar imagem PNG",
+ "Compartilhar resumo","calculateFinance(","report.transfers.map("]){
+ assert.ok(nightSummary.includes(token),"Night summary capability missing: "+token);
+}
+assert.ok(panel.includes("startsAt={selected.starts_at} location={selected.location}"),
+ "Event context missing from financial report");
+console.log("✓ v3.1: financial settlements and downloadable PDF/PNG report");

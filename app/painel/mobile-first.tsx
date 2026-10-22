@@ -1288,7 +1288,8 @@ export default function PainelPage(){
         {detailTab==="resumo-evento"&&selected.status==="finished"&&
           (privateVisible?<NightSummary guests={guests} buys={eventBuys} cashouts={eventCashouts}
             expenses={eventExpenses} shares={eventExpenseShares} hostId={selected.organizer_id}
-            currentUserId={user.id} nameFor={nameFor} eventFinished title={selected.title}/>:
+            currentUserId={user.id} nameFor={nameFor} eventFinished title={selected.title}
+            startsAt={selected.starts_at} location={selected.location} game={gameName(selectedGame)}/>:
           <section className="panel"><p>Confirme sua presença para consultar o resumo financeiro do evento.</p></section>)}
       </>}
 
