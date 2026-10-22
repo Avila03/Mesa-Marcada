@@ -1,8 +1,17 @@
--- Mesa Marcada · correção de criação de eventos em ligas para usuários sem cargo de admin.
--- INSERT ... RETURNING id também valida a política SELECT de sessions.
--- A política antiga chamava may_view_event(id), que fazia SELECT da mesma tabela,
--- invisível no snapshot da própria instrução de inserção para não-administradores.
--- Avaliar as colunas da própria linha evita esse problema sem afrouxar o acesso.
+-- Mesa Marcada: prevents recursive RLS evaluation when reading sessions
+-- after INSERT ... RETURNING for non-admin league organizers.
+-- The event invitation lookup is encapsulated in a SECURITY DEFINER helper
+-- because the invite-member RLS policy itself refers to sessions.
+CREATE OR REPLACE FUNCTION app_private.is_my_event_invite(p_session uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
+ SELECT (SELECT auth.uid()) IS NOT NULL AND EXISTS (
+  SELECT 1 FROM public.event_invite_members m
+  WHERE m.session_id=p_session AND m.user_id=(SELECT auth.uid())
+ );
+$$;
+REVOKE ALL ON FUNCTION app_private.is_my_event_invite(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION app_private.is_my_event_invite(uuid) TO authenticated;
+
 DROP POLICY IF EXISTS sessions_select_authorized ON public.sessions;
 CREATE POLICY sessions_select_authorized ON public.sessions
  FOR SELECT TO authenticated
@@ -16,14 +25,9 @@ CREATE POLICY sessions_select_authorized ON public.sessions
      CASE WHEN league_id IS NOT NULL THEN
       (app_private.is_league_member(league_id) OR app_private.is_league_owner(league_id))
      ELSE
-      (
-       visibility='public'
+      (visibility='public'
        OR organizer_id=(SELECT auth.uid())
-       OR EXISTS(
-        SELECT 1 FROM public.event_invite_members m
-        WHERE m.session_id=sessions.id AND m.user_id=(SELECT auth.uid())
-       )
-      )
+       OR app_private.is_my_event_invite(id))
      END
     )
    )
