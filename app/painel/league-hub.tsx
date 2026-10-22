@@ -3,6 +3,7 @@ import {useCallback,useEffect,useRef,useState} from "react";
 import {getSupabase} from "@/lib/supabase/browser";
 import type {Attendance} from "@/lib/mesa-types";
 import LeagueNotifications from "./league-notifications";
+import LeagueFinalizationControls from "@/app/(app)/ligas/[id]/league-finalization-controls";
 import "./league-notifications.css";
 import type {Event,Profile,Room,Game} from "@/lib/mesa-types";
 import UiIcon from "./ui-icon";
@@ -470,5 +471,6 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
     </div>
    </div>
   </div>}
+  {mode!=="list"&&current&&<LeagueFinalizationControls mode={mode==="manage"?"manage":"detail"} leagueId={current.id}/>}
  </div>;
 }
