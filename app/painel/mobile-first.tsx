@@ -1043,7 +1043,11 @@ export default function PainelPage(){
               <p className="mm-formfoot">{selected.live_start_required&&!selectedLive
                 ?"Inicie a partida na aba Ao vivo para liberar o encerramento.":"Para encerrar, confira compras, resultados e repasses no Ao vivo."}
               </p>}
-            {selected.visibility==="private"
+            {selected.league_id?<div className="mm-league-event-share">
+               <p className="mm-formfoot">♠ Este evento pertence a uma liga. Apenas membros aprovados podem abrir o convite e participar.</p>
+               <button className="btn" type="button" onClick={()=>openLeague(selected.league_id!)}>Ver liga →</button>
+               <EventShareActions id={selected.id} title={selected.title} date={selected.starts_at} room={roomTitle(selected.room_id)}/>
+             </div>:selected.visibility==="private"
                ?<PrivateInviteShare eventId={selected.id} title={selected.title}
                    canInvite={organizer||isAdmin} status={selected.status}/>
                :<EventShareActions id={selected.id} title={selected.title} date={selected.starts_at} room={roomTitle(selected.room_id)}/>}
