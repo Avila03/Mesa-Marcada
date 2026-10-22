@@ -504,6 +504,20 @@ export default function PainelPage(){
     },action==="hide"?"Evento excluído da agenda.":"Alteração administrativa registrada.");
   }
 
+  // Notificações opcionais: envio autorizado pelo servidor e protegido por JWT.
+  async function sendEventPush(eventId:string,kind:"poll"|"live"|"summary"){
+    try{
+      const db=getSupabase();if(!db)return;
+      const {data:{session}}=await db.auth.getSession();
+      if(!session?.access_token)return;
+      await fetch("/api/push/notify",{
+        method:"POST",headers:{"Content-Type":"application/json",
+          Authorization:"Bearer "+session.access_token},
+        body:JSON.stringify({eventId,kind})
+      });
+    }catch{/* A falha do push não cancela uma operação bem-sucedida. */}
+  }
+
   async function startLiveEvent(eventId:string){
     if(!window.confirm("Iniciar o Evento ao Vivo? Os participantes confirmados poderão acompanhar a linha do tempo da partida."))return;
     const db=getSupabase();
@@ -754,6 +768,7 @@ export default function PainelPage(){
       const {error:choiceError}=await db.from("session_poll_options").insert(labels.map((label,position)=>({poll_id:data.id,label,position})));
       if(choiceError)throw new Error("A enquete foi criada, mas faltou cadastrar as opções: "+choiceError.message);
       setPollQuestion("");
+      void sendEventPush(selected.id,"poll");
     },"Enquete criada!","polls");
   }
   const visibleEvents=agendaEvents.filter(e=>eventFilter==="todos"||
