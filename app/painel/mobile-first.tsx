@@ -737,7 +737,7 @@ export default function PainelPage(){
   useEffect(()=>{
     if(!user||modal!=="evento")return;
     const db=getSupabase();if(!db)return;
-    void db.rpc("get_league_catalog").then(({data,error})=>{
+    void db.rpc("get_league_catalog_premium").then(({data,error})=>{
       if(!error)setLeagueCatalog((data||[]) as League[]);
     });
   },[user,modal]);
