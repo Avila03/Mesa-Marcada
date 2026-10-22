@@ -139,7 +139,7 @@ export default function PainelPage(){
   const [rankGame,setRankGame]=useState<Game>("poker");
   const [eventFilter,setEventFilter]=useState<"todos"|"agendados"|"encerrados">("agendados");
   const [form,setForm]=useState<CreateEvent>(defaultEvent);
-  const ownLeagues=leagueCatalog.filter(item=>item.my_role==="owner");
+  const ownLeagues=leagueCatalog.filter(item=>item.my_role==="owner"||item.my_role==="organizer");
   const [pollQuestion,setPollQuestion]=useState("");
   const [pollOptions,setPollOptions]=useState("Pizza\nHambúrguer\nChurrasco");
     const [liveSubtab,setLiveSubtab]=useState<LiveSubtab>("compra");
@@ -881,7 +881,7 @@ export default function PainelPage(){
       {(page==="ligas"||page==="liga"||page==="liga-admin")&&
         <LeagueHub leagueId={selectedLeagueId}
           mode={page==="ligas"?"list":page==="liga-admin"?"manage":"detail"}
-          userId={user.id} profiles={profiles} events={agendaEvents} rooms={activeRooms}
+          userId={user.id} profiles={profiles} events={agendaEvents} rooms={activeRooms} attendances={attendances}
           onBack={()=>go("ligas")}
           onOpenLeague={openLeague}
           onOpenEvent={id=>openEvent(id)}

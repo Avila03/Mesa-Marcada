@@ -28,6 +28,14 @@ export default function LeagueInvitePage(){
    const {data,error:err}=await db.rpc("request_league_join",{p_league_id:preview.league_id,p_token:token});
    if(err)throw err;
    if(data==="member"){window.location.href="/ligas/"+preview.league_id;return}
+   const {data:{session}}=await db.auth.getSession();
+   if(session?.access_token){
+    void fetch("/api/push/league-request",{
+     method:"POST",headers:{"Content-Type":"application/json",
+      Authorization:"Bearer "+session.access_token},
+     body:JSON.stringify({leagueId:preview.league_id})
+    }).catch(()=>{});
+   }
    setPending(true);
   }catch(e){setError(e instanceof Error?e.message:"Não foi possível solicitar entrada")}
   finally{setSaving(false)}

@@ -46,3 +46,38 @@ background:#0a111b;color:#f1f5fb;border:1px solid #38506a;padding:12px;border-ra
 .mm-league-header-actions>.btn{width:100%}.mm-league-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
 .mm-league-stats>div{padding:11px}.mm-league-stats strong{font-size:18px}.mm-league-rank{gap:8px}
 .mm-league-rank strong{font-size:12px}.mm-league-rank b{font-size:12px}.mm-league-hero{padding:15px}}
+
+/* Mesa Marcada 5.1 — painel de liga e cargos */
+.mm-league-overview{background:linear-gradient(125deg,#0d1d30,#141a29);border:1px solid #355b80;
+ border-radius:17px;padding:18px;display:grid;gap:16px}
+.mm-league-overview-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.mm-league-overview-head h2{font-size:19px;margin:5px 0 0}
+.mm-league-overview-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:12px}
+.mm-league-overview-event{padding:18px;background:#123050;border:1px solid #285a87;border-radius:13px;
+ display:flex;flex-direction:column;gap:9px;align-items:flex-start}
+.mm-league-overview-event>small{color:#8fc6ff;font-size:11px;text-transform:uppercase}
+.mm-league-overview-event>strong{font-size:21px;color:#f1f5fb;line-height:1.25}
+.mm-league-overview-event p{font-size:12px;color:#b0cbe5;margin:0;line-height:1.5}
+.mm-league-overview-event span{font-size:12px;color:#8dcca9}
+.mm-league-overview-info{border:1px solid #304357;border-radius:13px;padding:13px;display:grid;
+ grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;align-content:start}
+.mm-league-overview-info>div{display:grid;gap:6px}.mm-league-overview-info small{font-size:10px;color:#9aadc5}
+.mm-league-overview-info strong{font-size:24px}.mm-league-overview-info button{grid-column:1/-1;background:#1b2e44;
+ color:#b8daff;border:1px solid #315171;border-radius:8px;padding:10px;text-align:left;font-size:11px;
+ display:flex;justify-content:space-between;align-items:center}
+.mm-league-overview-leaders{border-top:1px solid #2c4360;padding-top:13px;display:grid;gap:12px}
+.mm-league-overview-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mm-league-overview-switch{display:flex;gap:5px}
+.mm-league-overview-switch button{border:1px solid #36536e;background:transparent;color:#aac5df;padding:5px 8px;
+ border-radius:6px;font-size:11px;cursor:pointer}
+.mm-league-overview-switch button.active{background:#258bff;color:#fff}
+.mm-league-overview-leaders>div:last-child{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.mm-league-overview-leaders>div:last-child>div{padding:10px;background:#182941;border-radius:9px;display:grid;gap:5px}
+.mm-league-overview-leaders b{color:#6bb7ff;font-size:11px}
+.mm-league-overview-leaders strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mm-league-overview-leaders span{font-size:11px;color:#8ddeb5}
+.mm-league-member-actions{display:flex;flex-wrap:wrap;gap:8px}
+@media(max-width:700px){.mm-league-overview-grid{grid-template-columns:1fr}
+ .mm-league-overview-head{align-items:flex-start;flex-wrap:wrap}
+ .mm-league-overview-head .btn{width:100%}
+ .mm-league-overview-event>strong{font-size:18px}}

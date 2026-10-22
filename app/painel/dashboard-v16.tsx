@@ -5,6 +5,8 @@ import {date,eventTime,gameName,money} from "@/lib/mesa-types";
 import type {ExpenseSettlement,MyExpenseSplitRow} from "./expense-splits";
 import UiIcon from "./ui-icon";
 import {LeagueHomePreview} from "./league-hub";
+import LeagueNotifications from "./league-notifications";
+import "./league-notifications.css";
 
 type DashboardProps={
   firstName:string;
@@ -89,6 +91,7 @@ export default function DashboardV16({
     </section>}
 
     <LeagueHomePreview onBrowse={onLeagues} onOpen={onOpenLeague}/>
+    <LeagueNotifications userId={userId} onOpenLeague={onOpenLeague} onOpenEvent={onOpenEvent}/>
     <section className="mm-home-statgrid" aria-label="Resumo pessoal">
       <button type="button" onClick={onEvents}>
         <UiIcon name="calendar" size={21}/>
