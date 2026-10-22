@@ -4,6 +4,13 @@ import {useId,useMemo,useRef,useState} from "react";
 import type {ReactNode} from "react";
 
 type ShapeId="shield"|"circle"|"hex"|"card";
+export type CrestFinish="minimal"|"classic"|"premium";
+const FINISHES:{id:CrestFinish;name:string;description:string}[]=[
+ {id:"minimal",name:"Minimalista",description:"Chapado, limpo, sem brilho"},
+ {id:"classic",name:"Clássico",description:"Ornamentos e tradição"},
+ {id:"premium",name:"Premium",description:"Metal e brilho elétrico"}
+];
+const finishName=(id:CrestFinish)=>FINISHES.find(f=>f.id===id)?.name||"Premium";
 type Accent={name:string;hex:string;soft:string};
 const COLORS:Accent[]=[
  {name:"Azul elétrico",hex:"#258BFF",soft:"#73BDFF"},
@@ -110,15 +117,17 @@ function SymbolArt({id,accent}:{id:SymbolId;accent:string}):ReactNode{
  if(id==="poker-table")return <><ellipse rx="68" ry="40" fill="#103F32" stroke="currentColor" strokeWidth="6"/><ellipse rx="50" ry="27" fill="none" stroke={accent} strokeWidth="3"/><Chip x={-19} y={0} r={12} accent={accent}/><Chip x={22} y={6} r={12} accent={accent}/></>;
  return null;
 }
-function CrestSvg({shape,symbol,accent,initials,year,withYear,svgRef}:{
- shape:ShapeId;symbol:SymbolId;accent:Accent;initials:string;year:string;withYear:boolean;svgRef?:React.Ref<SVGSVGElement>;
+function CrestSvg({shape,symbol,accent,initials,year,withYear,finish,svgRef}:{
+ shape:ShapeId;symbol:SymbolId;accent:Accent;initials:string;year:string;withYear:boolean;
+ finish:CrestFinish;svgRef?:React.Ref<SVGSVGElement>;
 }){
  const path=shapeFor(shape);
  const uid=useId().replace(/:/g,"");
  const url=(name:string)=>"url(#"+uid+"-"+name+")";
- const initialsSize=initials.length===4?51:initials.length===3?61:initials.length===2?75:84;
+ const size=initials.length===4?51:initials.length===3?61:initials.length===2?75:84;
+ const premium=finish==="premium",classic=finish==="classic";
  return <svg ref={svgRef} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 420" role="img"
-  aria-label={"Brasão premium "+shapeFor(shape).name+", símbolo "+SYMBOLS.find(item=>item.id===symbol)?.name+", sigla "+initials}>
+  aria-label={"Brasão "+finishName(finish)+", "+shapeFor(shape).name+", símbolo "+SYMBOLS.find(item=>item.id===symbol)?.name+", sigla "+initials}>
   <defs>
    <linearGradient id={uid+"-metal"} x1="0" x2="1" y1="0" y2="1">
     <stop offset="0%" stopColor="#F1F5FB"/><stop offset="20%" stopColor="#879CB3"/>
@@ -139,33 +148,45 @@ function CrestSvg({shape,symbol,accent,initials,year,withYear,svgRef}:{
    </filter>
    <clipPath id={uid+"-clip"}><path d={path.inset}/></clipPath>
   </defs>
-  <path d={path.path} fill={accent.hex} opacity=".3" transform="translate(0 8)" filter={url("shadow")}/>
-  <path d={path.path} fill={url("body")} stroke={url("metal")} strokeWidth="9"/>
-  <path d={path.inset} fill="none" stroke={accent.hex} strokeWidth="4.5"/>
-  <path d={path.inset} fill="none" stroke={accent.soft} strokeWidth="1" transform="translate(0 -2)" opacity=".68"/>
-  <g clipPath={url("clip")}>
+  {premium&&<path d={path.path} fill={accent.hex} opacity=".3" transform="translate(0 8)" filter={url("shadow")}/>}
+  <path d={path.path} fill={premium?url("body"):classic?"#11161C":"#0C121B"}
+   stroke={premium?url("metal"):classic?"#D6BD8D":accent.hex} strokeWidth={premium?9:classic?5.5:4}/>
+  <path d={path.inset} fill="none" stroke={accent.hex} strokeWidth={premium?4.5:classic?3:2.5}/>
+  {premium&&<path d={path.inset} fill="none" stroke={accent.soft} strokeWidth="1" transform="translate(0 -2)" opacity=".68"/>}
+  {premium&&<g clipPath={url("clip")}>
    <path d="M0 65L360 245V420H0Z" fill={accent.hex} opacity=".043"/>
    <path d="M0 120L360 310" stroke="white" strokeWidth="16" opacity=".035"/>
    <path d="M0 170L360 360" stroke="white" strokeWidth="4" opacity=".03"/>
    <path d="M65 154H295M65 312H295" stroke={accent.hex} strokeWidth="1" opacity=".42"/>
    <path d="M80 151H280" stroke="#F1F5FB" strokeWidth=".7" opacity=".29"/>
+  </g>}
+  {classic&&<g fill="none" stroke="#C9B58E" strokeWidth="2.3" opacity=".85">
+   <path d="M73 181Q94 155 114 180Q94 183 93 204Q84 197 73 181Z"/>
+   <path d="M287 181Q266 155 246 180Q266 183 267 204Q276 197 287 181Z"/>
+   <path d="M128 309Q152 325 180 317Q208 325 232 309M160 312Q180 344 200 312"/>
+   <path d="M106 151L125 156 113 167M254 151L235 156 247 167"/>
+  </g>}
+  {(premium||classic)&&<path d="M180 33L191 53 180 63 169 53Z"
+   fill={premium?accent.hex:"#D6BD8D"} stroke={premium?"#E8F3FF":"#463826"} strokeWidth="1.3"/>}
+  <text x="180" y="142" textAnchor="middle"
+   fontFamily={classic?"Georgia,serif":"Arial,Helvetica,sans-serif"} fontSize={size}
+   fontWeight={classic?700:900} letterSpacing={initials.length>2?"-3":"-5"}
+   stroke={premium?"#DCE9F8":"none"} strokeWidth={premium?1.1:0}
+   paintOrder="stroke" fill={premium?url("metal"):classic?"#E9D5AF":"#F1F5FB"}>{initials||"MM"}</text>
+  <g transform="translate(180 241)" stroke="currentColor"
+   strokeWidth={premium?3.4:classic?3:2.7} strokeLinecap="round" strokeLinejoin="round"
+   color={classic?"#E8D7B8":"#EBF3FC"}>
+   <SymbolArt id={symbol} accent={accent.hex}/>
   </g>
-  <path d="M180 33L191 53 180 63 169 53Z" fill={accent.hex} stroke="#E8F3FF" strokeWidth="1.3"/>
-  <text x="180" y="142" textAnchor="middle" fontFamily="Arial,Helvetica,sans-serif" fontSize={initialsSize}
-    fontWeight="900" letterSpacing={initials.length>2?"-3":"-5"} stroke="#DCE9F8" strokeWidth="1.1"
-    paintOrder="stroke" fill={url("metal")}>{initials||"MM"}</text>
-  <g transform="translate(180 241)" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" color="#EBF3FC">
-    <SymbolArt id={symbol} accent={accent.hex}/>
-  </g>
-  <g fill={accent.hex} stroke="#E7F2FF" strokeWidth="1">
+  {(premium||classic)&&<g fill={premium?accent.hex:"#D6BD8D"} stroke={premium?"#E7F2FF":"#443623"} strokeWidth="1">
    <path d="M78 192L84 205 97 211 84 217 78 230 72 217 59 211 72 205Z"/>
    <path d="M282 192L288 205 301 211 288 217 282 230 276 217 263 211 276 205Z"/>
-  </g>
-  {withYear&&<text x="180" y="354" textAnchor="middle" fontFamily="Arial,Helvetica,sans-serif" fontSize="23"
-    fontWeight="700" letterSpacing="5" fill="#EAF4FF">{year}</text>}
-  <path d="M159 369H201" stroke={accent.hex} strokeWidth="4" strokeLinecap="round"/>
-  <path d={path.path} fill="none" stroke={url("glint")} strokeWidth="1.5" opacity=".64"/>
-  <circle cx="180" cy="33" r="5" fill={accent.soft} opacity=".85" filter={url("spark")}/>
+  </g>}
+  {withYear&&<text x="180" y="354" textAnchor="middle" fontFamily="Arial,Helvetica,sans-serif"
+   fontSize="23" fontWeight="700" letterSpacing="5" fill={classic?"#E9D5AF":"#EAF4FF"}>{year}</text>}
+  <path d="M159 369H201" stroke={classic?"#D6BD8D":accent.hex} strokeWidth={premium?4:2.5} strokeLinecap="round"/>
+  {premium&&<path d={path.path} fill="none" stroke={url("glint")} strokeWidth="1.5" opacity=".64"/>}
+  {premium&&<circle cx="180" cy="33" r="5" fill={accent.soft} opacity=".85" filter={url("spark")}/>}
  </svg>;
 }
 function downloadSvg(svg:SVGSVGElement,filename:string){
