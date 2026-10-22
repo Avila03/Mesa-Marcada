@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getSupabase } from "@/lib/supabase/browser";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Game, View, DetailTab, Profile, Room, Event, Attendance, Poll, Choice, Vote, Buy, BuyItem, ChipResult, Expense, Rank } from "@/lib/mesa-types";
@@ -101,6 +101,8 @@ export default function PainelPage(){
   const [modal,setModal]=useState<Modal>(null);
   const modalOverlayRef=useStableDialog(modal!==null,page,()=>setModal(null));
   const [loading,setLoading]=useState(true);
+  const fullDataRequested=useRef(false);
+  const [detailLoading,setDetailLoading]=useState(false);
   const [working,setWorking]=useState(false);
   const [message,setMessage]=useState("");
   const [error,setError]=useState("");
@@ -149,34 +151,39 @@ export default function PainelPage(){
   const [expenseCategory,setExpenseCategory]=useState("food");
   const [expensePayer,setExpensePayer]=useState("");
 
-  const reload=useCallback(async()=>{
+  const reload=useCallback(async(mode:"full"|"list"="full")=>{
     const db=getSupabase();
     if(!db)throw new Error("A conexão com o Supabase ainda não está configurada.");
+    if(mode==="full")fullDataRequested.current=true;
+    // A agenda precisa de poucas coleções; o restante só é carregado
+    // quando o usuário abre um evento, ranking, perfil ou administração.
+    const lean=mode==="list";
+    const skipped=Promise.resolve({data:[],error:null});
     const requests=await Promise.all([
       db.from("rooms").select("*").order("created_at",{ascending:false}),
       db.from("sessions").select("*").order("starts_at",{ascending:true}),
       db.from("profiles").select("id,display_name,avatar_symbol,favorite_game,bio,avatar_path"),
       db.from("session_attendance").select("session_id,user_id"),
-      db.from("session_polls").select("*").order("created_at",{ascending:false}),
-      db.from("session_poll_options").select("*").order("position"),
-      db.from("session_poll_votes").select("poll_id,option_id,user_id"),
-      db.from("session_chip_purchases").select("*"),
-      db.from("session_chip_purchase_items").select("*"),
-      db.from("session_chip_results").select("*"),
-      db.from("session_expenses").select("*"),
-      db.from("session_finance_approvals").select("session_id,user_id,reviewed_at"),
-      db.rpc("get_player_stats",{p_game:null}),
-      db.from("expense_split_members").select("expense_id,session_id,user_id,joined_at"),
+      lean?skipped:db.from("session_polls").select("*").order("created_at",{ascending:false}),
+      lean?skipped:db.from("session_poll_options").select("*").order("position"),
+      lean?skipped:db.from("session_poll_votes").select("poll_id,option_id,user_id"),
+      lean?skipped:db.from("session_chip_purchases").select("*"),
+      lean?skipped:db.from("session_chip_purchase_items").select("*"),
+      lean?skipped:db.from("session_chip_results").select("*"),
+      lean?skipped:db.from("session_expenses").select("*"),
+      lean?skipped:db.from("session_finance_approvals").select("session_id,user_id,reviewed_at"),
+      lean?skipped:db.rpc("get_player_stats",{p_game:null}),
+      lean?skipped:db.from("expense_split_members").select("expense_id,session_id,user_id,joined_at"),
       db.rpc("get_my_expense_splits"),
       db.from("expense_split_settlements").select("expense_id,session_id,user_id,confirmed_at"),
       db.from("admin_hidden_events").select("session_id,previous_status,hidden_by,hidden_at"),
-      db.from("event_admin_audit").select("id,session_id,action,performed_by,occurred_at,description").order("occurred_at",{ascending:false}).limit(30),
-      db.rpc("get_player_stats_period",{p_game:null,p_period:"ano"}),
-      db.from("session_live_state").select("session_id,started_at,started_by"),
-      db.from("session_chip_final_items").select("session_id,user_id,chip_value,quantity"),
-      db.from("session_chip_payouts").select("session_id,user_id,confirmed_at"),
-      db.from("session_chip_cashouts").select("session_id,user_id,final_brl,updated_at"),
-      db.from("session_table_seats").select("session_id,user_id,seat_no,chosen_at")
+      lean?skipped:db.from("event_admin_audit").select("id,session_id,action,performed_by,occurred_at,description").order("occurred_at",{ascending:false}).limit(30),
+      lean?skipped:db.rpc("get_player_stats_period",{p_game:null,p_period:"ano"}),
+      lean?skipped:db.from("session_live_state").select("session_id,started_at,started_by"),
+      lean?skipped:db.from("session_chip_final_items").select("session_id,user_id,chip_value,quantity"),
+      lean?skipped:db.from("session_chip_payouts").select("session_id,user_id,confirmed_at"),
+      lean?skipped:db.from("session_chip_cashouts").select("session_id,user_id,final_brl,updated_at"),
+      lean?skipped:db.from("session_table_seats").select("session_id,user_id,seat_no,chosen_at")
     ]);
     requests.forEach(r=>{if(r.error)throw r.error});
     setRooms((requests[0].data||[]) as Room[]);
@@ -346,7 +353,9 @@ export default function PainelPage(){
         setUser({id:data.user.id,email:data.user.email});
         const {data:adminRow}=await db.from("app_admins").select("user_id").eq("user_id",data.user.id).maybeSingle();
         if(alive)setIsAdmin(Boolean(adminRow));
-        await reload();
+        const entry=readClubRoute(window.location.pathname,window.location.search);
+        const lean=["inicio","eventos","mesas","mesa"].includes(entry.page);
+        await reload(lean?"list":"full");
       }catch(e){if(alive)setError(errText(e));}
       finally{if(alive)setLoading(false);}
     })();
@@ -378,6 +387,14 @@ export default function PainelPage(){
       setSelectedId(id);setDetailTab("visao");setPage("detalhe");
     }else setError("Evento não encontrado. Verifique o link compartilhado.");
   },[user,routeReady,events,hiddenEvents]);
+
+  useEffect(()=>{
+    if(!user||!routeReady||fullDataRequested.current)return;
+    if(!["detalhe","perfil","ranking","admin"].includes(page))return;
+    setDetailLoading(true);
+    void reload().catch(e=>setError("Não foi possível carregar esta área: "+errText(e)))
+      .finally(()=>setDetailLoading(false));
+  },[user,routeReady,page,reload]);
 
   const refreshLive=useCallback(async(showLoading=false)=>{
     if(!selectedId||!user)return;
@@ -789,6 +806,7 @@ export default function PainelPage(){
           <span className="pill"><UiIcon name={isAdmin?"settings":"user"} size={14}/>{isAdmin?"Administrador":firstName}</span>
         </div>
       </div>
+      {detailLoading&&<p className="mm-message" role="status" style={{marginBottom:12}}>Carregando dados desta área...</p>}
       {error&&<p className="mm-message error" role="alert" style={{marginBottom:16}}>{error}</p>}
       {message&&<p className="mm-message" role="status" style={{marginBottom:16}}>{message}</p>}
 
