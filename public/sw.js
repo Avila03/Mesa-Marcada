@@ -1,5 +1,5 @@
 /* Mesa Marcada PWA: sem cache de informações privadas ou financeiras. */
-const VERSION="mm-pwa-4.0";
+const VERSION="mm-pwa-5.1";
 self.addEventListener("install",e=>{
  e.waitUntil(caches.open(VERSION).then(cache=>cache.add("/offline.html")));
  self.skipWaiting();
@@ -17,7 +17,7 @@ self.addEventListener("fetch",event=>{
 self.addEventListener("push",e=>{
  if(!e.data)return;
  let data;try{data=e.data.json()}catch{return}
- const valid=typeof data.url==="string"&&/^\/eventos\/[0-9a-f-]{36}(?:\/(?:ao-vivo|resumo))?$/.test(data.url);
+ const valid=typeof data.url==="string"&&/^\/(?:eventos\/[0-9a-f-]{36}(?:\/(?:ao-vivo|resumo))?|ligas\/[0-9a-f-]{36}\/gerenciar)$/.test(data.url);
  e.waitUntil(self.registration.showNotification(
   String(data.title||"Mesa Marcada").slice(0,90),{
    body:String(data.body||"Há novidades no seu evento.").slice(0,160),

@@ -46,3 +46,7 @@ assert.ok(!push.includes("SUPABASE_SERVICE_ROLE_KEY"),"Do not use service key");
 assert.ok(read("app/ligas/convite/[token]/page.tsx").includes("/api/push/league-request"),
  "Private league invite must issue owner notification");
 console.log("✓ Mesa Marcada 5.1: organizer role, inbox, owner push, preview and RLS contract");
+
+const sw=read("public/sw.js");
+assert.ok(sw.includes("ligas\\/[0-9a-f-]{36}\\/gerenciar"),
+ "Push notification must link to league management in installed PWA");
