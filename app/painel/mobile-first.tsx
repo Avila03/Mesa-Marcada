@@ -505,7 +505,7 @@ export default function PainelPage(){
   }
 
   // Notificações opcionais: envio autorizado pelo servidor e protegido por JWT.
-  async function sendEventPush(eventId:string,kind:"poll"|"live"|"summary"){
+  async function sendEventPush(eventId:string,kind:"event"|"poll"|"live"|"summary"){
     try{
       const db=getSupabase();if(!db)return;
       const {data:{session}}=await db.auth.getSession();
@@ -746,6 +746,7 @@ export default function PainelPage(){
       }).select("id").single();
       if(eventError)throw eventError;
       setModal(null);openEvent(data.id,"visao");
+      if(form.visibility==="public")void sendEventPush(data.id,"event");
     },"Evento criado! Escolham uma cadeira para participar.");
   }
   async function chooseSeat(seatNo:number|null){

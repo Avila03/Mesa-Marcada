@@ -3,6 +3,7 @@ import {createClient} from "@supabase/supabase-js";
 import webPush from "web-push";
 export const runtime="nodejs";
 const contents={
+ event:{title:"Mesa Marcada · Nova noite",body:"Um novo evento foi marcado. Confira as mesas disponíveis."},
  poll:{title:"Mesa Marcada · Nova enquete",body:"Há uma nova enquete para você responder."},
  live:{title:"Mesa Marcada · Partida iniciada",body:"A mesa está ao vivo! Confira sua posição e as fichas."},
  summary:{title:"Mesa Marcada · Resumo da noite",body:"A partida foi encerrada. Veja seu resultado e os rachas."}
@@ -28,7 +29,9 @@ export async function POST(req:NextRequest){
   const kind=body?.kind as keyof typeof contents;
   if(typeof id!=="string"||!/^[0-9a-f-]{36}$/i.test(id)||!Object.hasOwn(contents,kind))
    return NextResponse.json({error:"Evento ou notificação inválidos"},{status:400});
-  const {data:targets,error:rpcError}=await db.rpc("claim_event_push_targets",{p_event_id:id,p_kind:kind,p_server_secret:serverSecret});
+  const {data:targets,error:rpcError}=kind==="event"
+   ?await db.rpc("claim_new_event_push_targets",{p_event_id:id,p_server_secret:serverSecret})
+   :await db.rpc("claim_event_push_targets",{p_event_id:id,p_kind:kind,p_server_secret:serverSecret});
   if(rpcError)return NextResponse.json({error:rpcError.message},{status:403});
   const content=contents[kind];
   webPush.setVapidDetails("https://mesa-marcada.vercel.app",pub,priv);

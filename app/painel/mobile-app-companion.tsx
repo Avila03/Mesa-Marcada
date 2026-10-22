@@ -80,11 +80,7 @@ export default function MobileAppCompanion({onUpdate,visible}:{onUpdate:()=>Prom
           });
           setAlerts(labels);
           try{await onUpdateRef.current()}catch{/* Sincronização volta na próxima consulta */}
-          if(localStorage.getItem("mm-realtime-alerts")==="yes"&&
-            "Notification" in window&&Notification.permission==="granted"&&!document.hasFocus()){
-            try{new Notification("Mesa Marcada",{body:labels[0],icon:"/mesa-marcada-logo.webp"});}
-            catch{/* Em iOS alguns navegadores exigem Web Push de PWA instalado */}
-          }
+          // Push em segundo plano é responsabilidade do service worker.
         }
       }
       baseline.current=next;
