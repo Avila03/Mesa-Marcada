@@ -1,9 +1,9 @@
 export type Game = "poker" | "blackjack";
-export type View = "inicio" | "eventos" | "mesas" | "mesa" | "ranking" | "perfil" | "detalhe" | "admin";
+export type View = "inicio" | "eventos" | "mesas" | "mesa" | "ranking" | "perfil" | "detalhe" | "admin" | "ligas" | "liga" | "liga-admin";
 export type DetailTab = "visao" | "ao-vivo" | "gastos" | "resumo-evento" | "assentos" | "enquetes" | "fichas";
 export type Profile = {id:string;display_name:string;avatar_symbol:string;favorite_game:Game;bio:string;avatar_path:string|null};
 export type Room = {id:string;name:string;game:Game;description:string;status:"active"|"archived";created_by:string};
-export type Event = {id:string;room_id:string;organizer_id:string;title:string;starts_at:string;location:string;min_entry_brl:number;max_participants:number;status:"scheduled"|"finished"|"cancelled";visibility:"public"|"private";live_start_required:boolean;chip_stock_legacy:boolean;chip_settlement_brl:boolean;chip_pricing_special:boolean;chip_pricing_locked:boolean;chip_price_1_brl:number;chip_price_5_brl:number;chip_price_10_brl:number;chip_price_25_brl:number;chip_price_50_brl:number};
+export type Event = {id:string;room_id:string;organizer_id:string;title:string;starts_at:string;location:string;min_entry_brl:number;max_participants:number;status:"scheduled"|"finished"|"cancelled";league_id:string|null;visibility:"public"|"private";live_start_required:boolean;chip_stock_legacy:boolean;chip_settlement_brl:boolean;chip_pricing_special:boolean;chip_pricing_locked:boolean;chip_price_1_brl:number;chip_price_5_brl:number;chip_price_10_brl:number;chip_price_25_brl:number;chip_price_50_brl:number};
 export type TableSeat = {session_id:string;user_id:string;seat_no:number;chosen_at:string};
 export type Attendance = {session_id:string;user_id:string};
 export type Poll = {id:string;session_id:string;created_by:string;question:string;is_closed:boolean};

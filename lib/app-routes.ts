@@ -1,11 +1,11 @@
 import type {DetailTab,Game,View} from "./mesa-types";
 type GameTab="eventos"|"tutorial";
-export type ClubLocation={page:View;selectedId:string;detailTab:DetailTab;gameView:Game;gameTab:GameTab};
+export type ClubLocation={page:View;selectedId:string;detailTab:DetailTab;gameView:Game;gameTab:GameTab;leagueId:string};
 const isUuid=(v:string)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 export function readClubRoute(pathname:string,search=""):ClubLocation{
  const path=pathname.replace(/\/+$/,"")||"/";
  const query=new URLSearchParams(search);
- const result:ClubLocation={page:"inicio",selectedId:"",detailTab:"visao",gameView:"poker",gameTab:"eventos"};
+ const result:ClubLocation={page:"inicio",selectedId:"",detailTab:"visao",gameView:"poker",gameTab:"eventos",leagueId:""};
  const parts=path.split("/").filter(Boolean);
  // Convites antigos continuam funcionando sem depender da query ficar
  // intacta durante a sincronização de rotas no navegador.
@@ -18,6 +18,9 @@ export function readClubRoute(pathname:string,search=""):ClubLocation{
    if(parts[2]==="ao-vivo")result.detailTab="ao-vivo";
    if(parts[2]==="resumo")result.detailTab="resumo-evento";
  }else if(path==="/eventos")result.page="eventos";
+ else if(parts[0]==="ligas"&&parts[1]&&isUuid(parts[1])){
+   result.page=parts[2]==="gerenciar"?"liga-admin":"liga";result.leagueId=parts[1];
+ }else if(path==="/ligas")result.page="ligas";
  else if(parts[0]==="mesas"&&["poker","blackjack"].includes(parts[1]||"")){
    result.page="mesa";result.gameView=parts[1] as Game;
    result.gameTab=query.get("aba")==="tutorial"?"tutorial":"eventos";
@@ -27,16 +30,18 @@ export function readClubRoute(pathname:string,search=""):ClubLocation{
  else if(path==="/administracao")result.page="admin";
  return result;
 }
-export function clubHref(page:View,selectedId:string,tab:DetailTab,game:Game,gameTab:GameTab){
+export function clubHref(page:View,selectedId:string,tab:DetailTab,game:Game,gameTab:GameTab,leagueId=""){
  if(page==="detalhe"&&isUuid(selectedId))return "/eventos/"+selectedId+
    (tab==="ao-vivo"?"/ao-vivo":tab==="resumo-evento"?"/resumo":"");
+ if((page==="liga"||page==="liga-admin")&&isUuid(leagueId))return "/ligas/"+leagueId+
+    (page==="liga-admin"?"/gerenciar":"");
  if(page==="mesa")return "/mesas/"+game+(gameTab==="tutorial"?"?aba=tutorial":"");
  const urls:Record<string,string>={inicio:"/painel",eventos:"/eventos",mesas:"/mesas",
- ranking:"/ranking",perfil:"/perfil",admin:"/administracao"};
+ ranking:"/ranking",perfil:"/perfil",admin:"/administracao",ligas:"/ligas"};
  return urls[page]||"/painel";
 }
 export function validPostLoginRoute(value:string){
  if(value.startsWith("/")&&!value.startsWith("//")&&
- /^(?:\/convite\/[0-9a-f]{64}|\/painel(?:\?evento=[0-9a-f-]{36})?|\/eventos(?:\/[0-9a-f-]{36}(?:\/(?:ao-vivo|resumo))?)?|\/mesas(?:\/(?:poker|blackjack)(?:\?aba=tutorial)?)?|\/ranking|\/perfil|\/administracao)$/i.test(value))return value;
+ /^(?:\/ligas(?:\/[0-9a-f-]{36}(?:\/gerenciar)?|\/convite\/[0-9a-f]{64})?|\/convite\/[0-9a-f]{64}|\/painel(?:\?evento=[0-9a-f-]{36})?|\/eventos(?:\/[0-9a-f-]{36}(?:\/(?:ao-vivo|resumo))?)?|\/mesas(?:\/(?:poker|blackjack)(?:\?aba=tutorial)?)?|\/ranking|\/perfil|\/administracao)$/i.test(value))return value;
  return "/painel";
 }
