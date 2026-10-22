@@ -11,7 +11,7 @@ for(const pattern of [
  "IF ev.organizer_id<>(SELECT auth.uid()) AND NOT app_private.is_app_admin()",
  "A partida já começou ou foi encerrada","session_live_state",
  "Limite menor que confirmações existentes","session_table_seats",
- "Os preços das fichas","Não é possível alterar os preços",
+ "p_chip_price_1_brl","p_chip_price_50_brl",
  "public.event_change_notices","event_change_notices_select_own",
  "CREATE TRIGGER trg_notify_event_details_change",
 ])assert.ok((db+pushDb).includes(pattern),"Missing edit security: "+pattern);
