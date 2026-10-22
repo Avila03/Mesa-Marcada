@@ -15,7 +15,8 @@
     "check:invites": "node scripts/check-invites-pwa.mjs",
     "check:leagues": "node scripts/check-leagues.mjs",
     "check:leagues51": "node scripts/check-leagues-v51.mjs",
-    "check:crest": "node scripts/check-league-emblems.mjs"
+    "check:crest": "node scripts/check-league-emblems.mjs",
+    "check:edit": "node scripts/check-event-edits.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.0",
