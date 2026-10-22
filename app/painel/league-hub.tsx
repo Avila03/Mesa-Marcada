@@ -39,8 +39,6 @@ function LeagueCard({item,onClick}:{item:League;onClick:()=>void}){
  </button>;
 }
 export function LeagueHomePreview({onBrowse,onOpen}:{onBrowse:()=>void;onOpen:(id:string)=>void}){
- const changed=useRef(onMembershipChanged);
- useEffect(()=>{changed.current=onMembershipChanged},[onMembershipChanged]);
  const [leagues,setLeagues]=useState<League[]>([]);
  const [busy,setBusy]=useState(true);
  useEffect(()=>{
@@ -76,6 +74,8 @@ type Props={
 };
 export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,
  onOpenLeague,onBack,onOpenEvent,onCreateEvent,onMembershipChanged}:Props){
+ const changed=useRef(onMembershipChanged);
+ useEffect(()=>{changed.current=onMembershipChanged},[onMembershipChanged]);
  const [leagues,setLeagues]=useState<League[]>([]);
  const [busy,setBusy]=useState(true);
  const [working,setWorking]=useState(false);
