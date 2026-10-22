@@ -6,7 +6,8 @@ const contents={
  event:{title:"Mesa Marcada · Nova noite",body:"Um novo evento foi marcado. Confira as mesas disponíveis."},
  poll:{title:"Mesa Marcada · Nova enquete",body:"Há uma nova enquete para você responder."},
  live:{title:"Mesa Marcada · Partida iniciada",body:"A mesa está ao vivo! Confira sua posição e as fichas."},
- summary:{title:"Mesa Marcada · Resumo da noite",body:"A partida foi encerrada. Veja seu resultado e os rachas."}
+ summary:{title:"Mesa Marcada · Resumo da noite",body:"A partida foi encerrada. Veja seu resultado e os rachas."},
+ edit:{title:"Mesa Marcada · Evento atualizado",body:"O anfitrião alterou informações da próxima noite. Confira a nova programação."}
 } as const;
 export async function POST(req:NextRequest){
  try{
