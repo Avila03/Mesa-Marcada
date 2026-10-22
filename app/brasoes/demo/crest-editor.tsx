@@ -305,11 +305,6 @@ export function CrestCustomizer({value,onChange}:{value:CrestConfig;onChange:(va
      symbol={value.symbol} accent={accent} initials={value.initials} year={value.year} withYear={value.withYear}/>
    </div>
    <div className="mm-crest-step">
-    <div className="mm-crest-step-head"><span className="mm-crest-step-no">04</span><div><h3>Acabamento</h3><p>Escolha entre os três estilos finalizados.</p></div></div>
-    <FinishSelector value={finish} onChange={setFinish} shape={shape}
-     symbol={symbol} accent={accent} initials={initials} year={year} withYear={withYear}/>
-   </div>
-   <div className="mm-crest-step">
      <div className="mm-crest-step-head"><span className="mm-crest-step-no">05</span><div><h3>Identificação</h3><p>Uma sigla e um ano opcional.</p></div></div>
      <label className="mm-crest-label" htmlFor="mm-crest-edit-initials">SIGLA · ATÉ 4 CARACTERES</label>
      <input id="mm-crest-edit-initials" required maxLength={4} spellCheck={false} autoCapitalize="characters"
@@ -405,8 +400,14 @@ export default function CrestEditor(){
       <span style={{background:item.hex}}/>{colorIndex===index&&<b>✓</b>}</button>)}</div>
      <div className="mm-crest-color-name">{accent.name} <span>{accent.hex}</span></div>
     </div>
+   <div className="mm-crest-step">
+    <div className="mm-crest-step-head"><span className="mm-crest-step-no">04</span><div><h3>Acabamento</h3><p>Escolha entre os três estilos finalizados.</p></div></div>
+    <FinishSelector value={finish} onChange={setFinish} shape={shape}
+     symbol={symbol} accent={accent} initials={initials} year={year} withYear={withYear}/>
+   </div>
+
     <div className="mm-crest-step">
-     <div className="mm-crest-step-head"><span className="mm-crest-step-no">04</span><div><h3>Identificação</h3><p>Seu monograma e ano opcional.</p></div></div>
+     <div className="mm-crest-step-head"><span className="mm-crest-step-no">05</span><div><h3>Identificação</h3><p>Seu monograma e ano opcional.</p></div></div>
      <label className="mm-crest-label" htmlFor="mm-crest-initials">SIGLA · ATÉ 4 CARACTERES</label>
      <input id="mm-crest-initials" maxLength={4} value={initials} autoCapitalize="characters" spellCheck={false}
       onChange={e=>setInitials(e.target.value.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9]/g,"").toUpperCase().slice(0,4))}
