@@ -23,9 +23,13 @@ REVOKE ALL ON FUNCTION app_private.valid_league_emblem(jsonb) FROM PUBLIC,anon,a
 
 -- Existing leagues receive an editable default without losing any existing data.
 ALTER TABLE public.leagues
- ADD COLUMN emblem jsonb NOT NULL DEFAULT
- '{"shape":"shield","symbol":"joker","colorIndex":0,"initials":"MM","withYear":true,"year":"2026"}'::jsonb,
- ADD CONSTRAINT leagues_emblem_valid CHECK (app_private.valid_league_emblem(emblem));
+ ADD COLUMN IF NOT EXISTS emblem jsonb NOT NULL DEFAULT
+ '{"shape":"shield","symbol":"joker","colorIndex":0,"initials":"MM","withYear":true,"year":"2026"}'::jsonb;
+DO $ BEGIN
+ IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.leagues'::regclass AND conname='leagues_emblem_valid') THEN
+  ALTER TABLE public.leagues ADD CONSTRAINT leagues_emblem_valid CHECK (app_private.valid_league_emblem(emblem));
+ END IF;
+END $;
 
 -- Dedicated creation RPC requires a valid emblem; legacy RPC stays available for rollout.
 CREATE OR REPLACE FUNCTION public.create_league_premium(
