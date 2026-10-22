@@ -20,7 +20,8 @@ export default function manifest():MetadataRoute.Manifest{
     ],
     shortcuts:[
       {name:"Eventos",short_name:"Eventos",url:"/eventos"},
-      {name:"Mesas",short_name:"Mesas",url:"/mesas"}
+      {name:"Mesas",short_name:"Mesas",url:"/mesas"},
+      {name:"Ligas",short_name:"Ligas",url:"/ligas"}
     ]
   };
 }

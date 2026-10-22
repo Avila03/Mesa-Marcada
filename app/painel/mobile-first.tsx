@@ -74,7 +74,7 @@ function EventTile({value,room,count,confirmed,live,open}:{value:Event;room?:Roo
     <GameBanner game={game}/>
     <div className="mm-event-content">
       <div className="mm-title-actions"><h3>{value.title}</h3><span className={"tag "+(value.status==="scheduled"?game:"archive")}>{value.status==="scheduled"?(live?"Ao vivo":"Agendado"):value.status==="finished"?"Encerrado":"Cancelado"}</span></div>
-      <div className="mm-event-info"><span>◷ {fullDate(value.starts_at)}</span><span>⌖ {value.location}</span></div>
+      <div className="mm-event-info">{value.league_id&&<span>♠ Evento de liga</span>}<span>◷ {fullDate(value.starts_at)}</span><span>⌖ {value.location}</span></div>
       <div className="mm-event-occupancy"><span>{count} de {value.max_participants} participantes</span><span>{Math.max(0,value.max_participants-count)} vagas</span></div>
       <div className="mm-progress" aria-hidden="true"><div style={{width:(Math.min(1,count/value.max_participants)*100)+"%"}}/></div>
       <div className="mm-v09-event-actions">
@@ -799,6 +799,7 @@ export default function PainelPage(){
     ["inicio","Início","home"],
     ["eventos","Eventos","calendar"],
     ["mesas","Mesas","cards"],
+    ["ligas","Ligas","users"],
     ["ranking","Ranking","trophy"],
     ["perfil","Perfil","user"],
     ...(isAdmin?[["admin","Administração","settings"] as [View,string,UiIconName]]:[])
@@ -1005,7 +1006,7 @@ export default function PainelPage(){
       </>}
 
       {page==="detalhe"&&selected&&<>
-        <button type="button" className="back" onClick={()=>go("eventos")}>← Voltar aos eventos</button>
+        <button type="button" className="back" onClick={()=>selected.league_id?openLeague(selected.league_id):go("eventos")}>← {selected.league_id?"Voltar à liga":"Voltar aos eventos"}</button>
         <section className="detailblock" style={{padding:0,overflow:"hidden"}}>
           <GameBanner game={roomFor(selected.room_id)?.game||"poker"} large/>
           <div style={{padding:"20px 22px 21px"}}>

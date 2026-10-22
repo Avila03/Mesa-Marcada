@@ -4,6 +4,7 @@ import type {Attendance,Event,Game,Room} from "@/lib/mesa-types";
 import {date,eventTime,gameName,money} from "@/lib/mesa-types";
 import type {ExpenseSettlement,MyExpenseSplitRow} from "./expense-splits";
 import UiIcon from "./ui-icon";
+import {LeagueHomePreview} from "./league-hub";
 
 type DashboardProps={
   firstName:string;
@@ -22,6 +23,8 @@ type DashboardProps={
   onProfile:()=>void;
   onRanking:()=>void;
   onAdmin:()=>void;
+  onLeagues:()=>void;
+  onOpenLeague:(id:string)=>void;
 };
 
 const categoryNames:Record<string,string>={
@@ -30,7 +33,7 @@ const categoryNames:Record<string,string>={
 
 export default function DashboardV16({
   firstName,userId,upcoming,attendances,rooms,mySplits,settlements,isAdmin,
-  onCreate,onOpenEvent,onEvents,onGame,onTables,onProfile,onRanking,onAdmin
+  onCreate,onOpenEvent,onEvents,onGame,onTables,onProfile,onRanking,onAdmin,onLeagues,onOpenLeague
 }:DashboardProps){
   const next=upcoming[0];
   const confirmed=new Set(attendances.filter(a=>a.user_id===userId).map(a=>a.session_id));
@@ -85,6 +88,7 @@ export default function DashboardV16({
       </button>
     </section>}
 
+    <LeagueHomePreview onBrowse={onLeagues} onOpen={onOpenLeague}/>
     <section className="mm-home-statgrid" aria-label="Resumo pessoal">
       <button type="button" onClick={onEvents}>
         <UiIcon name="calendar" size={21}/>
