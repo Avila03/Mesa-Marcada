@@ -45,6 +45,8 @@ try{
     "/eventos/"+eventId+"/resumo","/mesas","/mesas/poker","/mesas/blackjack",
     "/ranking","/perfil","/administracao"
   ])await verify(path,200);
+  for(const path of ["/ligas","/ligas/"+eventId,"/ligas/"+eventId+"/gerenciar",
+    "/ligas/convite/"+"a".repeat(64)])await verify(path,200);
   const manifest=await verify("/manifest.webmanifest",200);
   const manifestJson=await manifest.json();
   assert.equal(manifestJson.name,"Mesa Marcada");
