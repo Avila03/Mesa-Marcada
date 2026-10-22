@@ -7,6 +7,12 @@ export function readClubRoute(pathname:string,search=""):ClubLocation{
  const query=new URLSearchParams(search);
  const result:ClubLocation={page:"inicio",selectedId:"",detailTab:"visao",gameView:"poker",gameTab:"eventos"};
  const parts=path.split("/").filter(Boolean);
+ // Convites antigos continuam funcionando sem depender da query ficar
+ // intacta durante a sincronização de rotas no navegador.
+ if(path==="/painel"&&isUuid(query.get("evento")||"")){
+   result.page="detalhe";result.selectedId=query.get("evento")!;
+   return result;
+ }
  if(parts[0]==="eventos"&&parts[1]&&isUuid(parts[1])){
    result.page="detalhe";result.selectedId=parts[1];
    if(parts[2]==="ao-vivo")result.detailTab="ao-vivo";
