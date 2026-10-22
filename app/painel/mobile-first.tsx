@@ -504,7 +504,7 @@ export default function PainelPage(){
     try{
       const {error:startError}=await db.rpc("start_live_event",{p_event_id:eventId});
       if(startError)throw startError;
-      await reload();
+      await Promise.all([refreshScope("chips"),refreshScope("catalog")]);
       setDetailTab("ao-vivo");setLiveSubtab("compra");
       setMessage("Evento ao Vivo iniciado! Os registros da mesa aparecem na linha do tempo.");
     }catch(e){setError(errText(e));}
@@ -521,19 +521,24 @@ export default function PainelPage(){
         ?await db.from("sessions").update({status:"finished"}).eq("id",eventId)
         :await db.rpc("admin_manage_event",{p_event_id:eventId,p_action:"finish"});
       if(finishError)throw finishError;
-      await reload();
+      await Promise.all([refreshScope("chips"),refreshScope("catalog")]);
       setDetailTab("resumo-evento");
       setMessage("Partida encerrada! Resumo da noite disponível.");
       window.scrollTo({top:0,behavior:"auto"});
     }catch(e){setError(errText(e));}finally{setWorking(false);}
   }
 
-  async function act(fn:(db:SupabaseClient,id:string)=>Promise<void>,success:string){
+  async function act(fn:(db:SupabaseClient,id:string)=>Promise<void>,success:string,
+                     scope?:UpdateScope|UpdateScope[]){
     const db=getSupabase();
     if(!db||!user)return;
     setWorking(true);setMessage("");setError("");
-    try{await fn(db,user.id);await reload();setMessage(success);}
-    catch(e){setError(errText(e));}
+    try{
+      await fn(db,user.id);
+      if(scope)await Promise.all((Array.isArray(scope)?scope:[scope]).map(item=>refreshScope(item)));
+      else await reload();
+      setMessage(success);
+    }catch(e){setError(errText(e));}
     finally{setWorking(false);}
   }
 
@@ -664,7 +669,7 @@ export default function PainelPage(){
         p_event_id:selected.id,p_quantities:quantities,p_user_id:organizer||isAdmin?(purchaseFor||attendances.find(a=>a.session_id===selected.id)?.user_id||user.id):user.id
       });
       if(purchaseError)throw purchaseError;
-      await reload();
+      await refreshScope("chips");
       setMessage("Compra registrada! Quantidades, pontos e valor calculados pelo Supabase.");
       return true;
     }catch(e){setError(errText(e));return false;}
@@ -718,14 +723,14 @@ export default function PainelPage(){
       }).select("id").single();
       if(eventError)throw eventError;
       setModal(null);openEvent(data.id,"visao");
-    },"Evento criado! Seus amigos já podem confirmar presença.");
+    },"Evento criado! Escolham uma cadeira para participar.");
   }
   async function chooseSeat(seatNo:number|null){
     if(!selected)return;
     await act(async db=>{
       const {error:seatError}=await db.rpc("choose_table_seat",{p_event_id:selected.id,p_seat_no:seatNo});
       if(seatError)throw seatError;
-    },seatNo===null?"Você saiu da mesa.":seatNo===0?"Você assumiu o crupiê e entrou no evento.":"Você entrou no evento! Assento reservado.");
+    },seatNo===null?"Você saiu da mesa.":seatNo===0?"Você assumiu o crupiê e entrou no evento.":"Você entrou no evento! Assento reservado.",["presence","catalog"]);
   }
 
   async function createPoll(e:FormEvent<HTMLFormElement>){
@@ -740,7 +745,7 @@ export default function PainelPage(){
       const {error:choiceError}=await db.from("session_poll_options").insert(labels.map((label,position)=>({poll_id:data.id,label,position})));
       if(choiceError)throw new Error("A enquete foi criada, mas faltou cadastrar as opções: "+choiceError.message);
       setPollQuestion("");
-    },"Enquete criada!");
+    },"Enquete criada!","polls");
   }
   const visibleEvents=agendaEvents.filter(e=>eventFilter==="todos"||
     (eventFilter==="agendados"?e.status==="scheduled":e.status!=="scheduled"));
@@ -1120,26 +1125,26 @@ export default function PainelPage(){
             onJoin={(expenseId,join)=>void act(async(db)=>{
               const {error:splitError}=await db.rpc("set_expense_split_membership",{p_expense_id:expenseId,p_join:join});
               if(splitError)throw splitError;
-            },join?"Você entrou no racha.":"Você saiu do racha.")}
+            },join?"Você entrou no racha.":"Você saiu do racha.","expenses")}
 
             onToggleOpen={(expenseId,open)=>void act(async(db)=>{
               const {error:splitError}=await db.rpc("set_expense_split_open",{p_expense_id:expenseId,p_open:open});
               if(splitError)throw splitError;
-            },open?"Racha reaberto.":"Racha fechado.")}
+            },open?"Racha reaberto.":"Racha fechado.","expenses")}
             onDelete={expenseId=>{
               if(!window.confirm("Excluir esta despesa? O racha e as dívidas calculadas deixarão de existir."))return;
               void act(async(db,id)=>{
                 const {error:deleteError}=await db.from("session_expenses").delete()
                   .eq("id",expenseId).eq("created_by",id);
                 if(deleteError)throw deleteError;
-              },"Gasto e racha excluídos.");
+              },"Gasto e racha excluídos.","expenses");
             }}
             createForm={showAddExpense?<section className="panel">
                 <h2>Adicionar despesa</h2><p style={{margin:"9px 0 16px"}}>Comidas, bebidas e materiais da noite.</p>
                 <form className="mm-form-stack" onSubmit={e=>{e.preventDefault();void act(async(db,id)=>{
                   const {error:expenseError}=await db.from("session_expenses").insert({session_id:selected.id,created_by:id,paid_by:organizer&&guests.some(g=>g.user_id===expensePayer)?expensePayer:id,label:expenseName.trim(),category:expenseCategory,amount_brl:Number(expenseAmount)});
                   if(expenseError)throw expenseError;setExpenseName("");setExpenseAmount("");
-                },"Despesa registrada!")}}>
+                },"Despesa registrada!","expenses")}}>
                   <label className="mm-field">Descrição<input minLength={2} required value={expenseName} onChange={e=>setExpenseName(e.target.value)} placeholder="Pizza e bebidas"/></label>
                   <div className="mm-form-grid">
                     <label className="mm-field">Valor (R$)<input type="number" min="0.01" step="0.01" required value={expenseAmount} onChange={e=>setExpenseAmount(e.target.value)}/></label>
@@ -1211,7 +1216,7 @@ export default function PainelPage(){
                     const {error:e}=await db.rpc("record_chip_cashout",{p_event_id:selected.id,p_user_id:cashoutTarget,p_final_brl:finalValue});
                     if(e)throw e;
                     setCashoutDraft("");
-                  },"Valor final em reais registrado!")}>Salvar valor final</button>
+                  },"Valor final em reais registrado!","chips")}>Salvar valor final</button>
                 {cashoutTarget&&eventCashouts.some(c=>c.user_id===cashoutTarget)&&
                   <p className="mm-formfoot">Valor salvo para {nameFor(cashoutTarget)}: <strong>{money(Number(eventCashouts.find(c=>c.user_id===cashoutTarget)?.final_brl||0))}</strong>. Você pode corrigir esse valor até encerrar o evento.</p>}
                 {eventCashouts.length>0&&<p className="mm-formfoot">A conferência financeira começou: novas compras ficam bloqueadas para evitar diferenças no caixa.</p>}
