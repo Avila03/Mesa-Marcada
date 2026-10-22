@@ -249,7 +249,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
      current?.description||"Encontros, rankings e participantes em um só lugar."}</p>
    </div>
    <div className="mm-league-header-actions">
-   {mode==="list"?<button className="btn gold" onClick={()=>{setName("");setDescription("");setRules("");setVisibility("public");setCreate(true)}}><UiIcon name="plus" size={17}/> Criar liga</button>:
+   {mode==="list"?<><a className="btn" href="/brasoes/demo">Prévia dos brasões Premium</a><button className="btn gold" onClick={()=>{setName("");setDescription("");setRules("");setVisibility("public");setCreate(true)}}><UiIcon name="plus" size={17}/> Criar liga</button></>:
     <button className="btn" onClick={mode==="manage"?()=>onOpenLeague(leagueId):onBack}>← Voltar</button>}
    </div>
   </header>
