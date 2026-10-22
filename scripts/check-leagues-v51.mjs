@@ -50,3 +50,26 @@ console.log("✓ Mesa Marcada 5.1: organizer role, inbox, owner push, preview an
 const sw=read("public/sw.js");
 assert.ok(sw.includes("ligas\\/[0-9a-f-]{36}\\/gerenciar"),
  "Push notification must link to league management in installed PWA");
+
+
+// Regression for non-admin event creation with INSERT ... RETURNING.
+// The sessions SELECT policy must not query sessions by id from a
+// SECURITY DEFINER function; the INSERT snapshot cannot see that new row.
+const sessionRls=read("supabase/migrations/20261022193000_fix_session_insert_returning_policy.sql");
+const corrective=read("supabase/migrations/20261022194000_fix_session_invite_rls_recursion.sql");
+for(const candidate of [sessionRls,corrective]){
+ for(const check of [
+  "CREATE OR REPLACE FUNCTION app_private.is_my_event_invite",
+  "SECURITY DEFINER",
+  "DROP POLICY IF EXISTS sessions_select_authorized",
+  "CREATE POLICY sessions_select_authorized",
+  "app_private.is_event_hidden(id)",
+  "app_private.is_league_member(league_id)",
+  "app_private.is_league_owner(league_id)",
+  "app_private.is_my_event_invite(id)",
+  "TO authenticated"
+ ])assert.ok(candidate.includes(check),"Event insert/visibility RLS missing "+check);
+ assert.ok(!candidate.includes("app_private.may_view_event(id)"),"Recursive session SELECT breaks INSERT RETURNING");
+ assert.ok(!candidate.includes("DISABLE ROW LEVEL SECURITY"),"Never turn off RLS");
+}
+console.log("✓ Event RLS: secure INSERT RETURNING for non-admin league owners");
