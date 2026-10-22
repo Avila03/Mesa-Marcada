@@ -146,3 +146,32 @@ for(const guard of [
 ]) assert.ok(panel.includes(guard),"Ocultação de eventos: "+guard);
 assert.ok(panel.includes("events={events} profiles={profiles}"),"Admin deve poder restaurar eventos excluídos");
 console.log("✓ v2.3: excluídos somente na administração, com restauração preservada");
+
+const routeFile=read("lib/app-routes.ts");
+const realtimeHook=read("app/painel/use-club-realtime.ts");
+const realtimeSql=read("supabase/migrations/20261022070000_realtime_event_sync.sql");
+const appLayout=read("app/(app)/layout.tsx");
+const login=read("app/login/page.tsx");
+for(const expected of ["/eventos/","/ao-vivo","/resumo","/mesas/","/ranking","/perfil","/administracao"]){
+ assert.ok(routeFile.includes(expected),"Missing deep link mapping: "+expected);
+}
+for(const pageFile of ["painel","eventos","eventos/[id]","eventos/[id]/ao-vivo",
+ "eventos/[id]/resumo","mesas","mesas/[game]","ranking","perfil","administracao"]){
+ assert.ok(read("app/(app)/"+pageFile+"/page.tsx").includes("RoutePlaceholder"),
+  "Missing route file: "+pageFile);
+}
+assert.ok(appLayout.includes("<PainelPage/>"),"Club state should survive in shared layout");
+for(const expected of ["popstate","window.history.pushState","clubHref(",
+ "readClubRoute(","const lean=mode===\"list\"","fullDataRequested",
+ "const refreshScope=useCallback","useClubRealtime(","mm-sync-pill"]){
+ assert.ok(panel.includes(expected),"Routing or performance regression: "+expected);
+}
+for(const scope of ["catalog","presence","polls","expenses","chips","profiles"]){
+ assert.ok(realtimeHook.includes(scope),"Realtime scope missing: "+scope);
+}
+assert.ok(realtimeHook.includes("postgres_changes"),"Websocket database subscription missing");
+assert.ok(realtimeHook.includes("45000"),"Reconnect fallback missing");
+assert.ok(realtimeSql.includes("ALTER PUBLICATION supabase_realtime ADD TABLE"),"Publication update missing");
+assert.ok(!realtimeSql.includes("DISABLE ROW LEVEL SECURITY"),"Never disable RLS");
+assert.ok(login.includes("validPostLoginRoute"),"Safe deep-link login return missing");
+console.log("✓ v3.0: distinct routes, persistent layout, scoped data and realtime updates");
