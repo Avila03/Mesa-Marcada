@@ -420,6 +420,12 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
       </div>}
     </div>)}
    </section>
+   <section className="panel mm-league-identity-panel">
+    <div className="panelhead"><h2>Identidade visual</h2><span className="tag">Premium</span></div>
+    <div className="mm-league-identity-summary"><CrestMark value={current.emblem} className="mm-league-identity-thumb"/>
+     <div><strong>Brasão da liga</strong><p>Personalize símbolo, formato, cor, sigla e ano.</p>
+      <button className="btn gold" type="button" onClick={openIdentity}>Editar brasão</button></div></div>
+   </section>
    <section className="panel">
     <div className="panelhead"><h2>Configurações</h2></div>
     <p className="mm-formfoot">Altere o nome, visibilidade, apresentação e regras da sua liga.</p>
@@ -428,10 +434,11 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
   </>}
   {mode==="manage"&&current&&!owner&&<p className="mm-message error">Somente o dono pode gerenciar esta liga.</p>}
   {create&&<div className="mm-league-overlay" role="presentation" onClick={e=>{if(e.target===e.currentTarget)setCreate(false)}}>
-   <form className="mm-league-modal" role="dialog" aria-modal="true" aria-label={mode==="manage"?"Editar liga":"Criar liga"}
-     onSubmit={e=>{e.preventDefault();void(mode==="manage"?update():saveNew())}}>
-    <h2>{mode==="manage"?"Editar liga":"Criar uma liga"}</h2>
-    <p>Seu grupo terá participantes, eventos e rankings próprios.</p>
+   <form className={"mm-league-modal "+(createStep==="emblem"&&mode!=="manage"?"mm-league-modal-wide":"")} role="dialog" aria-modal="true" aria-label={mode==="manage"?"Editar liga":"Criar liga"}
+     onSubmit={e=>{e.preventDefault();if(mode==="manage")void update();else if(createStep==="info")setCreateStep("emblem");else if(/^[A-Z0-9]{1,4}$/.test(emblem.initials)&&(!emblem.withYear||/^\d{4}$/.test(emblem.year)))void saveNew();else setError("Informe uma sigla e ano válidos para o brasão.");}}>
+    <h2>{mode==="manage"?"Editar liga":createStep==="info"?"Criar uma liga":"Identidade da sua liga"}</h2>
+    <p>{mode==="manage"?"Atualize as informações da comunidade.":createStep==="info"?"Etapa 1 de 2 · Informações da Liga":"Etapa 2 de 2 · Personalize o brasão Premium antes de criar a Liga."}</p>
+    {(mode==="manage"||createStep==="info")&&<>
     <label>Nome da liga<input required minLength={3} maxLength={65} value={name} onChange={e=>setName(e.target.value)} placeholder="Ex.: Liga dos Coringas"/></label>
     <label>Descrição<textarea maxLength={500} rows={3} value={description} onChange={e=>setDescription(e.target.value)} placeholder="Conte sobre a sua comunidade"/></label>
     <label>Privacidade<select value={visibility} onChange={e=>setVisibility(e.target.value as "public"|"private")}>
@@ -439,11 +446,27 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
      <option value="private">Privada · encontrada somente por convite</option>
     </select></label>
     <label>Regras (opcional)<textarea maxLength={2500} rows={4} value={rules} onChange={e=>setRules(e.target.value)} placeholder="Regras do grupo, horários, combinados..."/></label>
+    </>}
+    {mode!=="manage"&&createStep==="emblem"&&<CrestCustomizer value={emblem} onChange={setEmblem}/>}
+    {error&&<p className="mm-message error" role="alert">{error}</p>}
     <div className="mm-league-modal-actions">
+     {mode!=="manage"&&createStep==="emblem"&&<button className="btn" type="button" onClick={()=>setCreateStep("info")}>← Voltar</button>}
      <button className="btn" type="button" onClick={()=>setCreate(false)}>Cancelar</button>
-     <button className="btn gold" disabled={working} type="submit">{working?"Salvando...":mode==="manage"?"Salvar mudanças":"Criar liga"}</button>
+     <button className="btn gold" disabled={working} type="submit">{working?"Salvando...":mode==="manage"?"Salvar mudanças":createStep==="info"?"Personalizar brasão →":"Criar liga"}</button>
     </div>
    </form>
+  </div>}
+  {identityOpen&&current&&owner&&<div className="mm-league-overlay" role="presentation"
+    onClick={e=>{if(e.target===e.currentTarget)setIdentityOpen(false)}}>
+   <div className="mm-league-modal mm-league-modal-wide" role="dialog" aria-modal="true" aria-label="Editar brasão da Liga">
+    <h2>Identidade visual</h2><p>Personalize o brasão Premium desta Liga.</p>
+    <CrestCustomizer value={emblem} onChange={setEmblem}/>
+    {error&&<p className="mm-message error" role="alert">{error}</p>}
+    <div className="mm-league-modal-actions">
+     <button className="btn" type="button" onClick={()=>setIdentityOpen(false)}>Cancelar</button>
+     <button className="btn gold" type="button" disabled={working} onClick={()=>void saveIdentity()}>{working?"Salvando...":"Salvar brasão"}</button>
+    </div>
+   </div>
   </div>}
  </div>;
 }
