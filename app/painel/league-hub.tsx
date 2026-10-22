@@ -1,6 +1,9 @@
 "use client";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {getSupabase} from "@/lib/supabase/browser";
+import type {Attendance} from "@/lib/mesa-types";
+import LeagueNotifications from "./league-notifications";
+import "./league-notifications.css";
 import type {Event,Profile,Room,Game} from "@/lib/mesa-types";
 import UiIcon from "./ui-icon";
 import "./league-hub.css";
@@ -8,9 +11,9 @@ import "./league-hub.css";
 export type League={
  id:string;owner_id:string;name:string;description:string;rules:string;
  visibility:"public"|"private";created_at:string;member_count:number;event_count:number;
- my_role:"owner"|"member"|null;request_status:"pending"|"approved"|"rejected"|null;
+ my_role:"owner"|"organizer"|"member"|null;request_status:"pending"|"approved"|"rejected"|null;
 };
-type Member={league_id:string;user_id:string;role:"owner"|"member";joined_at:string};
+type Member={league_id:string;user_id:string;role:"owner"|"organizer"|"member";joined_at:string};
 type Request={league_id:string;user_id:string;status:string;created_at:string};
 type LeagueRank={user_id:string;game:Game;played:number;net_chips:number};
 const errorText=(error:unknown)=>error instanceof Error?error.message:String(error);
@@ -33,7 +36,7 @@ function LeagueCard({item,onClick}:{item:League;onClick:()=>void}){
    </span>
   </span>
   <span className="mm-league-card-action">
-   {item.my_role==="owner"?"Dono":item.my_role==="member"?"Membro":
+   {item.my_role==="owner"?"Dono":item.my_role==="organizer"?"Organizador":item.my_role==="member"?"Membro":
    item.request_status==="pending"?"Pendente":"Conhecer"} <UiIcon name="arrow-right" size={16}/>
   </span>
  </button>;
@@ -67,12 +70,12 @@ export function LeagueHomePreview({onBrowse,onOpen}:{onBrowse:()=>void;onOpen:(i
 }
 type Props={
  leagueId:string;mode:"list"|"detail"|"manage";userId:string;
- events:Event[];profiles:Profile[];rooms:Room[];
+ events:Event[];profiles:Profile[];rooms:Room[];attendances:Attendance[];
  onOpenLeague:(id:string,manage?:boolean)=>void;
  onBack:()=>void;onOpenEvent:(id:string)=>void;onCreateEvent:(id:string)=>void;
  onMembershipChanged?:()=>void;
 };
-export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,
+export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,attendances,
  onOpenLeague,onBack,onOpenEvent,onCreateEvent,onMembershipChanged}:Props){
  const changed=useRef(onMembershipChanged);
  useEffect(()=>{changed.current=onMembershipChanged},[onMembershipChanged]);
@@ -93,6 +96,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,
  const [game,setGame]=useState<Game>("poker");
  const current=leagues.find(l=>l.id===leagueId);
  const owner=current?.owner_id===userId;
+ const canOrganize=owner||current?.my_role==="organizer";
  const joined=Boolean(current?.my_role);
  const refresh=useCallback(async()=>{
   const db=getSupabase();if(!db)return;
@@ -153,12 +157,23 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,
    if(typeof data==="string")onOpenLeague(data);
   },"Liga criada! Agora você pode organizar eventos e gerenciar membros.");
  }
+ async function pushOwner(id:string){
+  try{
+   const db=getSupabase();if(!db)return;
+   const {data:{session}}=await db.auth.getSession();
+   if(!session?.access_token)return;
+   await fetch("/api/push/league-request",{method:"POST",
+    headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},
+    body:JSON.stringify({leagueId:id})});
+  }catch{/* In-app notice is durable; push may be unavailable. */}
+ }
  async function apply(){
   if(!current)return;
   await run(async()=>{
    const db=getSupabase();if(!db)throw new Error("Sem conexão");
    const {error:err}=await db.rpc("request_league_join",{p_league_id:current.id,p_token:null});
    if(err)throw err;
+   void pushOwner(current.id);
   },"Pedido enviado! O dono da liga precisa aprovar sua entrada.");
  }
  async function decide(id:string,approve:boolean){
@@ -169,6 +184,15 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,
    if(err)throw err;
    if(approve)changed.current?.();
   },approve?"Participante aprovado.":"Solicitação recusada.");
+ }
+ async function setRole(id:string,role:"organizer"|"member"){
+  if(!current)return;
+  await run(async()=>{
+   const db=getSupabase();if(!db)throw new Error("Sem conexão");
+   const {error:err}=await db.rpc("set_league_member_role",{
+    p_league_id:current.id,p_user_id:id,p_role:role});
+   if(err)throw err;
+  },role==="organizer"?"Organizador definido.":"Permissões de membro restauradas.");
  }
  async function remove(id:string){
   if(!current||!window.confirm("Remover este participante da liga?"))return;
@@ -212,6 +236,11 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,
  const leagueEvents=events.filter(ev=>ev.league_id===leagueId)
   .sort((a,b)=>new Date(b.starts_at).getTime()-new Date(a.starts_at).getTime());
  const rankings=rank.filter(r=>r.game===game).sort((a,b)=>Number(b.net_chips)-Number(a.net_chips));
+ const nextEvent=leagueEvents.filter(e=>e.status==="scheduled"&&new Date(e.starts_at).getTime()>Date.now())
+  .sort((a,b)=>new Date(a.starts_at).getTime()-new Date(b.starts_at).getTime())[0];
+ const lastEvent=leagueEvents.find(e=>e.status==="finished");
+ const attending=nextEvent?attendances.filter(a=>a.session_id===nextEvent.id).length:0;
+ const leaders=rankings.slice(0,3);
  return <div className="mm-leagues">
   <header className="mm-leagues-header">
    <div><span className="mm-home-kicker">COMUNIDADES · MESA MARCADA</span>
@@ -264,11 +293,11 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,
     <div className="mm-league-stats">
       <div><small>Membros</small><strong>{current.member_count}</strong></div>
       <div><small>Eventos</small><strong>{current.event_count}</strong></div>
-      <div><small>Seu papel</small><strong>{owner?"Dono":"Membro"}</strong></div>
+      <div><small>Seu papel</small><strong>{owner?"Dono":canOrganize?"Organizador":"Membro"}</strong></div>
     </div>
     <section className="panel">
       <div className="panelhead"><h2>Eventos da liga</h2>
-       {owner&&<button className="btn gold" onClick={()=>onCreateEvent(current.id)}>+ Criar evento</button>}</div>
+       {canOrganize&&<button className="btn gold" onClick={()=>onCreateEvent(current.id)}>+ Criar evento</button>}</div>
       {leagueEvents.length?<div className="mm-league-event-list">
        {leagueEvents.slice(0,12).map(ev=><button key={ev.id} onClick={()=>onOpenEvent(ev.id)}>
         <span><strong>{ev.title}</strong><small>{new Date(ev.starts_at).toLocaleString("pt-BR",{dateStyle:"medium",timeStyle:"short"})} · {rooms.find(r=>r.id===ev.room_id)?.name||"Mesa"}</small></span>
@@ -290,7 +319,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,
       <div className="panelhead"><h2>Participantes</h2><span className="tag">{members.length}</span></div>
       <div className="mm-league-member-list">{members.map(m=><div key={m.user_id}>
        <span>♠</span><strong>{leagueName(m.user_id,profiles)}</strong>
-       <small>{m.role==="owner"?"Dono":"Membro"}</small>
+       <small>{m.role==="owner"?"Dono":m.role==="organizer"?"Organizador":"Membro"}</small>
       </div>)}</div>
     </section>
     <div className="mm-league-bottom-actions">
@@ -322,8 +351,13 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,
    <section className="panel">
     <div className="panelhead"><h2>Gerenciar membros</h2><span className="tag">{members.length}</span></div>
     {members.map(m=><div className="mm-league-request" key={m.user_id}>
-     <strong>{leagueName(m.user_id,profiles)}</strong><small>{m.role==="owner"?"Dono":"Membro"}</small>
-     {m.role!=="owner"&&<button className="btn" disabled={working} onClick={()=>void remove(m.user_id)}>Remover</button>}
+     <strong>{leagueName(m.user_id,profiles)}</strong><small>{m.role==="owner"?"Dono":m.role==="organizer"?"Organizador":"Membro"}</small>
+     {m.role!=="owner"&&<div className="mm-league-member-actions">
+       <button className="btn" disabled={working} onClick={()=>void setRole(m.user_id,
+        m.role==="organizer"?"member":"organizer")}>
+        {m.role==="organizer"?"Retirar cargo":"Promover a Organizador"}</button>
+       <button className="btn" disabled={working} onClick={()=>void remove(m.user_id)}>Remover</button>
+      </div>}
     </div>)}
    </section>
    <section className="panel">
