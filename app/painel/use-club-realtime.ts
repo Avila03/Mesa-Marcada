@@ -2,7 +2,7 @@
 import {useEffect,useRef,useState} from "react";
 import {getSupabase} from "@/lib/supabase/browser";
 
-export type UpdateScope="catalog"|"presence"|"polls"|"expenses"|"chips"|"profiles";
+export type UpdateScope="catalog"|"presence"|"polls"|"expenses"|"chips"|"profiles"|"timeline";
 export type ConnectionState="connecting"|"connected"|"reconnecting"|"offline";
 
 // As políticas RLS continuam sendo aplicadas pelo Supabase Realtime.
@@ -21,6 +21,7 @@ const watched:[string,UpdateScope][]=[
  ["session_chip_cashouts","chips"],
  ["session_chip_results","chips"],
  ["session_live_state","chips"],
+ ["session_live_activity","timeline"],
  ["admin_hidden_events","catalog"],
  ["profiles","profiles"]
 ];
@@ -63,7 +64,7 @@ export function useClubRealtime({
      if(document.visibilityState==="hidden"||!navigator.onLine)return;
      enqueue("catalog");
      enqueue("profiles");
-     if(eventId){for(const key of ["presence","polls","expenses","chips"] as UpdateScope[])enqueue(key);}
+     if(eventId){for(const key of ["presence","polls","expenses","chips","timeline"] as UpdateScope[])enqueue(key);}
    };
    const channel=db.channel("mm-changes-"+(eventId||"catalog"));
    for(const [table,scope] of watched){

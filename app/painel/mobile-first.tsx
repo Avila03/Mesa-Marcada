@@ -314,6 +314,13 @@ export default function PainelPage(){
       setExpenseShares(unwrap(shares) as ExpenseSplitRow[]);
       return;
     }
+    if(scope==="timeline"){
+      const result=await db.from("session_live_activity")
+        .select("id,session_id,kind,actor_id,subject_id,occurred_at")
+        .eq("session_id",selectedId).order("occurred_at",{ascending:false}).limit(100);
+      setLiveActivities(unwrap(result) as LiveActivity[]);
+      return;
+    }
     if(scope==="chips"){
       const [purchases,items,resultsRows,finals,payouts,cashouts,approvalsRows,live]=await Promise.all([
         db.from("session_chip_purchases").select("*").eq("session_id",selectedId),
