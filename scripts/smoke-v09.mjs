@@ -54,6 +54,15 @@ try{
   assert.ok(manifestJson.icons.some(x=>x.sizes==="512x512"),"Missing 512 icon");
   await verify("/icons/mesa-192.svg",200);
   await verify("/icons/mesa-512.svg",200);
+  await verify("/convite/"+"a".repeat(64),200);
+  const pushKey=await verify("/api/push/key",200);
+  assert.ok(Object.prototype.hasOwnProperty.call(await pushKey.json(),"key"));
+  const unauthorizedPush=await fetch(base+"/api/push/notify",{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({eventId,kind:"event"})
+  });
+  assert.equal(unauthorizedPush.status,401,"Push API must reject unauthenticated delivery");
+
   const serviceWorker=await verify("/sw.js",200);
   const serviceWorkerText=await serviceWorker.text();
   assert.ok(serviceWorkerText.includes('event.request')&&serviceWorkerText.includes("/offline.html"));

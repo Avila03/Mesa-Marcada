@@ -18,7 +18,7 @@ export default function PrivateInviteShare({eventId,title,canInvite,status}:Prop
  },[url]);
  async function generate(){
   const db=getSupabase();if(!db||!canInvite)return;
-  if(token&&!window.confirm("Criar outro convite desativará o link anterior. Continuar?"))return;
+  if(!window.confirm("Se já existir um convite, gerar novo link invalidará o anterior para novos convidados. Continuar?"))return;
   setWorking(true);setMessage("");setError("");
   try{
    const {data,error:rpcError}=await db.rpc("create_event_invite",{p_event_id:eventId});
@@ -43,6 +43,9 @@ export default function PrivateInviteShare({eventId,title,canInvite,status}:Prop
    <strong>Evento privado · somente convidados</strong>
    <p>O link permite que cada convidado entre com a própria conta e escolha uma cadeira.</p>
   </div></div>
+  {canInvite&&status==="scheduled"&&<p className="mm-formfoot">
+    O link aparece somente quando é gerado. Guarde uma cópia: gerar outro substitui o anterior.
+  </p>}
   {canInvite&&status==="scheduled"&&<div className="mm-invite-actions">
    <button type="button" className="btn gold" disabled={working} onClick={()=>void generate()}>
     {working?"Criando convite...":token?"Gerar novo convite":"Gerar link e QR Code"}

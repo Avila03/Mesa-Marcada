@@ -15,9 +15,9 @@ export async function POST(req:NextRequest){
   const serverSecret=process.env.PUSH_SERVER_SECRET;
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if(!pub||!priv||!serverSecret||!url||!anon)return NextResponse.json({error:"Notificações não configuradas"},{status:503});
   const bearer=req.headers.get("authorization")||"";
   if(!/^Bearer \S+$/.test(bearer))return NextResponse.json({error:"Autenticação obrigatória"},{status:401});
+  if(!pub||!priv||!serverSecret||!url||!anon)return NextResponse.json({error:"Notificações não configuradas"},{status:503});
   const token=bearer.slice(7);
   const db=createClient(url,anon,{global:{headers:{Authorization:"Bearer "+token}},auth:{
    autoRefreshToken:false,persistSession:false,detectSessionInUrl:false
