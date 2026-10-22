@@ -15,6 +15,7 @@ import "./duo-theme.css";
 import "./event-overview.css";
 import "./connection-indicator.css";
 import SiteLogo from "./site-logo";
+import EventChangeNotices from "./event-change-notices";
 import {prepareProfilePhoto} from "./photo-utils";
 import {ExpenseSplitsPanel,MySplitsSummary} from "./expense-splits";
 import type {ExpenseSplitRow,MyExpenseSplitRow,ExpenseSettlement} from "./expense-splits";
@@ -900,7 +901,9 @@ export default function PainelPage(){
       {error&&<p className="mm-message error" role="alert" style={{marginBottom:16}}>{error}</p>}
       {message&&<p className="mm-message" role="status" style={{marginBottom:16}}>{message}</p>}
 
-      {page==="inicio"&&<DashboardV16
+      {(page==="inicio"||page==="eventos")&&<EventChangeNotices userId={user.id} onOpenEvent={id=>openEvent(id)}/>}
+
+       {page==="inicio"&&<DashboardV16
         firstName={firstName} userId={user.id} upcoming={upcoming}
         attendances={attendances} rooms={activeRooms}
         mySplits={mySplits} settlements={settlements}
