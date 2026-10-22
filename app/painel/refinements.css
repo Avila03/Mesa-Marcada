@@ -1,0 +1,23 @@
+/* Practical refinements: unobtrusive controls on smaller screens. */
+.mm-home-reconfirm-callout{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#132537;border:1px solid #37608b;border-radius:12px;padding:13px 15px;margin:12px 0 16px}
+.mm-home-reconfirm-callout>div{display:grid;gap:5px}.mm-home-reconfirm-callout strong{font-size:13px;color:#f1f5fb}.mm-home-reconfirm-callout small{font-size:11px;color:#b9cde1}
+.mm-home-reconfirm-callout button{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px;background:#258bff;border:0;border-radius:9px;color:white;font-size:11px;font-weight:750;white-space:nowrap;cursor:pointer}
+.mm-league-list-switch{display:flex;gap:6px;border:1px solid #283a50;background:#0e1824;border-radius:10px;padding:5px;margin-bottom:14px}
+.mm-league-list-switch>button{flex:1;min-height:42px;border:1px solid transparent;background:transparent;color:#a9bed4;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer}
+.mm-league-list-switch>button.active{background:#173858;border-color:#258bff;color:#fff}
+.mm-modal .mm-field input,.mm-modal .mm-field select,.mm-modal .mm-field textarea{min-height:43px;min-width:0}
+.mm-leagues button,.mm-notif-center button,.mm-reconfirm button{touch-action:manipulation}
+@media(max-width:600px){
+ .mm-home-reconfirm-callout{flex-direction:column;align-items:stretch;padding:13px}
+ .mm-home-reconfirm-callout button{min-height:44px}
+ .mm-league-header-actions{width:100%;display:flex}
+ .mm-league-header-actions>.btn{min-height:44px;flex:1}
+ .mm-league-modal{max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain}
+ .mm-home-v16{min-width:0}
+ .mm-league-grid,.mm-league-overview{min-width:0}
+ .mm-modal .mm-form-actions{padding-bottom:max(4px,env(safe-area-inset-bottom))}
+}
+@media(max-width:380px){
+ .mm-event-meta{flex-wrap:wrap}
+ .mm-league-overview-head{gap:8px}
+}
