@@ -17,6 +17,7 @@ import "./connection-indicator.css";
 import SiteLogo from "./site-logo";
 import NotificationCenter from "./notification-center";
 import EventReconfirmation from "./event-reconfirmation";
+import "./refinements.css";
 import {prepareProfilePhoto} from "./photo-utils";
 import {ExpenseSplitsPanel,MySplitsSummary} from "./expense-splits";
 import type {ExpenseSplitRow,MyExpenseSplitRow,ExpenseSettlement} from "./expense-splits";
@@ -592,12 +593,13 @@ export default function PainelPage(){
     .sort((a,b)=>new Date(a.starts_at).getTime()-new Date(b.starts_at).getTime());
   const myUpcoming=upcoming.filter(e=>attendances.some(a=>a.session_id===e.id&&a.user_id===user?.id));
   useEffect(()=>{
-    if(!user)return;
+    const uid=user?.id;
+    if(!uid)return;
     const db=getSupabase();if(!db)return;
     let alive=true;
     async function refreshPending(){
       const {data}=await db.from("event_reconfirmations")
-        .select("event_id").eq("user_id",user.id).eq("status","pending")
+        .select("event_id").eq("user_id",uid).eq("status","pending")
         .order("changed_at",{ascending:false}).limit(30);
       if(alive)setPendingReconfirmEventId((data||[]).find(r=>upcoming.some(ev=>ev.id===r.event_id))?.event_id);
     }
