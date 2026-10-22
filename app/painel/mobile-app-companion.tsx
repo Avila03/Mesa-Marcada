@@ -33,6 +33,12 @@ export default function MobileAppCompanion({onUpdate,visible}:{onUpdate:()=>Prom
     setInstalled(installed());
     setIphone(isIphone());
     setNotifyEnabled(localStorage.getItem("mm-realtime-alerts")==="yes");
+    if("serviceWorker" in navigator){
+      void navigator.serviceWorker.ready.then(async(reg)=>{
+        const subscription=await reg.pushManager?.getSubscription();
+        setNotifyEnabled(Boolean(subscription));
+      }).catch(()=>{});
+    }
     if("serviceWorker" in navigator&&window.isSecureContext){
       void navigator.serviceWorker.register("/sw.js").catch(()=>{/* PWA remains optional */});
     }
@@ -95,27 +101,58 @@ export default function MobileAppCompanion({onUpdate,visible}:{onUpdate:()=>Prom
     if(result.outcome==="accepted")setNotice("Instalação iniciada. Confira sua tela inicial.");
     setInstallPrompt(null);
   }
+  // O pedido de permissão ocorre no clique do usuário, exigido pelo Safari.
   async function enableAlerts(){
-    if(!("Notification" in window)){
-      localStorage.setItem("mm-realtime-alerts","yes");
-      setNotifyEnabled(true);
-      setNotice("Avisos dentro do aplicativo ativados. Seu aparelho não permite avisos do sistema neste navegador.");
+    if(!("Notification" in window)||!("serviceWorker" in navigator)||!("PushManager" in window)){
+      setNotice("Este navegador não oferece Web Push. No iPhone, instale o Mesa Marcada pela Tela de Início.");
       return;
     }
-    let allowed=Notification.permission==="granted";
-    if(Notification.permission==="default"){
-      try{allowed=(await Notification.requestPermission())==="granted"}
-      catch{allowed=false}
+    if(isIphone()&&!installed()){
+      setNotice("No iPhone, primeiro use Compartilhar → Adicionar à Tela de Início. Abra o aplicativo instalado e ative as notificações.");
+      return;
     }
-    localStorage.setItem("mm-realtime-alerts","yes");
-    setNotifyEnabled(true);
-    setNotice(allowed?"Avisos ativados enquanto o Mesa Marcada estiver aberto.":
-      "Avisos visuais ativados no site. Permissão de notificações do aparelho indisponível.");
+    try{
+      const permission=await Notification.requestPermission();
+      if(permission!=="granted"){setNotice("Permissão negada. Você pode alterá-la nas configurações do aparelho.");return;}
+      const db=getSupabase();if(!db)throw new Error("Conexão indisponível");
+      const {data:{user}}=await db.auth.getUser();
+      if(!user)throw new Error("Entre na sua conta para receber notificações");
+      const response=await fetch("/api/push/key",{cache:"no-store"});
+      const {key}=await response.json();
+      if(!key)throw new Error("As notificações ainda não estão configuradas no servidor");
+      const registration=await navigator.serviceWorker.ready;
+      const base64=key.replace(/-/g,"+").replace(/_/g,"/");
+      const binary=atob(base64.padEnd(Math.ceil(base64.length/4)*4,"="));
+      const bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));
+      const existing=await registration.pushManager.getSubscription();
+      const subscription=existing||await registration.pushManager.subscribe({
+        userVisibleOnly:true,applicationServerKey:bytes
+      });
+      const details=subscription.toJSON();
+      if(!details.endpoint||!details.keys?.p256dh||!details.keys?.auth)
+        throw new Error("O navegador não forneceu as chaves para as notificações");
+      const {error}=await db.from("push_subscriptions").upsert({
+        endpoint:details.endpoint,user_id:user.id,p256dh:details.keys.p256dh,auth_key:details.keys.auth
+      },{onConflict:"endpoint"});
+      if(error)throw error;
+      setNotifyEnabled(true);
+      localStorage.setItem("mm-realtime-alerts","yes");
+      setNotice("Notificações ativadas! Você receberá avisos mesmo com o app fechado, quando o dispositivo permitir.");
+    }catch(e){setNotice(e instanceof Error?e.message:"Não foi possível ativar as notificações");}
   }
-  function disableAlerts(){
-    localStorage.removeItem("mm-realtime-alerts");
-    setNotifyEnabled(false);
-    setNotice("Avisos opcionais desativados.");
+  async function disableAlerts(){
+    try{
+      const registration=await navigator.serviceWorker.ready;
+      const sub=await registration.pushManager.getSubscription();
+      if(sub){
+        const db=getSupabase();
+        if(db){const {error}=await db.from("push_subscriptions").delete().eq("endpoint",sub.endpoint);
+          if(error)throw error;}
+        await sub.unsubscribe();
+      }
+      localStorage.removeItem("mm-realtime-alerts");setNotifyEnabled(false);
+      setNotice("Notificações deste aparelho desativadas.");
+    }catch(e){setNotice(e instanceof Error?e.message:"Não foi possível desativar as notificações");}
   }
   if(!visible)return alerts.length>0?<div className="mm-app-live-alerts mm-app-live-compact" role="status">
     <strong>Agenda atualizada</strong>
@@ -140,7 +177,7 @@ export default function MobileAppCompanion({onUpdate,visible}:{onUpdate:()=>Prom
       )}
       {appInstalled&&<span className="mm-v09-good mm-app-installed-status"><UiIcon name="check" size={17}/> Já instalado</span>}
       {notifyEnabled?<button className="btn" type="button" onClick={disableAlerts}>Desativar avisos</button>:
-        <button className="btn" type="button" onClick={()=>void enableAlerts()}>Ativar avisos de eventos</button>}
+        <button className="btn" type="button" onClick={()=>void enableAlerts()}>Ativar notificações push</button>}
     </div>
     {notice&&<p className="mm-app-feedback" role="status">{notice}</p>}
     {alerts.length>0&&<div className="mm-app-live-alerts" role="status">
@@ -148,6 +185,6 @@ export default function MobileAppCompanion({onUpdate,visible}:{onUpdate:()=>Prom
       {alerts.map((label,i)=><p key={i}>{label}</p>)}
       <button type="button" onClick={()=>setAlerts([])}>Dispensar</button>
     </div>}
-    <p className="mm-formfoot">Os avisos funcionam enquanto o aplicativo estiver aberto. Não são notificações push em segundo plano.</p>
+    <p className="mm-formfoot">Notificações push são opcionais. No iPhone, exigem instalar o Mesa Marcada na Tela de Início e conceder permissão.</p>
   </section>;
 }
