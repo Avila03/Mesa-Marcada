@@ -44,7 +44,7 @@ export function LeagueHomePreview({onBrowse,onOpen}:{onBrowse:()=>void;onOpen:(i
  useEffect(()=>{
   let alive=true;const db=getSupabase();
   if(!db)return;
-  void db.rpc("get_league_catalog").then(({data,error})=>{
+  void Promise.resolve(db.rpc("get_league_catalog")).then(({data,error})=>{
    if(alive&&!error)setLeagues(((data||[]) as League[]).filter(x=>x.my_role));
   }).finally(()=>{if(alive)setBusy(false)});
   return()=>{alive=false};
