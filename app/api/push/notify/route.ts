@@ -11,9 +11,10 @@ export async function POST(req:NextRequest){
  try{
   const pub=process.env.WEB_PUSH_PUBLIC_KEY;
   const priv=process.env.WEB_PUSH_PRIVATE_KEY;
+  const serverSecret=process.env.PUSH_SERVER_SECRET;
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if(!pub||!priv||!url||!anon)return NextResponse.json({error:"Notificações não configuradas"},{status:503});
+  if(!pub||!priv||!serverSecret||!url||!anon)return NextResponse.json({error:"Notificações não configuradas"},{status:503});
   const bearer=req.headers.get("authorization")||"";
   if(!/^Bearer \S+$/.test(bearer))return NextResponse.json({error:"Autenticação obrigatória"},{status:401});
   const token=bearer.slice(7);
@@ -27,7 +28,7 @@ export async function POST(req:NextRequest){
   const kind=body?.kind as keyof typeof contents;
   if(typeof id!=="string"||!/^[0-9a-f-]{36}$/i.test(id)||!Object.hasOwn(contents,kind))
    return NextResponse.json({error:"Evento ou notificação inválidos"},{status:400});
-  const {data:targets,error:rpcError}=await db.rpc("claim_event_push_targets",{p_event_id:id,p_kind:kind});
+  const {data:targets,error:rpcError}=await db.rpc("claim_event_push_targets",{p_event_id:id,p_kind:kind,p_server_secret:serverSecret});
   if(rpcError)return NextResponse.json({error:rpcError.message},{status:403});
   const content=contents[kind];
   webPush.setVapidDetails("https://mesa-marcada.vercel.app",pub,priv);
