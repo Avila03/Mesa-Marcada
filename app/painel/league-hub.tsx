@@ -290,6 +290,45 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
     {current.visibility==="private"&&<p className="mm-formfoot">Ligas privadas exigem um convite válido para solicitar entrada.</p>}
    </section>}
    {joined&&<>
+    <section className="mm-league-overview" aria-label="Painel principal da liga">
+     <header className="mm-league-overview-head">
+      <div><span className="mm-home-kicker">VISÃO GERAL</span><h2>Próxima rodada</h2></div>
+      {canOrganize&&<button className="btn gold" type="button" onClick={()=>onCreateEvent(current.id)}>
+        <UiIcon name="plus" size={16}/> Criar evento</button>}
+     </header>
+     <div className="mm-league-overview-grid">
+      <div className="mm-league-overview-event">
+       {nextEvent?<><small>{rooms.find(r=>r.id===nextEvent.room_id)?.name||"Próxima mesa"}</small>
+        <strong>{nextEvent.title}</strong>
+        <p>{new Date(nextEvent.starts_at).toLocaleString("pt-BR",{weekday:"long",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</p>
+        <span>{attending}/{nextEvent.max_participants} cadeiras ocupadas</span>
+        <button className="btn gold" onClick={()=>onOpenEvent(nextEvent.id)}>Abrir evento <UiIcon name="arrow-right" size={15}/></button>
+       </>:<><strong>Agenda livre</strong>
+        <p>{canOrganize?"Você pode marcar o próximo encontro da sua liga.":"A próxima partida será exibida aqui assim que for agendada."}</p></>}
+      </div>
+      <div className="mm-league-overview-info">
+       <div><small>Jogadores</small><strong>{current.member_count}</strong></div>
+       <div><small>Eventos realizados</small><strong>{leagueEvents.filter(e=>e.status==="finished").length}</strong></div>
+       <div><small>Pedidos pendentes</small><strong>{owner?requests.length:"—"}</strong></div>
+       {lastEvent&&<button onClick={()=>onOpenEvent(lastEvent.id)}>
+        Última noite: {lastEvent.title} <UiIcon name="arrow-right" size={14}/></button>}
+      </div>
+     </div>
+     {leaders.length>0&&<div className="mm-league-overview-leaders">
+      <div className="mm-league-overview-title">
+       <span className="mm-home-kicker">DESTAQUES DO RANKING</span>
+       <span className="mm-league-overview-switch">
+        {(["poker","blackjack"] as Game[]).map(g=><button type="button" key={g}
+          className={game===g?"active":""} onClick={()=>setGame(g)}>{g==="poker"?"Poker":"Blackjack"}</button>)}
+       </span>
+      </div>
+      <div>{leaders.map((player,i)=><div key={player.user_id}>
+       <b>{i+1}º</b><strong>{leagueName(player.user_id,profiles)}</strong>
+       <span>{Number(player.net_chips)>0?"+":""}{format(player.net_chips)} pts</span>
+      </div>)}</div>
+     </div>}
+    </section>
+    <LeagueNotifications userId={userId} onOpenLeague={onOpenLeague} onOpenEvent={onOpenEvent}/>
     <div className="mm-league-stats">
       <div><small>Membros</small><strong>{current.member_count}</strong></div>
       <div><small>Eventos</small><strong>{current.event_count}</strong></div>
