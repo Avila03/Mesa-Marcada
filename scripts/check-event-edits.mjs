@@ -19,7 +19,7 @@ for(const pattern of [
  '"editar-evento"','localDateTimeInput','openEditor','edit_event_details',
  'onSubmit={modal==="editar-evento"?editEvent:addEvent}',
  'selected.status==="scheduled"&&!selectedLive',
- 'Editar evento','Salvar alterações','EventChangeNotices'
+ 'Editar evento','Salvar alterações','NotificationCenter'
 ])assert.ok(app.includes(pattern),"Missing event edit user flow: "+pattern);
 assert.ok(api.includes('edit:{title:'),"Push edit template is missing");
 assert.ok(pushDb.includes("p_kind='edit'")&&pushDb.includes("edited_by=actor"),"Edit push must require recent authorized change");

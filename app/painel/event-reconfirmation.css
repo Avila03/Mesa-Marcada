@@ -1,0 +1,8 @@
+.mm-reconfirm{border:1px solid #416288;background:#101d2d;border-radius:12px;padding:16px;margin:13px 0;color:#f1f5fb;display:grid;gap:10px}
+.mm-reconfirm-head{display:flex;gap:11px;align-items:flex-start}.mm-reconfirm-head>svg{color:#70b5ff;flex:none}
+.mm-reconfirm-head strong{font-size:13px}.mm-reconfirm-head p,.mm-reconfirm-note{font-size:11px;line-height:1.6;margin:5px 0 0;color:#aec0d3}
+.mm-reconfirm-stats{display:flex;gap:8px;flex-wrap:wrap}.mm-reconfirm-stats span{border:1px solid #2d4058;border-radius:7px;padding:8px 10px;background:#0a1420;color:#b6c9df;font-size:11px}.mm-reconfirm-stats strong{font-size:16px;color:#f1f5fb}
+.mm-reconfirm-current{font-size:12px;margin:2px 0}.mm-reconfirm-actions{display:flex;gap:8px;flex-wrap:wrap}
+.mm-reconfirm-actions .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.mm-reconfirm-error{color:#ff8089;font-size:11px}.mm-reconfirm-success{color:#84d3ad;font-size:11px}
+@media(max-width:540px){.mm-reconfirm{padding:12px}.mm-reconfirm-actions .btn{flex:1;min-height:44px;white-space:normal}.mm-reconfirm-stats span{flex:1;min-width:90px}}

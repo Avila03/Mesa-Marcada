@@ -27,13 +27,13 @@ assert.ok(!sql.includes("DISABLE ROW LEVEL SECURITY"),"RLS may never be disabled
 const hub=read("app/painel/league-hub.tsx"),home=read("app/painel/dashboard-v16.tsx");
 for(const phrase of ["mm-league-overview","Próxima rodada","Pedidos pendentes",
  "attendances.filter","leader","canOrganize","set_league_member_role",
- "Promover a Organizador","Retirar cargo","LeagueNotifications","/api/push/league-request"]){
+ "Promover a Organizador","Retirar cargo","LeagueFinalizationControls","/api/push/league-request"]){
  assert.ok(hub.includes(phrase),"League UI incomplete: "+phrase);
 }
-assert.ok(home.includes("<LeagueNotifications"),"Notifications missing on home");
+assert.ok(read("app/painel/mobile-first.tsx").includes("<NotificationCenter"),"Unified notifications missing from main panel");
 assert.ok(read("app/painel/mobile-first.tsx").includes('item.my_role==="organizer"'),
  "Organizer should see their league in event creation");
-const notifications=read("app/painel/league-notifications.tsx");
+const notifications=read("app/painel/notification-center.tsx");
 for(const phrase of ["recipient_id","read_league_notification",
  "postgres_changes","join_request","join_approved","join_rejected",
  "new_event","role_changed"]){

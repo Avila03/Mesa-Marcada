@@ -5,8 +5,6 @@ import {date,eventTime,gameName,money} from "@/lib/mesa-types";
 import type {ExpenseSettlement,MyExpenseSplitRow} from "./expense-splits";
 import UiIcon from "./ui-icon";
 import {LeagueHomePreview} from "./league-hub";
-import LeagueNotifications from "./league-notifications";
-import "./league-notifications.css";
 
 type DashboardProps={
   firstName:string;
@@ -27,6 +25,7 @@ type DashboardProps={
   onAdmin:()=>void;
   onLeagues:()=>void;
   onOpenLeague:(id:string)=>void;
+  pendingReconfirmEventId?:string;
 };
 
 const categoryNames:Record<string,string>={
@@ -35,11 +34,12 @@ const categoryNames:Record<string,string>={
 
 export default function DashboardV16({
   firstName,userId,upcoming,attendances,rooms,mySplits,settlements,isAdmin,
-  onCreate,onOpenEvent,onEvents,onGame,onTables,onProfile,onRanking,onAdmin,onLeagues,onOpenLeague
+  onCreate,onOpenEvent,onEvents,onGame,onTables,onProfile,onRanking,onAdmin,onLeagues,onOpenLeague,pendingReconfirmEventId
 }:DashboardProps){
-  const next=upcoming[0];
   const confirmed=new Set(attendances.filter(a=>a.user_id===userId).map(a=>a.session_id));
   const myUpcoming=upcoming.filter(e=>confirmed.has(e.id));
+  const next=myUpcoming[0]||upcoming[0];
+  const myNext=Boolean(myUpcoming.length);
   const settled=new Set(settlements.map(s=>s.expense_id+":"+s.user_id));
   const owed=mySplits.filter(s=>s.user_id===userId&&s.paid_by!==userId&&!settled.has(s.expense_id+":"+s.user_id));
   const receivable=mySplits.filter(s=>s.paid_by===userId&&s.user_id!==userId&&!settled.has(s.expense_id+":"+s.user_id));
@@ -61,7 +61,7 @@ export default function DashboardV16({
 
     {next?<section className="mm-home-featured" aria-label="Próximo evento">
       <div className="mm-home-featured-meta">
-        <span className="mm-home-label"><UiIcon name="calendar" size={15}/> PRÓXIMO EVENTO</span>
+        <span className="mm-home-label"><UiIcon name="calendar" size={15}/> {myNext?"MEU PRÓXIMO EVENTO":"PRÓXIMO EVENTO DISPONÍVEL"}</span>
         <span className={"mm-home-presence "+(confirmed.has(next.id)?"yes":"waiting")}>
           <UiIcon name={confirmed.has(next.id)?"check":"clock"} size={14}/>
           {confirmed.has(next.id)?"Participando":"Escolha um assento"}
@@ -91,7 +91,10 @@ export default function DashboardV16({
     </section>}
 
     <LeagueHomePreview onBrowse={onLeagues} onOpen={onOpenLeague}/>
-    <LeagueNotifications userId={userId} onOpenLeague={onOpenLeague} onOpenEvent={onOpenEvent}/>
+    {pendingReconfirmEventId&&<section className="mm-home-reconfirm-callout">
+      <div><strong>Reconfirme sua presença</strong><small>A data ou o horário de um evento mudou. Sua cadeira está preservada.</small></div>
+      <button type="button" onClick={()=>onOpenEvent(pendingReconfirmEventId)}>Responder agora <UiIcon name="arrow-right" size={14}/></button>
+    </section>}
     <section className="mm-home-statgrid" aria-label="Resumo pessoal">
       <button type="button" onClick={onEvents}>
         <UiIcon name="calendar" size={21}/>
