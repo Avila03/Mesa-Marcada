@@ -18,6 +18,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run check:ui
       - run: npm run check:live
+      - run: npm run check:finance
       - run: npm run check:scroll
       - run: npm run build
       - run: npm run smoke
