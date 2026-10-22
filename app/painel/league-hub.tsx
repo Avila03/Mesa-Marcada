@@ -6,11 +6,13 @@ import LeagueNotifications from "./league-notifications";
 import "./league-notifications.css";
 import type {Event,Profile,Room,Game} from "@/lib/mesa-types";
 import UiIcon from "./ui-icon";
+import {CrestMark,CrestCustomizer,DEFAULT_CREST,normalizeCrest,type CrestConfig} from "@/app/brasoes/demo/crest-editor";
+import "@/app/brasoes/demo/crest-demo.css";
 import "./league-hub.css";
 
 export type League={
  id:string;owner_id:string;name:string;description:string;rules:string;
- visibility:"public"|"private";created_at:string;member_count:number;event_count:number;
+ visibility:"public"|"private";emblem:CrestConfig;created_at:string;member_count:number;event_count:number;
  my_role:"owner"|"organizer"|"member"|null;request_status:"pending"|"approved"|"rejected"|null;
 };
 type Member={league_id:string;user_id:string;role:"owner"|"organizer"|"member";joined_at:string};
@@ -27,7 +29,7 @@ function LeagueBadge({item}:{item:League}){
 }
 function LeagueCard({item,onClick}:{item:League;onClick:()=>void}){
  return <button type="button" className="mm-league-card" onClick={onClick}>
-  <span className="mm-league-symbol" aria-hidden="true">♠</span>
+  <CrestMark value={item.emblem} className="mm-league-symbol"/>
   <span className="mm-league-card-main">
    <strong>{item.name}</strong>
    <small>{item.description||"Poker, Blackjack e encontros da galera"}</small>
@@ -47,7 +49,7 @@ export function LeagueHomePreview({onBrowse,onOpen}:{onBrowse:()=>void;onOpen:(i
  useEffect(()=>{
   let alive=true;const db=getSupabase();
   if(!db)return;
-  void Promise.resolve(db.rpc("get_league_catalog")).then(({data,error})=>{
+  void Promise.resolve(db.rpc("get_league_catalog_premium")).then(({data,error})=>{
    if(alive&&!error)setLeagues(((data||[]) as League[]).filter(x=>x.my_role));
   }).finally(()=>{if(alive)setBusy(false)});
   return()=>{alive=false};
@@ -85,6 +87,9 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
  const [error,setError]=useState("");
  const [message,setMessage]=useState("");
  const [create,setCreate]=useState(false);
+  const [createStep,setCreateStep]=useState<"info"|"emblem">("info");
+  const [emblem,setEmblem]=useState<CrestConfig>(DEFAULT_CREST);
+  const [identityOpen,setIdentityOpen]=useState(false);
  const [name,setName]=useState("");
  const [description,setDescription]=useState("");
  const [rules,setRules]=useState("");
@@ -100,7 +105,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
  const joined=Boolean(current?.my_role);
  const refresh=useCallback(async()=>{
   const db=getSupabase();if(!db)return;
-  const {data,error:readError}=await db.rpc("get_league_catalog");
+  const {data,error:readError}=await db.rpc("get_league_catalog_premium");
   if(readError)throw readError;
   setLeagues((data||[]) as League[]);
  },[]);
@@ -149,11 +154,11 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
  async function saveNew(){
   await run(async()=>{
    const db=getSupabase();if(!db)throw new Error("Sem conexão");
-   const {data,error:err}=await db.rpc("create_league",{
-    p_name:name.trim(),p_description:description.trim(),p_visibility:visibility,p_rules:rules.trim()
+   const {data,error:err}=await db.rpc("create_league_premium",{
+    p_name:name.trim(),p_description:description.trim(),p_visibility:visibility,p_rules:rules.trim(),p_emblem:emblem
    });
    if(err)throw err;
-   setCreate(false);setName("");setDescription("");setRules("");setVisibility("public");
+   setCreate(false);setCreateStep("info");setName("");setDescription("");setRules("");setVisibility("public");setEmblem(DEFAULT_CREST);
    if(typeof data==="string")onOpenLeague(data);
   },"Liga criada! Agora você pode organizar eventos e gerenciar membros.");
  }
@@ -219,7 +224,23 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
    if(err)throw err;setInvite(String(data||""));
   },"Convite privado gerado. Envie-o para quem deseja solicitar entrada.");
  }
- async function update(){
+ async function saveIdentity(){
+   if(!current)return;
+   if(!/^[A-Z0-9]{1,4}$/.test(emblem.initials)||(emblem.withYear&&!/^\d{4}$/.test(emblem.year))){
+    setError("Informe uma sigla e um ano de quatro dígitos.");return;
+   }
+   await run(async()=>{
+    const db=getSupabase();if(!db)throw new Error("Sem conexão");
+    const {error:err}=await db.rpc("update_league_emblem",{p_league_id:current.id,p_emblem:emblem});
+    if(err)throw err;
+    setIdentityOpen(false);
+   },"Brasão atualizado com sucesso.");
+  }
+  function openIdentity(){
+   if(!current)return;
+   setEmblem(normalizeCrest(current.emblem));setIdentityOpen(true);setError("");setMessage("");
+  }
+  async function update(){
   if(!current)return;
   await run(async()=>{
    const db=getSupabase();if(!db)throw new Error("Sem conexão");
@@ -227,10 +248,11 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
     p_league_id:current.id,p_name:name.trim(),p_description:description.trim(),
     p_visibility:visibility,p_rules:rules.trim()
    });if(err)throw err;
+   setCreate(false);
   },"Informações da liga atualizadas.");
  }
  function editLeague(){if(!current)return;setName(current.name);setDescription(current.description);
-  setRules(current.rules);setVisibility(current.visibility);setCreate(true)}
+  setRules(current.rules);setVisibility(current.visibility);setCreateStep("info");setCreate(true)}
  const own=leagues.filter(l=>l.my_role);
  const available=leagues.filter(l=>!l.my_role);
  const leagueEvents=events.filter(ev=>ev.league_id===leagueId)
@@ -249,7 +271,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
      current?.description||"Encontros, rankings e participantes em um só lugar."}</p>
    </div>
    <div className="mm-league-header-actions">
-   {mode==="list"?<button className="btn gold" onClick={()=>{setName("");setDescription("");setRules("");setVisibility("public");setCreate(true)}}><UiIcon name="plus" size={17}/> Criar liga</button>:
+   {mode==="list"?<><a className="btn" href="/brasoes/demo">Prévia dos brasões Premium</a><button className="btn gold" onClick={()=>{setName("");setDescription("");setRules("");setVisibility("public");setEmblem(DEFAULT_CREST);setCreateStep("info");setCreate(true)}}><UiIcon name="plus" size={17}/> Criar liga</button></>:
     <button className="btn" onClick={mode==="manage"?()=>onOpenLeague(leagueId):onBack}>← Voltar</button>}
    </div>
   </header>
@@ -274,7 +296,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
   {mode!=="list"&&!current&&!busy&&<section className="panel">Liga não encontrada ou você ainda não tem acesso. <button className="btn" onClick={onBack}>Explorar ligas</button></section>}
   {mode==="detail"&&current&&<>
    <section className="mm-league-hero">
-    <div className="mm-league-hero-symbol">♠</div>
+    <CrestMark value={current.emblem} className="mm-league-hero-symbol"/>
     <div><LeagueBadge item={current}/>
      <p>{current.member_count} membros · {current.event_count} eventos ·
       Dono: {leagueName(current.owner_id,profiles)}</p>
@@ -399,6 +421,12 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
       </div>}
     </div>)}
    </section>
+   <section className="panel mm-league-identity-panel">
+    <div className="panelhead"><h2>Identidade visual</h2><span className="tag">Premium</span></div>
+    <div className="mm-league-identity-summary"><CrestMark value={current.emblem} className="mm-league-identity-thumb"/>
+     <div><strong>Brasão da liga</strong><p>Personalize símbolo, formato, cor, sigla e ano.</p>
+      <button className="btn gold" type="button" onClick={openIdentity}>Editar brasão</button></div></div>
+   </section>
    <section className="panel">
     <div className="panelhead"><h2>Configurações</h2></div>
     <p className="mm-formfoot">Altere o nome, visibilidade, apresentação e regras da sua liga.</p>
@@ -407,10 +435,11 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
   </>}
   {mode==="manage"&&current&&!owner&&<p className="mm-message error">Somente o dono pode gerenciar esta liga.</p>}
   {create&&<div className="mm-league-overlay" role="presentation" onClick={e=>{if(e.target===e.currentTarget)setCreate(false)}}>
-   <form className="mm-league-modal" role="dialog" aria-modal="true" aria-label={mode==="manage"?"Editar liga":"Criar liga"}
-     onSubmit={e=>{e.preventDefault();void(mode==="manage"?update():saveNew())}}>
-    <h2>{mode==="manage"?"Editar liga":"Criar uma liga"}</h2>
-    <p>Seu grupo terá participantes, eventos e rankings próprios.</p>
+   <form className={"mm-league-modal "+(createStep==="emblem"&&mode!=="manage"?"mm-league-modal-wide":"")} role="dialog" aria-modal="true" aria-label={mode==="manage"?"Editar liga":"Criar liga"}
+     onSubmit={e=>{e.preventDefault();if(mode==="manage")void update();else if(createStep==="info")setCreateStep("emblem");else if(/^[A-Z0-9]{1,4}$/.test(emblem.initials)&&(!emblem.withYear||/^\d{4}$/.test(emblem.year)))void saveNew();else setError("Informe uma sigla e ano válidos para o brasão.");}}>
+    <h2>{mode==="manage"?"Editar liga":createStep==="info"?"Criar uma liga":"Identidade da sua liga"}</h2>
+    <p>{mode==="manage"?"Atualize as informações da comunidade.":createStep==="info"?"Etapa 1 de 2 · Informações da Liga":"Etapa 2 de 2 · Personalize o brasão Premium antes de criar a Liga."}</p>
+    {(mode==="manage"||createStep==="info")&&<>
     <label>Nome da liga<input required minLength={3} maxLength={65} value={name} onChange={e=>setName(e.target.value)} placeholder="Ex.: Liga dos Coringas"/></label>
     <label>Descrição<textarea maxLength={500} rows={3} value={description} onChange={e=>setDescription(e.target.value)} placeholder="Conte sobre a sua comunidade"/></label>
     <label>Privacidade<select value={visibility} onChange={e=>setVisibility(e.target.value as "public"|"private")}>
@@ -418,11 +447,27 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
      <option value="private">Privada · encontrada somente por convite</option>
     </select></label>
     <label>Regras (opcional)<textarea maxLength={2500} rows={4} value={rules} onChange={e=>setRules(e.target.value)} placeholder="Regras do grupo, horários, combinados..."/></label>
+    </>}
+    {mode!=="manage"&&createStep==="emblem"&&<CrestCustomizer value={emblem} onChange={setEmblem}/>}
+    {error&&<p className="mm-message error" role="alert">{error}</p>}
     <div className="mm-league-modal-actions">
+     {mode!=="manage"&&createStep==="emblem"&&<button className="btn" type="button" onClick={()=>setCreateStep("info")}>← Voltar</button>}
      <button className="btn" type="button" onClick={()=>setCreate(false)}>Cancelar</button>
-     <button className="btn gold" disabled={working} type="submit">{working?"Salvando...":mode==="manage"?"Salvar mudanças":"Criar liga"}</button>
+     <button className="btn gold" disabled={working} type="submit">{working?"Salvando...":mode==="manage"?"Salvar mudanças":createStep==="info"?"Personalizar brasão →":"Criar liga"}</button>
     </div>
    </form>
+  </div>}
+  {identityOpen&&current&&owner&&<div className="mm-league-overlay" role="presentation"
+    onClick={e=>{if(e.target===e.currentTarget)setIdentityOpen(false)}}>
+   <div className="mm-league-modal mm-league-modal-wide" role="dialog" aria-modal="true" aria-label="Editar brasão da Liga">
+    <h2>Identidade visual</h2><p>Personalize o brasão Premium desta Liga.</p>
+    <CrestCustomizer value={emblem} onChange={setEmblem}/>
+    {error&&<p className="mm-message error" role="alert">{error}</p>}
+    <div className="mm-league-modal-actions">
+     <button className="btn" type="button" onClick={()=>setIdentityOpen(false)}>Cancelar</button>
+     <button className="btn gold" type="button" disabled={working} onClick={()=>void saveIdentity()}>{working?"Salvando...":"Salvar brasão"}</button>
+    </div>
+   </div>
   </div>}
  </div>;
 }
