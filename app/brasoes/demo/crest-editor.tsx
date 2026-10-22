@@ -1,6 +1,6 @@
 "use client";
 
-import {useMemo,useRef,useState} from "react";
+import {useId,useMemo,useRef,useState} from "react";
 import type {ReactNode} from "react";
 
 type ShapeId="shield"|"circle"|"hex"|"card";
@@ -114,34 +114,36 @@ function CrestSvg({shape,symbol,accent,initials,year,withYear,svgRef}:{
  shape:ShapeId;symbol:SymbolId;accent:Accent;initials:string;year:string;withYear:boolean;svgRef?:React.Ref<SVGSVGElement>;
 }){
  const path=shapeFor(shape);
+ const uid=useId().replace(/:/g,"");
+ const url=(name:string)=>"url(#"+uid+"-"+name+")";
  const initialsSize=initials.length===4?51:initials.length===3?61:initials.length===2?75:84;
  return <svg ref={svgRef} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 420" role="img"
   aria-label={"Brasão premium "+shapeFor(shape).name+", símbolo "+SYMBOLS.find(item=>item.id===symbol)?.name+", sigla "+initials}>
   <defs>
-   <linearGradient id="mm-crest-metal" x1="0" x2="1" y1="0" y2="1">
+   <linearGradient id={uid+"-metal"} x1="0" x2="1" y1="0" y2="1">
     <stop offset="0%" stopColor="#F1F5FB"/><stop offset="20%" stopColor="#879CB3"/>
     <stop offset="40%" stopColor="#F5FAFF"/><stop offset="69%" stopColor="#52677F"/><stop offset="100%" stopColor="#DFEBF7"/>
    </linearGradient>
-   <linearGradient id="mm-crest-body" x1="0" x2="1" y1="0" y2="1">
+   <linearGradient id={uid+"-body"} x1="0" x2="1" y1="0" y2="1">
     <stop offset="0%" stopColor="#1B2637"/><stop offset="42%" stopColor="#060A11"/>
     <stop offset="100%" stopColor="#12243A"/>
    </linearGradient>
-   <linearGradient id="mm-crest-glint" x1="0" x2="1" y1="0" y2="1">
+   <linearGradient id={uid+"-glint"} x1="0" x2="1" y1="0" y2="1">
     <stop offset="0%" stopColor={accent.soft}/><stop offset="52%" stopColor={accent.hex}/><stop offset="100%" stopColor="#F1F5FB"/>
    </linearGradient>
-   <filter id="mm-crest-shadow" x="-35%" y="-35%" width="170%" height="180%">
+   <filter id={uid+"-shadow"} x="-35%" y="-35%" width="170%" height="180%">
     <feGaussianBlur stdDeviation="9"/>
    </filter>
-   <filter id="mm-crest-spark" x="-80%" y="-80%" width="260%" height="260%">
+   <filter id={uid+"-spark"} x="-80%" y="-80%" width="260%" height="260%">
     <feGaussianBlur stdDeviation="4"/>
    </filter>
-   <clipPath id="mm-crest-clip"><path d={path.inset}/></clipPath>
+   <clipPath id={uid+"-clip"}><path d={path.inset}/></clipPath>
   </defs>
-  <path d={path.path} fill={accent.hex} opacity=".3" transform="translate(0 8)" filter="url(#mm-crest-shadow)"/>
-  <path d={path.path} fill="url(#mm-crest-body)" stroke="url(#mm-crest-metal)" strokeWidth="9"/>
+  <path d={path.path} fill={accent.hex} opacity=".3" transform="translate(0 8)" filter={url("shadow")}/>
+  <path d={path.path} fill={url("body")} stroke={url("metal")} strokeWidth="9"/>
   <path d={path.inset} fill="none" stroke={accent.hex} strokeWidth="4.5"/>
   <path d={path.inset} fill="none" stroke={accent.soft} strokeWidth="1" transform="translate(0 -2)" opacity=".68"/>
-  <g clipPath="url(#mm-crest-clip)">
+  <g clipPath={url("clip")}>
    <path d="M0 65L360 245V420H0Z" fill={accent.hex} opacity=".043"/>
    <path d="M0 120L360 310" stroke="white" strokeWidth="16" opacity=".035"/>
    <path d="M0 170L360 360" stroke="white" strokeWidth="4" opacity=".03"/>
@@ -151,7 +153,7 @@ function CrestSvg({shape,symbol,accent,initials,year,withYear,svgRef}:{
   <path d="M180 33L191 53 180 63 169 53Z" fill={accent.hex} stroke="#E8F3FF" strokeWidth="1.3"/>
   <text x="180" y="142" textAnchor="middle" fontFamily="Arial,Helvetica,sans-serif" fontSize={initialsSize}
     fontWeight="900" letterSpacing={initials.length>2?"-3":"-5"} stroke="#DCE9F8" strokeWidth="1.1"
-    paintOrder="stroke" fill="url(#mm-crest-metal)">{initials||"MM"}</text>
+    paintOrder="stroke" fill={url("metal")}>{initials||"MM"}</text>
   <g transform="translate(180 241)" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" color="#EBF3FC">
     <SymbolArt id={symbol} accent={accent.hex}/>
   </g>
@@ -162,8 +164,8 @@ function CrestSvg({shape,symbol,accent,initials,year,withYear,svgRef}:{
   {withYear&&<text x="180" y="354" textAnchor="middle" fontFamily="Arial,Helvetica,sans-serif" fontSize="23"
     fontWeight="700" letterSpacing="5" fill="#EAF4FF">{year}</text>}
   <path d="M159 369H201" stroke={accent.hex} strokeWidth="4" strokeLinecap="round"/>
-  <path d={path.path} fill="none" stroke="url(#mm-crest-glint)" strokeWidth="1.5" opacity=".64"/>
-  <circle cx="180" cy="33" r="5" fill={accent.soft} opacity=".85" filter="url(#mm-crest-spark)"/>
+  <path d={path.path} fill="none" stroke={url("glint")} strokeWidth="1.5" opacity=".64"/>
+  <circle cx="180" cy="33" r="5" fill={accent.soft} opacity=".85" filter={url("spark")}/>
  </svg>;
 }
 function downloadSvg(svg:SVGSVGElement,filename:string){
@@ -193,6 +195,87 @@ async function downloadPng(svg:SVGSVGElement,filename:string){
   const a=document.createElement("a");a.href=fileUrl;a.download=filename+".png";a.click();
   window.setTimeout(()=>URL.revokeObjectURL(fileUrl),1000);
  }finally{URL.revokeObjectURL(url);}
+}
+
+export type CrestConfig={
+ shape:ShapeId;symbol:SymbolId;colorIndex:number;initials:string;withYear:boolean;year:string;
+};
+export const DEFAULT_CREST:CrestConfig={shape:"shield",symbol:"joker",colorIndex:0,initials:"MM",withYear:true,year:"2026"};
+export function normalizeCrest(input:unknown):CrestConfig{
+ const o=input && typeof input==="object" && !Array.isArray(input)?input as Partial<CrestConfig>:{};
+ return {
+  shape:SHAPES.some(item=>item.id===o.shape)?o.shape!:"shield",
+  symbol:SYMBOLS.some(item=>item.id===o.symbol)?o.symbol!:"joker",
+  colorIndex:typeof o.colorIndex==="number" && Number.isInteger(o.colorIndex)&&o.colorIndex>=0&&o.colorIndex<COLORS.length?o.colorIndex:0,
+  initials:typeof o.initials==="string"&&/^[A-Z0-9]{1,4}$/.test(o.initials)?o.initials:"MM",
+  withYear:typeof o.withYear==="boolean"?o.withYear:true,
+  year:typeof o.year==="string" && /^\d{4}$/.test(o.year)?o.year:"2026"
+ };
+}
+export function CrestMark({value,className=""}:{value:unknown;className?:string}){
+ const crest=normalizeCrest(value);
+ return <span className={className}><CrestSvg shape={crest.shape} symbol={crest.symbol} accent={COLORS[crest.colorIndex]}
+ initials={crest.initials} year={crest.year} withYear={crest.withYear}/></span>;
+}
+export function CrestCustomizer({value,onChange}:{value:CrestConfig;onChange:(value:CrestConfig)=>void}){
+ const [group,setGroup]=useState("Todos");
+ const accent=COLORS[value.colorIndex]||COLORS[0];
+ const shown=useMemo(()=>SYMBOLS.filter(item=>group==="Todos"||item.group===group),[group]);
+ const update=(patch:Partial<CrestConfig>)=>onChange({...value,...patch});
+ return <div className="mm-crest-shell mm-crest-inline">
+  <div className="mm-crest-inline-grid">
+   <section className="mm-crest-stage" aria-label="Prévia instantânea do brasão">
+    <div className="mm-crest-stage-bar"><span><span className="mm-crest-live-dot"/> PRÉVIA EM TEMPO REAL</span><span>PREMIUM</span></div>
+    <div className="mm-crest-display"><CrestSvg shape={value.shape} symbol={value.symbol} accent={accent}
+     initials={value.initials} year={value.year} withYear={value.withYear}/></div>
+    <div className="mm-crest-stage-caption"><div><small>IDENTIDADE DA LIGA</small>
+     <strong>{value.initials||"MM"}</strong><span>{accent.name} · {SYMBOLS.find(x=>x.id===value.symbol)?.name}</span></div>
+     <span className="mm-crest-premium-tag">◆ PREMIUM</span></div>
+   </section>
+   <div className="mm-crest-controls">
+    <div className="mm-crest-step">
+     <div className="mm-crest-step-head"><span className="mm-crest-step-no">01</span><div><h3>Formato</h3><p>Selecione a silhueta padronizada.</p></div></div>
+     <div className="mm-crest-shapes">{SHAPES.map(item=><button type="button" key={item.id}
+       aria-pressed={value.shape===item.id} className={"mm-crest-shape "+(value.shape===item.id?"selected":"")}
+       onClick={()=>update({shape:item.id})}>
+       <svg viewBox="0 0 360 420" aria-hidden="true"><path d={item.path} fill="#172A44" stroke={value.shape===item.id?accent.hex:"#8190A8"} strokeWidth="11"/></svg><span>{item.name}</span>
+      </button>)}</div>
+    </div>
+    <div className="mm-crest-step">
+     <div className="mm-crest-step-head"><span className="mm-crest-step-no">02</span><div><h3>Símbolo principal</h3><p>27 símbolos disponíveis.</p></div></div>
+     <div className="mm-crest-groups">{GROUPS.map(item=><button key={item} type="button" aria-pressed={group===item}
+      className={group===item?"active":""} onClick={()=>setGroup(item)}>{item}</button>)}</div>
+     <div className="mm-crest-symbols">{shown.map(item=><button type="button" key={item.id}
+      aria-label={item.name} title={item.name} aria-pressed={value.symbol===item.id}
+      className={"mm-crest-symbol "+(value.symbol===item.id?"selected":"")} onClick={()=>update({symbol:item.id})}>
+       <svg viewBox="-88 -91 176 185" aria-hidden="true" color="#E8F2FF">
+        <g stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" fill="none">
+         <SymbolArt id={item.id} accent={accent.hex}/>
+        </g></svg><span>{item.name}</span></button>)}</div>
+    </div>
+    <div className="mm-crest-step">
+     <div className="mm-crest-step-head"><span className="mm-crest-step-no">03</span><div><h3>Cor de destaque</h3><p>Seis cores da família Premium.</p></div></div>
+     <div className="mm-crest-colors">{COLORS.map((item,index)=><button type="button" key={item.name}
+      title={item.name} aria-label={item.name} aria-pressed={value.colorIndex===index}
+      className={"mm-crest-color "+(value.colorIndex===index?"selected":"")} onClick={()=>update({colorIndex:index})}>
+       <span style={{background:item.hex}}/>{value.colorIndex===index&&<b>✓</b>}</button>)}</div>
+     <div className="mm-crest-color-name">{accent.name} <span>{accent.hex}</span></div>
+    </div>
+    <div className="mm-crest-step">
+     <div className="mm-crest-step-head"><span className="mm-crest-step-no">04</span><div><h3>Identificação</h3><p>Uma sigla e um ano opcional.</p></div></div>
+     <label className="mm-crest-label" htmlFor="mm-crest-edit-initials">SIGLA · ATÉ 4 CARACTERES</label>
+     <input id="mm-crest-edit-initials" required maxLength={4} spellCheck={false} autoCapitalize="characters"
+      value={value.initials} onChange={e=>update({initials:e.target.value.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9]/g,"").toUpperCase().slice(0,4)})}/>
+     <label className="mm-crest-switch"><input type="checkbox" checked={value.withYear}
+      onChange={e=>update({withYear:e.target.checked})}/><span>Exibir ano no brasão</span></label>
+     {value.withYear&&<><label htmlFor="mm-crest-edit-year" className="mm-crest-label">ANO (4 DÍGITOS)</label>
+      <input id="mm-crest-edit-year" inputMode="numeric" maxLength={4} value={value.year}
+      onChange={e=>update({year:e.target.value.replace(/\D/g,"").slice(0,4)})}/></>}
+    </div>
+    <div className="mm-crest-guidelines"><strong>COMPOSIÇÃO PADRONIZADA</strong><p>Posições e proporções fixas; sem upload, movimentação, rotação ou redimensionamento de elementos.</p></div>
+   </div>
+  </div>
+ </div>;
 }
 export default function CrestEditor(){
  const [shape,setShape]=useState<ShapeId>("shield");
