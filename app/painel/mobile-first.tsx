@@ -139,7 +139,7 @@ export default function PainelPage(){
   const [rankGame,setRankGame]=useState<Game>("poker");
   const [eventFilter,setEventFilter]=useState<"todos"|"agendados"|"encerrados">("agendados");
   const [form,setForm]=useState<CreateEvent>(defaultEvent);
-  const ownLeagues=leagueCatalog.filter(item=>item.my_role==="owner"||item.my_role==="organizer");
+  const ownLeagues=leagueCatalog.filter(item=>!item.finished_at&&(item.my_role==="owner"||item.my_role==="organizer"));
   const [pollQuestion,setPollQuestion]=useState("");
   const [pollOptions,setPollOptions]=useState("Pizza\nHambúrguer\nChurrasco");
     const [liveSubtab,setLiveSubtab]=useState<LiveSubtab>("compra");
@@ -737,7 +737,7 @@ export default function PainelPage(){
   useEffect(()=>{
     if(!user||modal!=="evento")return;
     const db=getSupabase();if(!db)return;
-    void db.rpc("get_league_catalog_premium").then(({data,error})=>{
+    void db.rpc("get_league_catalog_final").then(({data,error})=>{
       if(!error)setLeagueCatalog((data||[]) as League[]);
     });
   },[user,modal]);
