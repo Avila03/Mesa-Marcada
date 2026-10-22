@@ -26,6 +26,7 @@ import NightSummary from "./night-summary";
 import SeatingTable from "./seating-table";
 import type {TableSeat} from "./seating-table";
 import {useStableDialog} from "./use-stable-dialog";
+import {readClubRoute,clubHref} from "@/lib/app-routes";
 import type {LiveState,LiveActivity} from "./event-live-panel";
 import type {UiIconName} from "./ui-icon";
 import AdvancedRankingPanel,{PlayerAchievements} from "./advanced-ranking";
@@ -85,6 +86,7 @@ export default function PainelPage(){
   const [hiddenEvents,setHiddenEvents]=useState<HiddenEvent[]>([]);
   const [adminAudits,setAdminAudits]=useState<AdminAudit[]>([]);
   const [page,setPage]=useState<View>("inicio");
+  const [routeReady,setRouteReady]=useState(false);
   const [detailTab,setDetailTab]=useState<DetailTab>("visao");
   const [selectedId,setSelectedId]=useState("");
   const [profileId,setProfileId]=useState("");
@@ -214,6 +216,27 @@ export default function PainelPage(){
     setAnnualStats((requests[18].data||[]) as AdvancedRank[]);
   },[]);
 
+  // O layout de (app) fica montado entre rotas: URL, voltar/avançar e
+  // atualização de página reproduzem a mesma tela sem recarregar a SPA.
+  useEffect(()=>{
+    const sync=()=>{
+      const state=readClubRoute(window.location.pathname,window.location.search);
+      setPage(state.page);setSelectedId(state.selectedId);
+      setDetailTab(state.detailTab);setGameView(state.gameView);setGameTab(state.gameTab);
+      setRouteReady(true);
+    };
+    sync();
+    window.addEventListener("popstate",sync);
+    return()=>window.removeEventListener("popstate",sync);
+  },[]);
+
+  useEffect(()=>{
+    if(!routeReady)return;
+    const next=clubHref(page,selectedId,detailTab,gameView,gameTab);
+    const now=window.location.pathname+window.location.search;
+    if(next!==now)window.history.pushState({mesaMarcada:true},"",next);
+  },[routeReady,page,selectedId,detailTab,gameView,gameTab]);
+
   useEffect(()=>{
     let alive=true;
     const db=getSupabase();
@@ -222,10 +245,8 @@ export default function PainelPage(){
       try{
         const {data,error:authError}=await db.auth.getUser();
         if(authError||!data.user){
-          const eventId=new URLSearchParams(window.location.search).get("evento");
-          const safeNext=eventId&&/^[0-9a-f-]{36}$/i.test(eventId)
-            ?"/login?next="+encodeURIComponent("/painel?evento="+eventId):"/login";
-          window.location.replace(safeNext);return;
+          const target=window.location.pathname+window.location.search;
+          window.location.replace("/login?next="+encodeURIComponent(target));return;
         }
         if(!alive)return;
         setUser({id:data.user.id,email:data.user.email});
@@ -254,17 +275,15 @@ export default function PainelPage(){
     return()=>{active=false};
   },[user,rankGame,events,buys,results,approvals]);
 
+  // Compatibilidade com convites anteriores a v2: /painel?evento=UUID.
   useEffect(()=>{
-    if(!user)return;
+    if(!user||!routeReady)return;
     const id=new URLSearchParams(window.location.search).get("evento");
-    if(!id||events.length===0)return;
+    if(!id||!events.length||window.location.pathname!=="/painel")return;
     if(events.some(e=>e.id===id&&!hiddenEvents.some(h=>h.session_id===id))){
       setSelectedId(id);setDetailTab("visao");setPage("detalhe");
-    }else{
-      setError("Evento não encontrado. Verifique o link compartilhado.");
-    }
-    window.history.replaceState(null,"","/painel");
-  },[user,events,hiddenEvents]);
+    }else setError("Evento não encontrado. Verifique o link compartilhado.");
+  },[user,routeReady,events,hiddenEvents]);
 
   const refreshLive=useCallback(async(showLoading=false)=>{
     if(!selectedId||!user)return;

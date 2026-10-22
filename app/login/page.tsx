@@ -4,10 +4,11 @@ import { FormEvent, useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase/browser";
 import "../v05-theme.css";
 import SiteLogo from "../painel/site-logo";
+import {validPostLoginRoute} from "@/lib/app-routes";
 
 function postLoginPath(){
   const next=new URLSearchParams(window.location.search).get("next");
-  return next&&/^\/painel\?evento=[0-9a-f-]{36}$/i.test(next)?next:"/painel";
+  return validPostLoginRoute(next||"/painel");
 }
 
 export default function LoginPage() {
