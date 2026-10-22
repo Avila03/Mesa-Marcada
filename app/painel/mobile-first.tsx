@@ -796,11 +796,11 @@ export default function PainelPage(){
         p_location:form.location.trim(),p_min_entry_brl:Number(form.min_entry_brl),
         p_max_participants:Number(form.max_participants),
         p_chip_pricing_special:form.chip_pricing_special,
-        p_chip_price_1_brl:Number(form.chip_price_1_brl),
-        p_chip_price_5_brl:Number(form.chip_price_5_brl),
-        p_chip_price_10_brl:Number(form.chip_price_10_brl),
-        p_chip_price_25_brl:Number(form.chip_price_25_brl),
-        p_chip_price_50_brl:Number(form.chip_price_50_brl)
+        p_chip_price_1_brl:form.chip_pricing_special?Number(form.chip_price_1_brl):1,
+        p_chip_price_5_brl:form.chip_pricing_special?Number(form.chip_price_5_brl):5,
+        p_chip_price_10_brl:form.chip_pricing_special?Number(form.chip_price_10_brl):0.10,
+        p_chip_price_25_brl:form.chip_pricing_special?Number(form.chip_price_25_brl):0.25,
+        p_chip_price_50_brl:form.chip_pricing_special?Number(form.chip_price_50_brl):0.50
       });
       if(editError)throw editError;
       setModal(null);
