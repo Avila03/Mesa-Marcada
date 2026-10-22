@@ -1,2 +1,1 @@
-import LeagueFinalizationControls from "./league-finalization-controls";
-export default function LeagueDetailRoute(){return <LeagueFinalizationControls mode="detail"/>;}
+export default function RoutePlaceholder(){return null;}
