@@ -6,11 +6,13 @@ import LeagueNotifications from "./league-notifications";
 import "./league-notifications.css";
 import type {Event,Profile,Room,Game} from "@/lib/mesa-types";
 import UiIcon from "./ui-icon";
+import {CrestMark,CrestCustomizer,DEFAULT_CREST,normalizeCrest,type CrestConfig} from "@/app/brasoes/demo/crest-editor";
+import "@/app/brasoes/demo/crest-demo.css";
 import "./league-hub.css";
 
 export type League={
  id:string;owner_id:string;name:string;description:string;rules:string;
- visibility:"public"|"private";created_at:string;member_count:number;event_count:number;
+ visibility:"public"|"private";emblem:CrestConfig;created_at:string;member_count:number;event_count:number;
  my_role:"owner"|"organizer"|"member"|null;request_status:"pending"|"approved"|"rejected"|null;
 };
 type Member={league_id:string;user_id:string;role:"owner"|"organizer"|"member";joined_at:string};
@@ -27,7 +29,7 @@ function LeagueBadge({item}:{item:League}){
 }
 function LeagueCard({item,onClick}:{item:League;onClick:()=>void}){
  return <button type="button" className="mm-league-card" onClick={onClick}>
-  <span className="mm-league-symbol" aria-hidden="true">♠</span>
+  <CrestMark value={item.emblem} className="mm-league-symbol"/>
   <span className="mm-league-card-main">
    <strong>{item.name}</strong>
    <small>{item.description||"Poker, Blackjack e encontros da galera"}</small>
@@ -85,6 +87,9 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
  const [error,setError]=useState("");
  const [message,setMessage]=useState("");
  const [create,setCreate]=useState(false);
+  const [createStep,setCreateStep]=useState<"info"|"emblem">("info");
+  const [emblem,setEmblem]=useState<CrestConfig>(DEFAULT_CREST);
+  const [identityOpen,setIdentityOpen]=useState(false);
  const [name,setName]=useState("");
  const [description,setDescription]=useState("");
  const [rules,setRules]=useState("");
@@ -150,10 +155,10 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
   await run(async()=>{
    const db=getSupabase();if(!db)throw new Error("Sem conexão");
    const {data,error:err}=await db.rpc("create_league",{
-    p_name:name.trim(),p_description:description.trim(),p_visibility:visibility,p_rules:rules.trim()
+    p_name:name.trim(),p_description:description.trim(),p_visibility:visibility,p_rules:rules.trim(),p_emblem:emblem
    });
    if(err)throw err;
-   setCreate(false);setName("");setDescription("");setRules("");setVisibility("public");
+   setCreate(false);setCreateStep("info");setName("");setDescription("");setRules("");setVisibility("public");setEmblem(DEFAULT_CREST);
    if(typeof data==="string")onOpenLeague(data);
   },"Liga criada! Agora você pode organizar eventos e gerenciar membros.");
  }
@@ -249,7 +254,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
      current?.description||"Encontros, rankings e participantes em um só lugar."}</p>
    </div>
    <div className="mm-league-header-actions">
-   {mode==="list"?<><a className="btn" href="/brasoes/demo">Prévia dos brasões Premium</a><button className="btn gold" onClick={()=>{setName("");setDescription("");setRules("");setVisibility("public");setCreate(true)}}><UiIcon name="plus" size={17}/> Criar liga</button></>:
+   {mode==="list"?<><a className="btn" href="/brasoes/demo">Prévia dos brasões Premium</a><button className="btn gold" onClick={()=>{setName("");setDescription("");setRules("");setVisibility("public");setEmblem(DEFAULT_CREST);setCreateStep("info");setCreate(true)}}><UiIcon name="plus" size={17}/> Criar liga</button></>:
     <button className="btn" onClick={mode==="manage"?()=>onOpenLeague(leagueId):onBack}>← Voltar</button>}
    </div>
   </header>
@@ -274,7 +279,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
   {mode!=="list"&&!current&&!busy&&<section className="panel">Liga não encontrada ou você ainda não tem acesso. <button className="btn" onClick={onBack}>Explorar ligas</button></section>}
   {mode==="detail"&&current&&<>
    <section className="mm-league-hero">
-    <div className="mm-league-hero-symbol">♠</div>
+    <CrestMark value={current.emblem} className="mm-league-hero-symbol"/>
     <div><LeagueBadge item={current}/>
      <p>{current.member_count} membros · {current.event_count} eventos ·
       Dono: {leagueName(current.owner_id,profiles)}</p>
