@@ -15,6 +15,7 @@ import "./duo-theme.css";
 import "./event-overview.css";
 import "./connection-indicator.css";
 import SiteLogo from "./site-logo";
+import EventChangeNotices from "./event-change-notices";
 import {prepareProfilePhoto} from "./photo-utils";
 import {ExpenseSplitsPanel,MySplitsSummary} from "./expense-splits";
 import type {ExpenseSplitRow,MyExpenseSplitRow,ExpenseSettlement} from "./expense-splits";
@@ -50,8 +51,12 @@ const chipPriceFields:{value:number;key:ChipPriceKey}[]=[
 ];
 type CreateEvent = {room_id:string;name:string;starts_at:string;location:string;min_entry_brl:string;max_participants:string;league_id:string;visibility:"public"|"private";chip_pricing_special:boolean}&Record<ChipPriceKey,string>;
 const defaultEvent:CreateEvent={room_id:"",name:"",starts_at:"",location:"",min_entry_brl:"0",max_participants:"10",league_id:"",visibility:"public",chip_pricing_special:false,chip_price_1_brl:"1.00",chip_price_5_brl:"5.00",chip_price_10_brl:"0.10",chip_price_25_brl:"0.25",chip_price_50_brl:"0.50"};
-type Modal = "evento" | null;
+type Modal = "evento" | "editar-evento" | null;
 const MONTHS=["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+const localDateTimeInput=(iso:string)=>{
+ const d=new Date(iso);const pad=(n:number)=>String(n).padStart(2,"0");
+ return [d.getFullYear(),pad(d.getMonth()+1),pad(d.getDate())].join("-")+"T"+pad(d.getHours())+":"+pad(d.getMinutes());
+};
 
 function DateTile({value}:{value:string}){
   const d=new Date(value);
@@ -510,7 +515,7 @@ export default function PainelPage(){
   }
 
   // Notificações opcionais: envio autorizado pelo servidor e protegido por JWT.
-  async function sendEventPush(eventId:string,kind:"event"|"poll"|"live"|"summary"){
+  async function sendEventPush(eventId:string,kind:"event"|"poll"|"live"|"summary"|"edit"){
     try{
       const db=getSupabase();if(!db)return;
       const {data:{session}}=await db.auth.getSession();
@@ -729,6 +734,18 @@ export default function PainelPage(){
     setGameView(game);setGameTab(tab);setPage("mesa");setError("");setMessage("");
     window.scrollTo({top:0,behavior:"auto"});
   }
+  function openEditor(event:Event){
+    setForm({
+      room_id:event.room_id,name:event.title,starts_at:localDateTimeInput(event.starts_at),
+      location:event.location,min_entry_brl:String(event.min_entry_brl),
+      max_participants:String(event.max_participants),league_id:event.league_id||"",
+      visibility:event.visibility,chip_pricing_special:event.chip_pricing_special,
+      chip_price_1_brl:String(event.chip_price_1_brl),chip_price_5_brl:String(event.chip_price_5_brl),
+      chip_price_10_brl:String(event.chip_price_10_brl),chip_price_25_brl:String(event.chip_price_25_brl),
+      chip_price_50_brl:String(event.chip_price_50_brl)
+    });
+    setModal("editar-evento");setError("");setMessage("");
+  }
   function openCreator(roomId?:string,leagueId=""){
     const room=(roomId?activeRooms.find(r=>r.id===roomId):undefined)||activeRooms.find(r=>r.game==="poker")||activeRooms[0];
     setForm({...defaultEvent,room_id:room?.id||"",max_participants:room?.game==="blackjack"?"6":"8",league_id:leagueId,visibility:leagueId?"private":"public"});
@@ -765,6 +782,30 @@ export default function PainelPage(){
       setModal(null);openEvent(data.id,"visao");
       if(form.visibility==="public"&&!form.league_id)void sendEventPush(data.id,"event");
     },"Evento criado! Escolham uma cadeira para participar.");
+  }
+
+  async function editEvent(e:FormEvent<HTMLFormElement>){
+    e.preventDefault();
+    const event=selected;
+    if(!event)throw new Error("Selecione um evento para editar.");
+    await act(async db=>{
+      if(!form.starts_at)throw new Error("Informe data e horário.");
+      const {error:editError}=await db.rpc("edit_event_details",{
+        p_event_id:event.id,p_title:form.name.trim(),
+        p_starts_at:new Date(form.starts_at).toISOString(),
+        p_location:form.location.trim(),p_min_entry_brl:Number(form.min_entry_brl),
+        p_max_participants:Number(form.max_participants),
+        p_chip_pricing_special:form.chip_pricing_special,
+        p_chip_price_1_brl:form.chip_pricing_special?Number(form.chip_price_1_brl):1,
+        p_chip_price_5_brl:form.chip_pricing_special?Number(form.chip_price_5_brl):5,
+        p_chip_price_10_brl:form.chip_pricing_special?Number(form.chip_price_10_brl):0.10,
+        p_chip_price_25_brl:form.chip_pricing_special?Number(form.chip_price_25_brl):0.25,
+        p_chip_price_50_brl:form.chip_pricing_special?Number(form.chip_price_50_brl):0.50
+      });
+      if(editError)throw editError;
+      setModal(null);
+      void sendEventPush(event.id,"edit");
+    },"Evento atualizado! Os participantes serão avisados das alterações.",["catalog","presence"]);
   }
   async function chooseSeat(seatNo:number|null){
     if(!selected)return;
@@ -860,7 +901,9 @@ export default function PainelPage(){
       {error&&<p className="mm-message error" role="alert" style={{marginBottom:16}}>{error}</p>}
       {message&&<p className="mm-message" role="status" style={{marginBottom:16}}>{message}</p>}
 
-      {page==="inicio"&&<DashboardV16
+      {(page==="inicio"||page==="eventos")&&<EventChangeNotices userId={user.id} onOpenEvent={id=>openEvent(id)}/>}
+
+       {page==="inicio"&&<DashboardV16
         firstName={firstName} userId={user.id} upcoming={upcoming}
         attendances={attendances} rooms={activeRooms}
         mySplits={mySplits} settlements={settlements}
@@ -1024,6 +1067,10 @@ export default function PainelPage(){
             <div className="mm-action-row">
 
               
+              {(organizer||isAdmin)&&selected.status==="scheduled"&&!selectedLive&&
+                <button type="button" className="btn" disabled={working} onClick={()=>openEditor(selected)}>
+                  <UiIcon name="settings" size={16}/> Editar evento
+                </button>}
               {(organizer||isAdmin)&&selected.status==="scheduled"&&!selectedLive&&
                 !selected.live_start_required&&
                 <button className="btn" type="button" disabled={working||!canFinish}
@@ -1357,15 +1404,15 @@ export default function PainelPage(){
 
     <button className="mm-fab" aria-label="Criar evento" title="Criar evento" type="button" onClick={()=>openCreator()}><UiIcon name="plus" size={29}/></button>
 
-    {modal==="evento"&&<div ref={modalOverlayRef} className="mm-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setModal(null)}}>
+    {(modal==="evento"||modal==="editar-evento")&&<div ref={modalOverlayRef} className="mm-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setModal(null)}}>
       <div className="mm-modal" role="dialog" aria-modal="true" aria-labelledby="new-event-title" tabIndex={-1}>
-        <header><div><div className="eyebrow">ORGANIZAR UMA NOITE</div><h2 id="new-event-title">Criar evento</h2></div><button className="mm-close" type="button" aria-label="Fechar" onClick={()=>setModal(null)}><UiIcon name="close" size={22}/></button></header>
-        <form className="mm-form-stack" onSubmit={addEvent}>
+        <header><div><div className="eyebrow">{modal==="editar-evento"?"AJUSTAR EVENTO":"ORGANIZAR UMA NOITE"}</div><h2 id="new-event-title">{modal==="editar-evento"?"Editar evento":"Criar evento"}</h2></div><button className="mm-close" type="button" aria-label="Fechar" onClick={()=>setModal(null)}><UiIcon name="close" size={22}/></button></header>
+        <form className="mm-form-stack" onSubmit={modal==="editar-evento"?editEvent:addEvent}>
           <label className="mm-field">Escolha a mesa
             <select value={form.room_id} onChange={e=>{
               const newRoom=activeRooms.find(room=>room.id===e.target.value);
               setForm({...form,room_id:e.target.value,max_participants:newRoom?.game==="blackjack"?"6":"8"});
-            }} required>
+            }} disabled={modal==="editar-evento"} required>
               <option value="" disabled>Selecione Poker ou Blackjack</option>
               {(["poker","blackjack"] as Game[]).map(g=>{
                 const table=activeRooms.find(r=>r.game===g);
@@ -1375,7 +1422,7 @@ export default function PainelPage(){
           </label>
           <label className="mm-field">Nome do evento<input required minLength={2} maxLength={100} placeholder="Ex.: Poker de Sexta" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label>
           <label className="mm-field">Liga (opcional)
-             <select value={form.league_id} onChange={e=>setForm({...form,league_id:e.target.value,visibility:e.target.value?"private":"public"})}>
+             <select value={form.league_id} disabled={modal==="editar-evento"} onChange={e=>setForm({...form,league_id:e.target.value,visibility:e.target.value?"private":"public"})}>
                <option value="">Evento independente · sem liga</option>
                {ownLeagues.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
                {form.league_id&&!ownLeagues.some(item=>item.id===form.league_id)&&
@@ -1384,7 +1431,7 @@ export default function PainelPage(){
            </label>
            {form.league_id?<p className="mm-formfoot">Somente membros aprovados poderão ver este evento da liga.</p>:
            <>          <label className="mm-field">Privacidade do evento
-             <select value={form.visibility} onChange={e=>setForm({...form,visibility:e.target.value as "public"|"private"})}>
+             <select value={form.visibility} disabled={modal==="editar-evento"} onChange={e=>setForm({...form,visibility:e.target.value as "public"|"private"})}>
                <option value="public">Público · visível aos jogadores cadastrados</option>
                <option value="private">Privado · somente convidados com link ou QR Code</option>
              </select>
@@ -1395,30 +1442,30 @@ export default function PainelPage(){
             <label className="mm-field">Local<input minLength={2} maxLength={200} required placeholder="Ex.: Casa do Bruno" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></label>
           </div>
           <div className="mm-form-grid">
-            <label className="mm-field">Entrada mínima (R$)<input type="number" min={0} step="0.01" required value={form.min_entry_brl} onChange={e=>setForm({...form,min_entry_brl:e.target.value})}/></label>
+            <label className="mm-field">Entrada mínima (R$)<input type="number" min={0} step="0.01" disabled={modal==="editar-evento"&&Boolean(selected&&buys.some(b=>b.session_id===selected.id))} required value={form.min_entry_brl} onChange={e=>setForm({...form,min_entry_brl:e.target.value})}/></label>
             <label className="mm-field">Vagas (cadeiras)<input type="number" min={2} max={10} step={1} required value={form.max_participants} onChange={e=>setForm({...form,max_participants:e.target.value})}/></label>
           </div>
           <div className="mm-denom-event-setting">
             <label className="mm-denom-special-switch">
-              <input type="checkbox" checked={form.chip_pricing_special}
+              <input type="checkbox" checked={form.chip_pricing_special} disabled={modal==="editar-evento"&&Boolean(selected&&(selected.chip_pricing_locked||buys.some(b=>b.session_id===selected.id)))}
                 onChange={e=>setForm({...form,chip_pricing_special:e.target.checked})}/>
               <span><strong>★ Evento especial</strong><small>Personalizar o preço de cada ficha somente neste evento</small></span>
             </label>
             {form.chip_pricing_special?<div className="mm-denom-price-grid">
               {chipPriceFields.map(field=><label className="mm-field" key={field.key}>
                 Ficha {field.value} · R$
-                <input type="number" min="0.01" max="1000" step="0.01" required
+                <input type="number" min="0.01" max="1000" step="0.01" disabled={modal==="editar-evento"&&Boolean(selected&&(selected.chip_pricing_locked||buys.some(b=>b.session_id===selected.id)))} required
                   value={form[field.key]} onChange={e=>setForm({...form,[field.key]:e.target.value})}/>
               </label>)}
               <p className="mm-formfoot">Os preços personalizados ficam bloqueados após a primeira compra deste evento.</p>
             </div>:<p className="mm-formfoot">Padrão: ficha 1 = R$ 1,00 · ficha 5 = R$ 5,00 · ficha 10 = R$ 0,10 · ficha 25 = R$ 0,25 · ficha 50 = R$ 0,50.</p>}
           </div>
           <div className="mm-create-seat-preview"><strong>♠ ♦ Assentos interativos</strong>
-            <span>Após criar o evento, você irá diretamente para a mesa. Os convidados confirmados poderão escolher seus lugares{activeRooms.find(r=>r.id===form.room_id)?.game==="blackjack"?", inclusive a cadeira exclusiva do crupiê":""}.</span>
+            <span>{modal==="editar-evento"?"Os participantes e assentos já confirmados serão preservados.":"Após criar o evento, você irá diretamente para a mesa."} Os convidados confirmados poderão escolher seus lugares{activeRooms.find(r=>r.id===form.room_id)?.game==="blackjack"?", inclusive a cadeira exclusiva do crupiê":""}.</span>
           </div>
-          <p className="mm-formfoot">{form.visibility==="private"?"Somente convidados autorizados terão acesso. Após criar, gere o convite e compartilhe o QR Code.":"Todos os usuários cadastrados poderão ver este evento."}</p>
+          <p className="mm-formfoot">{modal==="editar-evento"?"Alterações de nome, data, horário, local e valores serão avisadas aos participantes. Eventos já iniciados não podem ser editados.":form.visibility==="private"?"Somente convidados autorizados terão acesso. Após criar, gere o convite e compartilhe o QR Code.":"Todos os usuários cadastrados poderão ver este evento."}</p>
           {error&&<p className="mm-message error" role="alert">{error}</p>}
-          <div className="mm-form-actions"><button type="button" className="btn" onClick={()=>setModal(null)}>Cancelar</button><button type="submit" className="btn gold" disabled={working}>{working?"Salvando...":"Criar evento →"}</button></div>
+          <div className="mm-form-actions"><button type="button" className="btn" onClick={()=>setModal(null)}>Cancelar</button><button type="submit" className="btn gold" disabled={working}>{working?"Salvando...":modal==="editar-evento"?"Salvar alterações":"Criar evento →"}</button></div>
         </form>
       </div>
     </div>}
