@@ -1,0 +1,12 @@
+.mm-league-notifications{border:1px solid #304761;background:#0f1c2d;border-radius:14px;padding:2px}
+.mm-league-notices-toggle{width:100%;background:transparent;color:#eaf4ff;border:0;
+ padding:15px;display:flex;align-items:center;gap:11px;text-align:left;cursor:pointer}
+.mm-league-notices-toggle strong{flex:1;font-size:13px}.mm-league-unread{background:#258bff;color:#fff;
+ padding:5px 8px;border-radius:99px;font-size:11px;font-weight:800}
+.mm-league-notices-list{border-top:1px solid #304761;padding:7px 12px;max-height:360px;overflow:auto}
+.mm-league-notice{width:100%;background:transparent;border:0;border-bottom:1px solid #26384c;padding:12px 4px;
+ color:#dceafa;display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer}
+.mm-league-notice:hover{background:#1a2b41}.mm-league-notice.unread{background:#152b44}
+.mm-league-notice-icon{color:#72bcff}.mm-league-notice>span:nth-child(2){flex:1;display:grid;gap:5px}
+.mm-league-notice strong{font-size:12px}.mm-league-notice small{font-size:10px;color:#acc2d8}
+.mm-league-notice i{width:8px;height:8px;border-radius:50%;background:#258bff}
