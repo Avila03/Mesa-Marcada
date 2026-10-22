@@ -336,7 +336,7 @@ export default function PainelPage(){
     }
   },[selectedId]);
 
-  const connection=useClubRealtime({enabled:Boolean(user),eventId:selectedId,onRefresh:refreshScope});
+  const connection=useClubRealtime({enabled:Boolean(user),eventId:page==="detalhe"?selectedId:"",onRefresh:refreshScope});
 
   useEffect(()=>{
     let alive=true;

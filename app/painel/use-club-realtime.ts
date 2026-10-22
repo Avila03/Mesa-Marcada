@@ -67,7 +67,11 @@ export function useClubRealtime({
    };
    const channel=db.channel("mm-changes-"+(eventId||"catalog"));
    for(const [table,scope] of watched){
+     // Fora de um evento, somente alterações relevantes à agenda
+     // e aos perfis geram tráfego (não acompanha 12 tabelas à toa).
+     if(!eventId&&scope!=="catalog"&&scope!=="profiles"&&table!=="session_attendance")continue;
      channel.on("postgres_changes",{event:"*",schema:"public",table},payload=>{
+       if(!eventId&&table==="session_attendance"){enqueue("catalog");return;}
        const record=(payload.new&&Object.keys(payload.new).length?payload.new:payload.old) as Record<string,unknown>;
        // Eventos podem não incluir id em DELETE sob RLS; conciliação cobre esses casos.
        if(eventId&&record?.session_id&&record.session_id!==eventId&&scope!=="catalog")return;

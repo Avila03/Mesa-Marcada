@@ -208,7 +208,7 @@ function utcIcs(value:Date){return value.toISOString().replace(/[-:]/g,"").repla
 
 export function EventShareActions({id,title,date,room}:{id:string;title:string;date:string;room:string}){
   const [result,setResult]=useState("");
-  const url=typeof window==="undefined"?"":window.location.origin+"/evento/"+id;
+  const url=typeof window==="undefined"?"":window.location.origin+"/eventos/"+id;
   const caption=[title,room,fullDate(date),"Escolha seu assento no Mesa Marcada:",url].join("\n");
   async function share(){
     if(!url)return;
