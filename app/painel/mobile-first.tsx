@@ -805,8 +805,10 @@ export default function PainelPage(){
     ...(isAdmin?[["admin","Administração","settings"] as [View,string,UiIconName]]:[])
   ];
   const activePage=page==="detalhe"?"eventos":page==="mesa"?"mesas":page==="liga"||page==="liga-admin"?"ligas":page;
+  // Cinco destinos permanentes: Ligas e Ranking acessíveis de qualquer página,
+  // inclusive evento Ao Vivo, perfil e painel do administrador.
   const mobileNavEntries=navEntries.filter(([id])=>
-    id==="inicio"||id==="eventos"||id==="ligas"||id==="perfil"
+    id==="inicio"||id==="eventos"||id==="ligas"||id==="ranking"||id==="perfil"
   );
   const mobileActivePage=page==="mesas"||page==="mesa"?"inicio":page==="admin"?"perfil":activePage;
   return <div className={"layout "+(page==="mesa"&&gameView==="blackjack"||page==="detalhe"&&selectedGame==="blackjack"?"mm-game-blackjack":page==="mesa"&&gameView==="poker"||page==="detalhe"&&selectedGame==="poker"?"mm-game-poker":"")}>

@@ -26,8 +26,7 @@ assert.ok(styles.includes("safe-area-inset-top"),"iOS PWA status bar safe area m
 assert.ok(panel.includes('getTime()>=Date.now()'),"Old events shown as upcoming");
 assert.ok(panel.includes('className="nav mm-bottom-nav"'),"Mobile bottom nav missing");
 assert.ok(panel.includes('className="nav mm-desktop-nav"'),"Desktop nav must remain");
-/* Desktop regression: os itens devem ficar empilhados, nunca em linha.
-   O mobile usa sua própria barra inferior com quatro abas. */
+/* Desktop navigation stays stacked; mobile keeps five permanent destinations. */
 const desktopNavCss=styles.match(/\.sidebar \.mm-desktop-nav\{[^}]+\}/)?.[0]||"";
 assert.ok(/flex-direction:\s*column/.test(desktopNavCss),
   "Desktop navigation must stack vertically, not overflow sideways");
@@ -40,13 +39,13 @@ const mobileNav=panel.slice(
   panel.indexOf("const mobileNavEntries="),
   panel.indexOf("const mobileActivePage")
 );
-for(const key of ['id==="inicio"','id==="eventos"','id==="ranking"','id==="perfil"']){
+for(const key of ['id==="inicio"','id==="eventos"','id==="ligas"','id==="ranking"','id==="perfil"']){
   assert.ok(mobileNav.includes(key),"Missing mobile tab: "+key);
 }
 assert.ok(!mobileNav.includes('id==="mesas"')&&!mobileNav.includes('id==="admin"'),
-  "Mobile tabs should be exactly four; extra screens need shortcuts");
-assert.ok(styles.includes("grid-template-columns:repeat(4,minmax(0,1fr))"),
-  "Mobile bottom bar must have four equally sized columns");
+  "Other screens remain accessible via shortcuts, not new permanent tabs");
+assert.ok(styles.includes("grid-template-columns:repeat(5,minmax(0,1fr))"),
+  "Mobile bottom bar must have five equally sized columns");
 assert.ok(styles.includes("safe-area-inset-bottom"),"iPhone bottom safe area missing");
 assert.ok(panel.includes("<DashboardV16"),"Action-oriented dashboard missing");
 assert.ok(!panel.includes("A próxima rodada<br/>começa aqui"),"Old oversized homepage hero still present");
@@ -55,7 +54,14 @@ for(const anchor of [
   "Poker","Blackjack","onGame(game)","onAdmin","onProfile"
 ])assert.ok(dashboard.includes(anchor),"Dashboard action or information missing: "+anchor);
 assert.ok(panel.includes("mm-profile-admin-link"),
-  "Admin must remain accessible with only four mobile tabs");
+  "Admin must remain accessible from profile");
+assert.ok(panel.includes('const activePage=page==="detalhe"?"eventos"')&&
+ panel.includes('page==="liga"||page==="liga-admin"?"ligas":page;'),
+ "League subpages must highlight Ligas in navigation");
+assert.ok(panel.includes('onLeagues={()=>go("ligas")}'),
+ "Homepage must link to Ligas");
+assert.ok(dashboard.includes("<LeagueHomePreview"),
+ "Minhas Ligas must remain on the Inicio homepage");
 assert.ok(panel.includes('onTables={()=>go("mesas")}'),
   "Mesas must remain accessible without a mobile tab");
 assert.ok(dashboard.includes("settled.has("),"Debt totals must exclude settled expenses");
