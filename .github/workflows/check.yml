@@ -23,6 +23,7 @@ jobs:
       - run: npm run check:leagues
       - run: npm run check:leagues51
       - run: npm run check:crest
+      - run: npm run check:edit
       - run: npm run check:scroll
       - run: npm run build
       - run: npm run smoke
