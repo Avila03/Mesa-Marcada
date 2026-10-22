@@ -1,6 +1,6 @@
 {
   "name": "mesa-marcada",
-  "version": "1.7.1",
+  "version": "5.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -13,7 +13,8 @@
     "check:scroll": "node scripts/check-scroll-v171.mjs",
     "check:finance": "node scripts/check-finance-report.mjs",
     "check:invites": "node scripts/check-invites-pwa.mjs",
-    "check:leagues": "node scripts/check-leagues.mjs"
+    "check:leagues": "node scripts/check-leagues.mjs",
+    "check:leagues51": "node scripts/check-leagues-v51.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.0",

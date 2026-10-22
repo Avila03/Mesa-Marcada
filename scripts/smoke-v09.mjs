@@ -65,6 +65,11 @@ try{
   });
   assert.equal(unauthorizedPush.status,401,"Push API must reject unauthenticated delivery");
 
+  const unauthenticatedLeaguePush=await fetch(base+"/api/push/league-request",{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({leagueId:eventId})
+  });
+  assert.equal(unauthenticatedLeaguePush.status,401,"League push must reject unauthenticated senders");
   const serviceWorker=await verify("/sw.js",200);
   const serviceWorkerText=await serviceWorker.text();
   assert.ok(serviceWorkerText.includes('event.request')&&serviceWorkerText.includes("/offline.html"));
