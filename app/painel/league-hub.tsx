@@ -248,6 +248,7 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
     p_league_id:current.id,p_name:name.trim(),p_description:description.trim(),
     p_visibility:visibility,p_rules:rules.trim()
    });if(err)throw err;
+   setCreate(false);
   },"Informações da liga atualizadas.");
  }
  function editLeague(){if(!current)return;setName(current.name);setDescription(current.description);
