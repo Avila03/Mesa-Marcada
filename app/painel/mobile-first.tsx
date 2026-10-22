@@ -22,6 +22,8 @@ import AdminPanel from "./admin-panel";
 import MobileAppCompanion from "./mobile-app-companion";
 import UiIcon from "./ui-icon";
 import DashboardV16 from "./dashboard-v16";
+import LeagueHub from "./league-hub";
+import type {League} from "./league-hub";
 import EventLivePanel,{LiveMovements} from "./event-live-panel";
 import NightSummary from "./night-summary";
 import PrivateInviteShare from "./private-invite-share";
@@ -46,8 +48,8 @@ const chipPriceFields:{value:number;key:ChipPriceKey}[]=[
   {value:25,key:"chip_price_25_brl"},
   {value:50,key:"chip_price_50_brl"}
 ];
-type CreateEvent = {room_id:string;name:string;starts_at:string;location:string;min_entry_brl:string;max_participants:string;visibility:"public"|"private";chip_pricing_special:boolean}&Record<ChipPriceKey,string>;
-const defaultEvent:CreateEvent={room_id:"",name:"",starts_at:"",location:"",min_entry_brl:"0",max_participants:"10",visibility:"public",chip_pricing_special:false,chip_price_1_brl:"1.00",chip_price_5_brl:"5.00",chip_price_10_brl:"0.10",chip_price_25_brl:"0.25",chip_price_50_brl:"0.50"};
+type CreateEvent = {room_id:string;name:string;starts_at:string;location:string;min_entry_brl:string;max_participants:string;league_id:string;visibility:"public"|"private";chip_pricing_special:boolean}&Record<ChipPriceKey,string>;
+const defaultEvent:CreateEvent={room_id:"",name:"",starts_at:"",location:"",min_entry_brl:"0",max_participants:"10",league_id:"",visibility:"public",chip_pricing_special:false,chip_price_1_brl:"1.00",chip_price_5_brl:"5.00",chip_price_10_brl:"0.10",chip_price_25_brl:"0.25",chip_price_50_brl:"0.50"};
 type Modal = "evento" | null;
 const MONTHS=["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 
@@ -93,6 +95,8 @@ export default function PainelPage(){
   const [routeReady,setRouteReady]=useState(false);
   const [detailTab,setDetailTab]=useState<DetailTab>("visao");
   const [selectedId,setSelectedId]=useState("");
+  const [selectedLeagueId,setSelectedLeagueId]=useState("");
+  const [leagueCatalog,setLeagueCatalog]=useState<League[]>([]);
   const [profileId,setProfileId]=useState("");
   const [profileReturn,setProfileReturn]=useState<View>("ranking");
   const [financeRows,setFinanceRows]=useState<FinanceLine[]>([]);
@@ -135,6 +139,7 @@ export default function PainelPage(){
   const [rankGame,setRankGame]=useState<Game>("poker");
   const [eventFilter,setEventFilter]=useState<"todos"|"agendados"|"encerrados">("agendados");
   const [form,setForm]=useState<CreateEvent>(defaultEvent);
+  const ownLeagues=leagueCatalog.filter(item=>item.my_role==="owner");
   const [pollQuestion,setPollQuestion]=useState("");
   const [pollOptions,setPollOptions]=useState("Pizza\nHambúrguer\nChurrasco");
     const [liveSubtab,setLiveSubtab]=useState<LiveSubtab>("compra");
@@ -232,7 +237,7 @@ export default function PainelPage(){
   useEffect(()=>{
     const sync=()=>{
       const state=readClubRoute(window.location.pathname,window.location.search);
-      setPage(state.page);setSelectedId(state.selectedId);
+      setPage(state.page);setSelectedId(state.selectedId);setSelectedLeagueId(state.leagueId);
       setDetailTab(state.detailTab);setGameView(state.gameView);setGameTab(state.gameTab);
       setRouteReady(true);
     };
@@ -243,10 +248,10 @@ export default function PainelPage(){
 
   useEffect(()=>{
     if(!routeReady)return;
-    const next=clubHref(page,selectedId,detailTab,gameView,gameTab);
+    const next=clubHref(page,selectedId,detailTab,gameView,gameTab,selectedLeagueId);
     const now=window.location.pathname+window.location.search;
     if(next!==now)window.history.pushState({mesaMarcada:true},"",next);
-  },[routeReady,page,selectedId,detailTab,gameView,gameTab]);
+  },[routeReady,page,selectedId,detailTab,gameView,gameTab,selectedLeagueId]);
 
   // Leituras incrementais por área: evita as 24 consultas de reload()
   // quando outro participante escolhe cadeira, vota ou registra fichas.
@@ -713,6 +718,10 @@ export default function PainelPage(){
     setPage("detalhe");setError("");setMessage("");window.scrollTo({top:0,behavior:"auto"});
     if(sub==="gastos")window.setTimeout(()=>document.getElementById("event-expenses")?.scrollIntoView({behavior:"smooth",block:"start"}),140);
   }
+  function openLeague(id:string,manage=false){
+    setSelectedLeagueId(id);setPage(manage?"liga-admin":"liga");setError("");setMessage("");
+    window.scrollTo({top:0,behavior:"auto"});
+  }
   function go(next:View){
     setPage(next);setError("");setMessage("");window.scrollTo({top:0,behavior:"auto"});
   }
@@ -720,11 +729,18 @@ export default function PainelPage(){
     setGameView(game);setGameTab(tab);setPage("mesa");setError("");setMessage("");
     window.scrollTo({top:0,behavior:"auto"});
   }
-  function openCreator(roomId?:string){
+  function openCreator(roomId?:string,leagueId=""){
     const room=(roomId?activeRooms.find(r=>r.id===roomId):undefined)||activeRooms.find(r=>r.game==="poker")||activeRooms[0];
-    setForm({...defaultEvent,room_id:room?.id||"",max_participants:room?.game==="blackjack"?"6":"8"});
+    setForm({...defaultEvent,room_id:room?.id||"",max_participants:room?.game==="blackjack"?"6":"8",league_id:leagueId,visibility:leagueId?"private":"public"});
     setModal("evento");setError("");setMessage("");
   }
+  useEffect(()=>{
+    if(!user||modal!=="evento")return;
+    const db=getSupabase();if(!db)return;
+    void db.rpc("get_league_catalog").then(({data,error})=>{
+      if(!error)setLeagueCatalog((data||[]) as League[]);
+    });
+  },[user,modal]);
   async function addEvent(e:FormEvent<HTMLFormElement>){
     e.preventDefault();
     await act(async(db,id)=>{
@@ -736,7 +752,8 @@ export default function PainelPage(){
         room_id:room.id,organizer_id:id,title:form.name.trim(),
         starts_at:new Date(form.starts_at).toISOString(),location:form.location.trim(),
         min_entry_brl:Number(form.min_entry_brl),max_participants:Number(form.max_participants),
-         visibility:form.visibility,
+         visibility:form.league_id?"private":form.visibility,
+        league_id:form.league_id||null,
         chip_pricing_special:form.chip_pricing_special,
         chip_price_1_brl:form.chip_pricing_special?Number(form.chip_price_1_brl):1,
         chip_price_5_brl:form.chip_pricing_special?Number(form.chip_price_5_brl):5,
@@ -746,7 +763,7 @@ export default function PainelPage(){
       }).select("id").single();
       if(eventError)throw eventError;
       setModal(null);openEvent(data.id,"visao");
-      if(form.visibility==="public")void sendEventPush(data.id,"event");
+      if(form.visibility==="public"&&!form.league_id)void sendEventPush(data.id,"event");
     },"Evento criado! Escolham uma cadeira para participar.");
   }
   async function chooseSeat(seatNo:number|null){
@@ -786,7 +803,7 @@ export default function PainelPage(){
     ["perfil","Perfil","user"],
     ...(isAdmin?[["admin","Administração","settings"] as [View,string,UiIconName]]:[])
   ];
-  const activePage=page==="detalhe"?"eventos":page==="mesa"?"mesas":page;
+  const activePage=page==="detalhe"?"eventos":page==="mesa"?"mesas":page==="liga"||page==="liga-admin"?"ligas":page;
   const mobileNavEntries=navEntries.filter(([id])=>
     id==="inicio"||id==="eventos"||id==="ranking"||id==="perfil"
   );
@@ -826,7 +843,7 @@ export default function PainelPage(){
         <div className="mm-mobile-account"><button type="button" className="mm-v09-profile-link" aria-label="Abrir meu perfil" onClick={()=>{setProfileId(user.id);go("perfil")}}><PlayerAvatar photoUrl={photoUrls[user.id]} name={nickname}/></button><button type="button" aria-label="Sair" onClick={async()=>{await getSupabase()?.auth.signOut();window.location.replace("/login")}}><UiIcon name="log-out" size={21}/></button></div>
       </div>
       <div className="mm-breadcrumb-row">
-        <div className="breadcrumb">Mesa Marcada　/　{page==="inicio"?"Visão geral":page==="detalhe"?"Evento":page==="mesa"?"Mesa de "+gameName(gameView):page==="eventos"?"Eventos":page==="mesas"?"Mesas":page==="perfil"?"Perfil":page==="admin"?"Administração":"Ranking"}</div>
+        <div className="breadcrumb">Mesa Marcada　/　{page==="inicio"?"Visão geral":page==="detalhe"?"Evento":page==="mesa"?"Mesa de "+gameName(gameView):page==="eventos"?"Eventos":page==="mesas"?"Mesas":page==="perfil"?"Perfil":page==="admin"?"Administração":page==="ligas"||page==="liga"||page==="liga-admin"?"Ligas":"Ranking"}</div>
         <div className="mm-connection-group">
           <span className={"mm-sync-pill "+connection} role="status" aria-live="polite"
             title={connection==="connected"?"Atualizações em tempo real ativas":connection==="offline"?"Sem conexão; atualiza ao reconectar":"Sincronizando dados"}>
@@ -854,8 +871,19 @@ export default function PainelPage(){
         onProfile={()=>{setProfileId(user.id);go("perfil")}}
         onRanking={()=>go("ranking")}
         onAdmin={()=>go("admin")}
+        onLeagues={()=>go("ligas")}
+        onOpenLeague={id=>openLeague(id)}
       />}
 
+      {(page==="ligas"||page==="liga"||page==="liga-admin")&&
+        <LeagueHub leagueId={selectedLeagueId}
+          mode={page==="ligas"?"list":page==="liga-admin"?"manage":"detail"}
+          userId={user.id} profiles={profiles} events={agendaEvents} rooms={activeRooms}
+          onBack={()=>go("ligas")}
+          onOpenLeague={openLeague}
+          onOpenEvent={id=>openEvent(id)}
+          onCreateEvent={leagueId=>openCreator(undefined,leagueId)}
+        />}
       {page==="eventos"&&<>
         <div className="heading"><div><div className="eyebrow">AGENDA DO GRUPO</div><h1>Eventos</h1><p>Confira as próximas noites ou marque um novo encontro.</p></div><button className="btn gold mm-create" type="button" onClick={()=>openCreator()}><UiIcon name="plus" size={18}/> Criar evento</button></div>
         <div className="mm-filter-bar" aria-label="Filtrar eventos">
@@ -1338,12 +1366,22 @@ export default function PainelPage(){
             </select>
           </label>
           <label className="mm-field">Nome do evento<input required minLength={2} maxLength={100} placeholder="Ex.: Poker de Sexta" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label>
-          <label className="mm-field">Privacidade do evento
+          <label className="mm-field">Liga (opcional)
+             <select value={form.league_id} onChange={e=>setForm({...form,league_id:e.target.value,visibility:e.target.value?"private":"public"})}>
+               <option value="">Evento independente · sem liga</option>
+               {ownLeagues.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
+               {form.league_id&&!ownLeagues.some(item=>item.id===form.league_id)&&
+                <option value={form.league_id}>Liga selecionada</option>}
+             </select>
+           </label>
+           {form.league_id?<p className="mm-formfoot">Somente membros aprovados poderão ver este evento da liga.</p>:
+           <>          <label className="mm-field">Privacidade do evento
              <select value={form.visibility} onChange={e=>setForm({...form,visibility:e.target.value as "public"|"private"})}>
                <option value="public">Público · visível aos jogadores cadastrados</option>
                <option value="private">Privado · somente convidados com link ou QR Code</option>
              </select>
-           </label>
+           </label></>}
+
            <div className="mm-form-grid">
             <label className="mm-field">Data e horário<input type="datetime-local" required value={form.starts_at} onChange={e=>setForm({...form,starts_at:e.target.value})}/></label>
             <label className="mm-field">Local<input minLength={2} maxLength={200} required placeholder="Ex.: Casa do Bruno" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></label>
