@@ -26,6 +26,7 @@ jobs:
       - run: npm run check:edit
       - run: npm run check:refinements
       - run: npm run check:poll
+      - run: npm run check:expense
       - run: npm run check:scroll
       - run: npm run build
       - run: npm run smoke

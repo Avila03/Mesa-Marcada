@@ -32,6 +32,7 @@ import NightSummary from "./night-summary";
 import PrivateInviteShare from "./private-invite-share";
 import SeatingTable from "./seating-table";
 import PollComposer from "./poll-composer";
+import ExpenseComposer from "./expense-composer";
 import type {TableSeat} from "./seating-table";
 import {useStableDialog} from "./use-stable-dialog";
 import {readClubRoute,clubHref} from "@/lib/app-routes";
@@ -151,17 +152,12 @@ export default function PainelPage(){
   const ownLeagues=leagueCatalog.filter(item=>!item.finished_at&&(item.my_role==="owner"||item.my_role==="organizer"));
     const [liveSubtab,setLiveSubtab]=useState<LiveSubtab>("compra");
   const [showPastPolls,setShowPastPolls]=useState(false);
-  const [showAddExpense,setShowAddExpense]=useState(false);
   const [cashoutFor,setCashoutFor]=useState("");
   const [cashoutDraft,setCashoutDraft]=useState("");
   const [purchaseFor,setPurchaseFor]=useState("");
   const [finalItems,setFinalItems]=useState<{session_id:string;user_id:string;chip_value:number;quantity:number}[]>([]);
   const [chipCashouts,setChipCashouts]=useState<{session_id:string;user_id:string;final_brl:number;updated_at:string}[]>([]);
   const [chipPayouts,setChipPayouts]=useState<{session_id:string;user_id:string;confirmed_at:string}[]>([]);
-  const [expenseName,setExpenseName]=useState("");
-  const [expenseAmount,setExpenseAmount]=useState("");
-  const [expenseCategory,setExpenseCategory]=useState("food");
-  const [expensePayer,setExpensePayer]=useState("");
 
   const reload=useCallback(async(mode:"full"|"list"="full")=>{
     const db=getSupabase();
@@ -737,7 +733,7 @@ export default function PainelPage(){
     setDetailTab(isFinished?"resumo-evento":sub==="fichas"?"ao-vivo":
       (sub==="assentos"||sub==="enquetes"||sub==="gastos"?"visao":sub));
     setLiveSubtab("compra");
-    setShowPastPolls(false);setShowAddExpense(false);
+    setShowPastPolls(false);
     setPage("detalhe");setError("");setMessage("");window.scrollTo({top:0,behavior:"auto"});
     if(sub==="gastos")window.setTimeout(()=>document.getElementById("event-expenses")?.scrollIntoView({behavior:"smooth",block:"start"}),140);
   }
@@ -831,6 +827,27 @@ export default function PainelPage(){
       const {error:seatError}=await db.rpc("choose_table_seat",{p_event_id:selected.id,p_seat_no:seatNo});
       if(seatError)throw seatError;
     },seatNo===null?"Você saiu da mesa.":seatNo===0?"Você assumiu o crupiê e entrou no evento.":"Você entrou no evento! Assento reservado.",["presence","catalog"]);
+  }
+
+  async function createExpense(details:{label:string;amount:number;category:string;paidBy:string}):Promise<void>{
+    if(!selected||!user)throw new Error("Selecione um evento e entre na sua conta.");
+    if(!meConfirmed||selected.status!=="scheduled")throw new Error("É necessário participar de um evento agendado para registrar despesas.");
+    const db=getSupabase();if(!db)throw new Error("Não foi possível conectar ao Supabase.");
+    if(details.label.trim().length<2||!Number.isFinite(details.amount)||details.amount<=0)
+      throw new Error("Confira a descrição e o valor da despesa.");
+    const payer=organizer&&guests.some(g=>g.user_id===details.paidBy)?details.paidBy:user.id;
+    setWorking(true);setError("");setMessage("");
+    try{
+      const {error:expenseError}=await db.from("session_expenses").insert({
+        session_id:selected.id,created_by:user.id,paid_by:payer,
+        label:details.label.trim(),category:details.category,amount_brl:details.amount
+      });
+      if(expenseError)throw expenseError;
+      await refreshScope("expenses");
+      setMessage("Despesa registrada!");
+    }catch(e){
+      const description=errText(e);setError(description);throw new Error(description);
+    }finally{setWorking(false);}
   }
 
   async function createPoll(question:string,labels:string[]):Promise<void>{
@@ -1196,8 +1213,12 @@ export default function PainelPage(){
               <button type="button" className="btn" onClick={()=>document.getElementById("event-expenses")?.scrollIntoView({behavior:"smooth",block:"start"})}>Ver despesas e rachas →</button>
               <button type="button" className="btn" onClick={()=>{setDetailTab("ao-vivo");setLiveSubtab("compra")}}>Ver compras ao vivo →</button>
             </div>
-            {meConfirmed&&selected.status==="scheduled"&&
-              <PollComposer key={selected.id} onCreate={createPoll} disabled={working}/>}
+            {meConfirmed&&selected.status==="scheduled"&&<>
+              <PollComposer key={"poll-"+selected.id} onCreate={createPoll} disabled={working}/>
+              <ExpenseComposer key={"expense-"+selected.id} userId={user.id} organizer={organizer}
+                attendees={guests.map(g=>g.user_id)} nameFor={nameFor}
+                onCreate={createExpense} disabled={working}/>
+            </>}
           </section>
         </div>
 
@@ -1239,12 +1260,6 @@ export default function PainelPage(){
           </div>
         </div>
         <section id="event-expenses" className="mm-overview-expenses" aria-label="Despesas e rachas">
-          {privateVisible&&<div className="mm-overview-expense-tools">
-            <button type="button" className="btn" aria-expanded={showAddExpense}
-              onClick={()=>setShowAddExpense(open=>!open)}>
-              {showAddExpense?"Fechar formulário":"＋ Adicionar despesa"}
-            </button>
-          </div>}
         {!privateVisible?
           <div className="panel"><h2>Despesas restritas</h2><p>Confirme sua presença para consultar e participar dos rachas deste evento.</p></div>:
           <ExpenseSplitsPanel
@@ -1269,25 +1284,7 @@ export default function PainelPage(){
                 if(deleteError)throw deleteError;
               },"Gasto e racha excluídos.","expenses");
             }}
-            createForm={showAddExpense?<section className="panel">
-                <h2>Adicionar despesa</h2><p style={{margin:"9px 0 16px"}}>Comidas, bebidas e materiais da noite.</p>
-                <form className="mm-form-stack" onSubmit={e=>{e.preventDefault();void act(async(db,id)=>{
-                  const {error:expenseError}=await db.from("session_expenses").insert({session_id:selected.id,created_by:id,paid_by:organizer&&guests.some(g=>g.user_id===expensePayer)?expensePayer:id,label:expenseName.trim(),category:expenseCategory,amount_brl:Number(expenseAmount)});
-                  if(expenseError)throw expenseError;setExpenseName("");setExpenseAmount("");
-                },"Despesa registrada!","expenses")}}>
-                  <label className="mm-field">Descrição<input minLength={2} required value={expenseName} onChange={e=>setExpenseName(e.target.value)} placeholder="Pizza e bebidas"/></label>
-                  <div className="mm-form-grid">
-                    <label className="mm-field">Valor (R$)<input type="number" min="0.01" step="0.01" required value={expenseAmount} onChange={e=>setExpenseAmount(e.target.value)}/></label>
-                    <label className="mm-field">Categoria<select value={expenseCategory} onChange={e=>setExpenseCategory(e.target.value)}><option value="food">Comida</option><option value="drinks">Bebidas</option><option value="materials">Materiais</option><option value="other">Outros</option></select></label>
-                  </div>
-                  <label className="mm-field">Quem pagou?
-                    {organizer?<select value={expensePayer||user.id} onChange={e=>setExpensePayer(e.target.value)}>
-                      {guests.map(g=><option key={g.user_id} value={g.user_id}>{nameFor(g.user_id)}{g.user_id===user.id?" (eu)":""}</option>)}
-                    </select>:<input disabled readOnly value={nickname+" (eu)"}/>}
-                  </label>
-                  <button className="btn gold" disabled={working||!meConfirmed||selected.status!=="scheduled"}>Salvar despesa</button>
-                </form>
-              </section>:null}
+            createForm={null}
           />
         }
         </section>
