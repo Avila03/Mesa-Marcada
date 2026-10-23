@@ -1,0 +1,5 @@
+.mm-expense-composer .mm-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.mm-expense-composer .mm-field{min-width:0}
+.mm-expense-composer .mm-field input,.mm-expense-composer .mm-field select{min-width:0;min-height:44px}
+.mm-expense-composer .mm-poll-composer-heading span{line-height:1.5}
+@media(max-width:560px){.mm-expense-composer .mm-form-grid{grid-template-columns:1fr}}
