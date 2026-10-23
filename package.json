@@ -19,7 +19,8 @@
     "check:edit": "node scripts/check-event-edits.mjs",
     "check:refinements": "node scripts/check-refinements.mjs",
     "check:poll": "node scripts/check-poll-composer.mjs",
-    "check:expense": "node scripts/check-expense-composer.mjs"
+    "check:expense": "node scripts/check-expense-composer.mjs",
+    "check:performance": "node scripts/check-performance.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.0",

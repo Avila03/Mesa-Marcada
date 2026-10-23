@@ -1,11 +1,11 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { getSupabase } from "@/lib/supabase/browser";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Game, View, DetailTab, Profile, Room, Event, Attendance, Poll, Choice, Vote, Buy, BuyItem, ChipResult, Expense, Rank } from "@/lib/mesa-types";
 import { money, fullDate, eventTime, gameName, errText } from "@/lib/mesa-types";
-import TableTutorial from "./table-tutorial";
 import "../v05-theme.css";
 import {AttendeeMiniCard,EventShareActions,FinanceReviewBoard,PlayerAvatar,ProfilePanel} from "./v09-features";
 import type {FinanceLine} from "./v09-features";
@@ -21,16 +21,11 @@ import "./refinements.css";
 import {prepareProfilePhoto} from "./photo-utils";
 import {ExpenseSplitsPanel,MySplitsSummary} from "./expense-splits";
 import type {ExpenseSplitRow,MyExpenseSplitRow,ExpenseSettlement} from "./expense-splits";
-import AdminPanel from "./admin-panel";
 import MobileAppCompanion from "./mobile-app-companion";
 import UiIcon from "./ui-icon";
 import DashboardV16 from "./dashboard-v16";
-import LeagueHub from "./league-hub";
 import type {League} from "./league-hub";
-import EventLivePanel,{LiveMovements} from "./event-live-panel";
-import NightSummary from "./night-summary";
 import PrivateInviteShare from "./private-invite-share";
-import SeatingTable from "./seating-table";
 import PollComposer from "./poll-composer";
 import ExpenseComposer from "./expense-composer";
 import type {TableSeat} from "./seating-table";
@@ -40,9 +35,18 @@ import {useClubRealtime} from "./use-club-realtime";
 import type {UpdateScope} from "./use-club-realtime";
 import type {LiveState,LiveActivity} from "./event-live-panel";
 import type {UiIconName} from "./ui-icon";
-import AdvancedRankingPanel,{PlayerAchievements} from "./advanced-ranking";
 import type {AdvancedRank} from "./advanced-ranking";
 import type {HiddenEvent,AdminAudit} from "./admin-panel";
+const TableTutorial=dynamic(()=>import("./table-tutorial"),{loading:()=>null});
+const AdminPanel=dynamic(()=>import("./admin-panel"),{loading:()=>null});
+const LeagueHub=dynamic(()=>import("./league-hub"),{loading:()=>null});
+const EventLivePanel=dynamic(()=>import("./event-live-panel"),{loading:()=>null});
+const LiveMovements=dynamic(()=>import("./event-live-panel").then(module=>module.LiveMovements),{loading:()=>null});
+const NightSummary=dynamic(()=>import("./night-summary"),{loading:()=>null});
+const SeatingTable=dynamic(()=>import("./seating-table"),{loading:()=>null});
+const AdvancedRankingPanel=dynamic(()=>import("./advanced-ranking"),{loading:()=>null});
+const PlayerAchievements=dynamic(()=>import("./advanced-ranking").then(module=>module.PlayerAchievements),{loading:()=>null});
+
 
 type LiveSubtab="compra"|"resumo"|"encerrar";
 type ChipPriceKey="chip_price_1_brl"|"chip_price_5_brl"|"chip_price_10_brl"|"chip_price_25_brl"|"chip_price_50_brl";
@@ -297,12 +301,15 @@ export default function PainelPage(){
       return;
     }
     if(scope==="polls"){
-      const [survey,options,voting]=await Promise.all([
-        db.from("session_polls").select("*").eq("session_id",selectedId).order("created_at",{ascending:false}),
-        db.from("session_poll_options").select("*").order("position"),
-        db.from("session_poll_votes").select("poll_id,option_id,user_id")
-      ]);
-      setPolls(prev=>merge(prev,unwrap(survey) as Poll[],selectedId));
+      const survey=await db.from("session_polls").select("*")
+        .eq("session_id",selectedId).order("created_at",{ascending:false});
+      const pollRows=unwrap(survey) as Poll[];
+      const pollIds=pollRows.map(p=>p.id);
+      const [options,voting]=pollIds.length?await Promise.all([
+        db.from("session_poll_options").select("*").in("poll_id",pollIds).order("position"),
+        db.from("session_poll_votes").select("poll_id,option_id,user_id").in("poll_id",pollIds)
+      ]):[{data:[],error:null},{data:[],error:null}];
+      setPolls(prev=>merge(prev,pollRows,selectedId));
       setChoices(unwrap(options) as Choice[]);
       setVotes(unwrap(voting) as Vote[]);
       return;
@@ -330,9 +337,8 @@ export default function PainelPage(){
       return;
     }
     if(scope==="chips"){
-      const [purchases,items,resultsRows,finals,payouts,cashouts,approvalsRows,live]=await Promise.all([
+      const [purchases,resultsRows,finals,payouts,cashouts,approvalsRows,live]=await Promise.all([
         db.from("session_chip_purchases").select("*").eq("session_id",selectedId),
-        db.from("session_chip_purchase_items").select("*"),
         db.from("session_chip_results").select("*").eq("session_id",selectedId),
         db.from("session_chip_final_items").select("session_id,user_id,chip_value,quantity").eq("session_id",selectedId),
         db.from("session_chip_payouts").select("session_id,user_id,confirmed_at").eq("session_id",selectedId),
@@ -340,7 +346,12 @@ export default function PainelPage(){
         db.from("session_finance_approvals").select("session_id,user_id,reviewed_at").eq("session_id",selectedId),
         db.from("session_live_state").select("session_id,started_at,started_by").eq("session_id",selectedId)
       ]);
-      setBuys(prev=>merge(prev,unwrap(purchases) as Buy[],selectedId));
+      const purchaseRows=unwrap(purchases) as Buy[];
+      const purchaseIds=purchaseRows.map(b=>b.id);
+      const items=purchaseIds.length
+        ?await db.from("session_chip_purchase_items").select("*").in("purchase_id",purchaseIds)
+        :{data:[],error:null};
+      setBuys(prev=>merge(prev,purchaseRows,selectedId));
       setChipItems(unwrap(items) as BuyItem[]);
       setResults(prev=>merge(prev,unwrap(resultsRows) as ChipResult[],selectedId));
       setFinalItems(prev=>merge(prev,unwrap(finals) as {session_id:string;user_id:string;chip_value:number;quantity:number}[],selectedId));
@@ -453,7 +464,7 @@ export default function PainelPage(){
         });
     };
     refresh();
-    const t=window.setInterval(refresh,12000);
+    const t=window.setInterval(refresh,45000);
     return()=>{active=false;window.clearInterval(t);};
   },[user,selectedId,page,detailTab]);
 
@@ -467,7 +478,7 @@ export default function PainelPage(){
     tick();
     const handleVisibility=()=>{if(document.visibilityState==="visible")tick()};
     document.addEventListener("visibilitychange",handleVisibility);
-    const timer=window.setInterval(tick,15000);
+    const timer=window.setInterval(tick,60000);
     return()=>{
       active=false;
       document.removeEventListener("visibilitychange",handleVisibility);
@@ -1413,7 +1424,7 @@ export default function PainelPage(){
           <section className="panel"><p>Confirme sua presença para consultar o resumo financeiro do evento.</p></section>)}
       </>}
 
-      <MobileAppCompanion onUpdate={reload} visible={page==="inicio"}/>
+      <MobileAppCompanion onUpdate={()=>refreshScope("catalog")} visible={page==="inicio"}/>
       <footer className="mm-formfoot" style={{marginTop:35}}>Mesa Marcada · Organize seus encontros. Valores em reais são apenas registros informativos.</footer>
     </main>
 

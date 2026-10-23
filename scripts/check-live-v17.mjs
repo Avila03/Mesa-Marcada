@@ -14,7 +14,7 @@ for(const piece of [
   '["ao-vivo","Ao vivo"]','["compra","Compra"]','id="event-expenses"',
   'db.rpc("start_live_event"','<EventLivePanel','setLiveSubtab("encerrar")',
   'canSee={privateVisible}','const canFinish=(!selected?.live_start_required||Boolean(selectedLive))',
-  'db.from("session_live_activity")','window.setInterval(tick,15000)'
+  'db.from("session_live_activity")','window.setInterval(tick,60000)'
 ]){
   assert.ok(panel.includes(piece),"Missing feature or rule in panel: "+piece);
 }

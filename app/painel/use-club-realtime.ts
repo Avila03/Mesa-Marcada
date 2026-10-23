@@ -41,6 +41,8 @@ export function useClubRealtime({
    let active=true;
    let running=false;
    let needsAgain=false;
+   let connected=false;
+   let lastReconcile=0;
    const pending=new Set<UpdateScope>();
    let debounce:ReturnType<typeof setTimeout>|undefined;
    // Consolida mudanças próximas para evitar chamadas redundantes.
@@ -62,6 +64,7 @@ export function useClubRealtime({
    };
    const reconcile=()=>{
      if(document.visibilityState==="hidden"||!navigator.onLine)return;
+     lastReconcile=Date.now();
      enqueue("catalog");
      enqueue("profiles");
      if(eventId){for(const key of ["presence","polls","expenses","chips","timeline"] as UpdateScope[])enqueue(key);}
@@ -78,23 +81,29 @@ export function useClubRealtime({
        if(eventId&&record?.session_id&&record.session_id!==eventId&&scope!=="catalog")return;
        if(eventId&&table==="sessions"&&record?.id===eventId)enqueue("presence");
        enqueue(scope);
-       if(table==="session_attendance")enqueue("catalog");
+       // A presença já atualiza a lista local quando há um evento aberto.
+       if(table==="session_attendance"&&!eventId)enqueue("catalog");
      });
    }
    channel.subscribe(next=>{
      if(!active)return;
-     if(next==="SUBSCRIBED"){setStatus("connected");reconcile();}
-     else if(next==="CHANNEL_ERROR"||next==="TIMED_OUT")setStatus(navigator.onLine?"reconnecting":"offline");
-     else if(next==="CLOSED")setStatus("reconnecting");
+     if(next==="SUBSCRIBED"){connected=true;setStatus("connected");reconcile();}
+     else if(next==="CHANNEL_ERROR"||next==="TIMED_OUT"){
+       connected=false;setStatus(navigator.onLine?"reconnecting":"offline");
+     }else if(next==="CLOSED"){connected=false;setStatus("reconnecting");}
    });
-   const online=()=>{setStatus("reconnecting");reconcile()};
-   const offline=()=>setStatus("offline");
+   const online=()=>{connected=false;setStatus("reconnecting");reconcile()};
+   const offline=()=>{connected=false;setStatus("offline")};
    const visibility=()=>{if(document.visibilityState==="visible")reconcile()};
    window.addEventListener("online",online);
    window.addEventListener("offline",offline);
    document.addEventListener("visibilitychange",visibility);
    // Fallback para perda de mensagens, mudança de rede e deletes com RLS.
-   const fallback=setInterval(reconcile,45000);
+   const fallback=setInterval(()=>{
+     // Com Realtime saudável, uma reconciliação a cada três minutos basta.
+     // Sem conexão Realtime, mantém a verificação a cada 45 segundos.
+     if(!connected||Date.now()-lastReconcile>=180000)reconcile();
+   },45000);
    return()=>{
      active=false;if(debounce)clearTimeout(debounce);clearInterval(fallback);
      window.removeEventListener("online",online);

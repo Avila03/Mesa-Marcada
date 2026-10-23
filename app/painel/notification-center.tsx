@@ -57,7 +57,7 @@ export default function NotificationCenter({userId,onOpenEvent,onOpenLeague}:{
    .subscribe();
   const resync=()=>{if(document.visibilityState==="visible")void load()};
   document.addEventListener("visibilitychange",resync);
-  const timer=window.setInterval(resync,45000);
+  const timer=window.setInterval(resync,120000);
   return()=>{document.removeEventListener("visibilitychange",resync);clearInterval(timer);void db.removeChannel(channel)};
  },[userId,load]);
  const unread=items.filter(i=>!i.read).length;
