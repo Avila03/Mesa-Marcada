@@ -1,0 +1,23 @@
+.mm-poll-composer{margin-top:15px;border-top:1px solid #283b52;padding-top:14px;min-width:0}
+.mm-poll-composer-toggle{min-height:42px;padding:10px 13px;font-size:12px}
+.mm-poll-composer-editor{margin-top:13px;padding:14px;background:#101925;border:1px solid #30445c;border-radius:10px;display:grid;gap:13px;min-width:0}
+.mm-poll-composer-heading{display:grid;gap:5px}
+.mm-poll-composer-heading strong{font-size:15px;color:#f1f5fb}
+.mm-poll-composer-heading span{color:#aebfd3;font-size:11px;line-height:1.5}
+.mm-poll-composer-options{display:grid;gap:10px}
+.mm-poll-composer-options-title{display:flex;align-items:center;justify-content:space-between;gap:9px}
+.mm-poll-composer-options-title strong{font-size:12px;color:#f1f5fb}
+.mm-poll-composer-options-title small{font-size:10px;color:#a7b8cb}
+.mm-poll-composer-list{display:grid;gap:7px;padding:0;margin:0;list-style:none}
+.mm-poll-composer-item{display:flex;align-items:center;gap:9px;min-height:43px;padding:7px 8px 7px 11px;background:#172436;border:1px solid #304660;border-radius:8px}
+.mm-poll-composer-index{font-size:10px;font-weight:800;color:#7dbaff;flex:none}
+.mm-poll-composer-label{font-size:12px;line-height:1.4;color:#f1f5fb;min-width:0;overflow-wrap:anywhere;flex:1}
+.mm-poll-composer-remove{width:34px;height:33px;display:flex;align-items:center;justify-content:center;background:#2d1d29;border:1px solid #704250;color:#ff8b97;border-radius:7px;flex:none;cursor:pointer}
+.mm-poll-composer-add{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.mm-poll-composer-add input{min-width:0;min-height:44px;background:#0a111b;border:1px solid #3a506b;border-radius:8px;padding:10px 12px}
+.mm-poll-composer-add .btn{min-height:44px;font-size:12px;padding:10px 12px;white-space:nowrap;background:#193650;border-color:#3b6a9b;color:#d8e9ff}
+.mm-poll-composer-note{font-size:10px;color:#92a6bc;line-height:1.45}
+.mm-poll-composer-error{font-size:11px;color:#ff919c;line-height:1.5;margin:0}
+.mm-poll-composer-footer{display:flex;justify-content:flex-end;padding-top:2px}
+.mm-poll-composer-footer .btn{min-height:43px}
+@media(max-width:560px){.mm-poll-composer-editor{padding:12px}.mm-poll-composer-add{grid-template-columns:1fr}.mm-poll-composer-add .btn,.mm-poll-composer-footer .btn{width:100%;min-height:44px}}

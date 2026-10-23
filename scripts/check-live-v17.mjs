@@ -89,7 +89,7 @@ const expenseUi=read("app/painel/expense-splits.tsx");
 const movements=read("app/painel/event-live-panel.tsx");
 for(const token of ['["visao","Visão geral"]','id="event-expenses"','["compra","Compra"]',
  '["resumo","Resumo"]','["encerrar","Encerrar"]','<SeatingTable','openPolls.length',
- 'showPastPolls','showCreatePoll','<NightSummary','setDetailTab("resumo-evento")']){
+ 'showPastPolls','<PollComposer','<NightSummary','setDetailTab("resumo-evento")']){
  assert.ok(panel.includes(token),"Expected simplified event workflow: "+token);
 }
 for(const gone of ['["enquetes","Enquetes"]','["assentos","Assentos"]',

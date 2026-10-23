@@ -31,6 +31,7 @@ import EventLivePanel,{LiveMovements} from "./event-live-panel";
 import NightSummary from "./night-summary";
 import PrivateInviteShare from "./private-invite-share";
 import SeatingTable from "./seating-table";
+import PollComposer from "./poll-composer";
 import type {TableSeat} from "./seating-table";
 import {useStableDialog} from "./use-stable-dialog";
 import {readClubRoute,clubHref} from "@/lib/app-routes";
@@ -148,11 +149,8 @@ export default function PainelPage(){
   const [eventFilter,setEventFilter]=useState<"todos"|"agendados"|"encerrados">("agendados");
   const [form,setForm]=useState<CreateEvent>(defaultEvent);
   const ownLeagues=leagueCatalog.filter(item=>!item.finished_at&&(item.my_role==="owner"||item.my_role==="organizer"));
-  const [pollQuestion,setPollQuestion]=useState("");
-  const [pollOptions,setPollOptions]=useState("Pizza\nHambúrguer\nChurrasco");
     const [liveSubtab,setLiveSubtab]=useState<LiveSubtab>("compra");
   const [showPastPolls,setShowPastPolls]=useState(false);
-  const [showCreatePoll,setShowCreatePoll]=useState(false);
   const [showAddExpense,setShowAddExpense]=useState(false);
   const [cashoutFor,setCashoutFor]=useState("");
   const [cashoutDraft,setCashoutDraft]=useState("");
@@ -739,7 +737,7 @@ export default function PainelPage(){
     setDetailTab(isFinished?"resumo-evento":sub==="fichas"?"ao-vivo":
       (sub==="assentos"||sub==="enquetes"||sub==="gastos"?"visao":sub));
     setLiveSubtab("compra");
-    setShowPastPolls(false);setShowCreatePoll(false);setShowAddExpense(false);
+    setShowPastPolls(false);setShowAddExpense(false);
     setPage("detalhe");setError("");setMessage("");window.scrollTo({top:0,behavior:"auto"});
     if(sub==="gastos")window.setTimeout(()=>document.getElementById("event-expenses")?.scrollIntoView({behavior:"smooth",block:"start"}),140);
   }
@@ -835,20 +833,28 @@ export default function PainelPage(){
     },seatNo===null?"Você saiu da mesa.":seatNo===0?"Você assumiu o crupiê e entrou no evento.":"Você entrou no evento! Assento reservado.",["presence","catalog"]);
   }
 
-  async function createPoll(e:FormEvent<HTMLFormElement>){
-    e.preventDefault();
-    if(!selected)return;
-    await act(async(db,id)=>{
-      const labels=pollOptions.split(/\n|;/).map(x=>x.trim()).filter(Boolean);
-      if(labels.length<2)throw new Error("Informe pelo menos duas opções (uma por linha).");
-      if(labels.length>41)throw new Error("Máximo de 41 opções.");
-      const {data,error:pollError}=await db.from("session_polls").insert({session_id:selected.id,created_by:id,question:pollQuestion.trim()}).select("id").single();
+  async function createPoll(question:string,labels:string[]):Promise<void>{
+    if(!selected||!user)throw new Error("Selecione um evento e entre na sua conta.");
+    if(!meConfirmed||selected.status!=="scheduled")throw new Error("É necessário participar de um evento agendado para criar enquetes.");
+    const db=getSupabase();if(!db)throw new Error("Não foi possível conectar ao Supabase.");
+    if(question.trim().length<2||question.trim().length>200)throw new Error("Informe uma pergunta válida.");
+    if(labels.length<2||labels.length>41)throw new Error("Adicione entre 2 e 41 opções.");
+    if(labels.some(label=>!label.trim()||label.length>80))throw new Error("Cada opção deve ter de 1 a 80 caracteres.");
+    if(new Set(labels.map(label=>label.toLocaleLowerCase("pt-BR"))).size!==labels.length)throw new Error("Não é permitido repetir opções.");
+    setWorking(true);setError("");setMessage("");
+    try{
+      const {data,error:pollError}=await db.from("session_polls")
+        .insert({session_id:selected.id,created_by:user.id,question:question.trim()}).select("id").single();
       if(pollError)throw pollError;
-      const {error:choiceError}=await db.from("session_poll_options").insert(labels.map((label,position)=>({poll_id:data.id,label,position})));
-      if(choiceError)throw new Error("A enquete foi criada, mas faltou cadastrar as opções: "+choiceError.message);
-      setPollQuestion("");
+      const {error:choiceError}=await db.from("session_poll_options")
+        .insert(labels.map((label,position)=>({poll_id:data.id,label,position})));
+      if(choiceError)throw new Error("A enquete foi criada, mas não foi possível salvar as opções: "+choiceError.message);
+      await refreshScope("polls");
+      setMessage("Enquete criada!");
       void sendEventPush(selected.id,"poll");
-    },"Enquete criada!","polls");
+    }catch(e){
+      const description=errText(e);setError(description);throw new Error(description);
+    }finally{setWorking(false);}
   }
   const visibleEvents=agendaEvents.filter(e=>eventFilter==="todos"||
     (eventFilter==="agendados"?e.status==="scheduled":e.status!=="scheduled"));
@@ -1190,6 +1196,8 @@ export default function PainelPage(){
               <button type="button" className="btn" onClick={()=>document.getElementById("event-expenses")?.scrollIntoView({behavior:"smooth",block:"start"})}>Ver despesas e rachas →</button>
               <button type="button" className="btn" onClick={()=>{setDetailTab("ao-vivo");setLiveSubtab("compra")}}>Ver compras ao vivo →</button>
             </div>
+            {meConfirmed&&selected.status==="scheduled"&&
+              <PollComposer key={selected.id} onCreate={createPoll} disabled={working}/>}
           </section>
         </div>
 
@@ -1201,8 +1209,6 @@ export default function PainelPage(){
               <div className="mm-overview-poll-actions">
                 {eventPolls.some(p=>p.is_closed)&&<button type="button" className="btn" onClick={()=>setShowPastPolls(x=>!x)}>
                   {showPastPolls?"Ocultar encerradas":"Ver enquetes encerradas"}</button>}
-                <button type="button" className="btn" onClick={()=>setShowCreatePoll(x=>!x)}>
-                  {showCreatePoll?"Fechar formulário":"＋ Nova enquete"}</button>
               </div>
               {!privateVisible&&<p className="mm-message">Confirme presença para participar das enquetes. Os votos ficam visíveis apenas aos participantes e ao organizador.</p>}
               <div className="mm-poll-stack">
@@ -1231,16 +1237,6 @@ export default function PainelPage(){
               </div>
             </section>
           </div>
-          {showCreatePoll&&<section className="panel">
-            <h2>Criar enquete</h2>
-            <p style={{margin:"9px 0 15px"}}>Cada participante pode votar uma vez e mudar de ideia até o encerramento.</p>
-            <form className="mm-form-stack" onSubmit={createPoll}>
-              <label className="mm-field">Pergunta<input minLength={2} required value={pollQuestion} onChange={e=>setPollQuestion(e.target.value)} placeholder="O que vamos comer?"/></label>
-              <label className="mm-field">Opções, uma por linha<textarea required rows={5} value={pollOptions} onChange={e=>setPollOptions(e.target.value)}/></label>
-              <button className="btn gold" disabled={!meConfirmed||selected.status!=="scheduled"||working}><UiIcon name="plus" size={18}/> Criar enquete</button>
-            </form>
-            {!meConfirmed&&<p className="mm-formfoot">Escolha uma cadeira para participar das enquetes.</p>}
-          </section>}
         </div>
         <section id="event-expenses" className="mm-overview-expenses" aria-label="Despesas e rachas">
           {privateVisible&&<div className="mm-overview-expense-tools">
