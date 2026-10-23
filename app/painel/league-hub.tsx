@@ -71,13 +71,13 @@ export function LeagueHomePreview({onBrowse,onOpen}:{onBrowse:()=>void;onOpen:(i
  </section>;
 }
 type Props={
- leagueId:string;mode:"list"|"detail"|"manage";userId:string;
+ leagueId:string;mode:"list"|"detail"|"manage";userId:string;isAdmin:boolean;
  events:Event[];profiles:Profile[];rooms:Room[];attendances:Attendance[];
  onOpenLeague:(id:string,manage?:boolean)=>void;
  onBack:()=>void;onOpenEvent:(id:string)=>void;onCreateEvent:(id:string)=>void;
  onMembershipChanged?:()=>void;
 };
-export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,attendances,
+export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles,rooms,attendances,
  onOpenLeague,onBack,onOpenEvent,onCreateEvent,onMembershipChanged}:Props){
  const changed=useRef(onMembershipChanged);
  useEffect(()=>{changed.current=onMembershipChanged},[onMembershipChanged]);
@@ -102,9 +102,9 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
  const [leagueFilter,setLeagueFilter]=useState<"active"|"finished">("active");
  const [showAllEvents,setShowAllEvents]=useState(false);
  const current=leagues.find(l=>l.id===leagueId);
- const owner=current?.owner_id===userId;
+ const owner=current?.owner_id===userId||isAdmin;
  const canOrganize=owner||current?.my_role==="organizer";
- const joined=Boolean(current?.my_role);
+ const joined=Boolean(current?.my_role)||isAdmin;
  const refresh=useCallback(async()=>{
   const db=getSupabase();if(!db)return;
   const {data,error:readError}=await db.rpc("get_league_catalog_final");
@@ -178,10 +178,11 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
   if(!current)return;
   await run(async()=>{
    const db=getSupabase();if(!db)throw new Error("Sem conexão");
-   const {error:err}=await db.rpc("request_league_join",{p_league_id:current.id,p_token:null});
+   const {data,error:err}=await db.rpc("request_league_join",{p_league_id:current.id,p_token:null});
    if(err)throw err;
-   void pushOwner(current.id);
-  },"Pedido enviado! O dono da liga precisa aprovar sua entrada.");
+   if(data==="pending")void pushOwner(current.id);
+   else changed.current?.();
+  },current.visibility==="public"?"Você entrou na Liga!":"Pedido enviado! Aguarde aprovação.");
  }
  async function decide(id:string,approve:boolean){
   if(!current)return;
@@ -313,9 +314,9 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
    {!joined&&!current.finished_at&&<section className="panel mm-league-join">
     <h2>{current.request_status==="pending"?"Solicitação em análise":"Participar desta liga"}</h2>
     <p>{current.request_status==="pending"?"O dono ainda não analisou seu pedido.":
-     "A entrada exige aprovação do dono. Você terá acesso aos eventos e rankings após ser aprovado."}</p>
+     "Em Ligas públicas, a entrada é imediata. Ligas privadas ainda exigem convite e aprovação."}</p>
     {current.request_status!=="pending"&&current.visibility==="public"&&
-     <button className="btn gold" disabled={working} onClick={()=>void apply()}>Solicitar entrada</button>}
+     <button className="btn gold" disabled={working} onClick={()=>void apply()}>Entrar na Liga</button>}
     {current.visibility==="private"&&<p className="mm-formfoot">Ligas privadas exigem um convite válido para solicitar entrada.</p>}
    </section>}
    {joined&&<>
@@ -476,6 +477,6 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
     </div>
    </div>
   </div>}
-  {mode!=="list"&&current&&<LeagueFinalizationControls mode={mode==="manage"?"manage":"detail"} leagueId={current.id}/>}
+  {mode!=="list"&&current&&<LeagueFinalizationControls mode={mode==="manage"?"manage":"detail"} leagueId={current.id} isAdmin={isAdmin}/>}
  </div>;
 }

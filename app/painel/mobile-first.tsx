@@ -943,7 +943,7 @@ export default function PainelPage(){
       />}
 
       {(page==="ligas"||page==="liga"||page==="liga-admin")&&
-        <LeagueHub leagueId={selectedLeagueId}
+        <LeagueHub isAdmin={isAdmin} leagueId={selectedLeagueId}
           mode={page==="ligas"?"list":page==="liga-admin"?"manage":"detail"}
           userId={user.id} profiles={profiles} events={agendaEvents} rooms={activeRooms} attendances={attendances}
           onBack={()=>go("ligas")}
