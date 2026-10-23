@@ -6,7 +6,7 @@ const composer=read("app/painel/poll-composer.tsx");
 const css=read("app/painel/poll-composer.css");
 
 const eventInfo=page.indexOf('<h2>Informações do evento</h2>');
-const composerInInfo=page.indexOf('<PollComposer key={selected.id}');
+const composerInInfo=page.indexOf('<PollComposer key=');
 const bottomVoting=page.indexOf('<div id="event-polls"');
 assert.ok(eventInfo>=0&&composerInInfo>eventInfo&&bottomVoting>composerInInfo,
   "The creator must only appear in the event information card, above the voting list.");
