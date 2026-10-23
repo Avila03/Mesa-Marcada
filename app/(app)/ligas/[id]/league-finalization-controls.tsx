@@ -10,6 +10,18 @@ type LeagueArchiveRow={
  finished_at:string|null;final_summary:LeagueFinalSummary|null;emblem:CrestConfig;
 };
 
+function readError(e:unknown):string{
+ if(e instanceof Error)return e.message;
+ if(typeof e==="string")return e;
+ if(e&&typeof e==="object"){
+  const data=e as {message?:unknown;details?:unknown;hint?:unknown;code?:unknown};
+  const message=typeof data.message==="string"?data.message:"Não foi possível finalizar a Liga.";
+  const details=typeof data.details==="string"&&data.details!==message?" — "+data.details:"";
+  return message+details;
+ }
+ return "Não foi possível finalizar a Liga. Tente novamente.";
+}
+
 export default function LeagueFinalizationControls({mode,leagueId,isAdmin=false}:{mode:"detail"|"manage";leagueId:string;isAdmin?:boolean}){
  const [league,setLeague]=useState<LeagueArchiveRow|null>(null);
  const [userId,setUserId]=useState("");
@@ -17,7 +29,6 @@ export default function LeagueFinalizationControls({mode,leagueId,isAdmin=false}
  const [loading,setLoading]=useState(true);
  const [busy,setBusy]=useState(false);
  const [confirmOpen,setConfirmOpen]=useState(false);
- const [confirmText,setConfirmText]=useState("");
  const [error,setError]=useState("");
 
  useEffect(()=>{
@@ -40,14 +51,14 @@ export default function LeagueFinalizationControls({mode,leagueId,isAdmin=false}
      if(count.error)throw count.error;
      if(active)setScheduled(count.count||0);
     }
-   }catch(e){if(active)setError(e instanceof Error?e.message:String(e));}
+   }catch(e){if(active)setError(readError(e));}
    finally{if(active)setLoading(false);}
   })();
   return()=>{active=false};
  },[leagueId,isAdmin]);
  
  async function finalize(){
-  if(!league||confirmText.trim()!=="FINALIZAR")return;
+  if(!league||busy||scheduled>0)return;
   setBusy(true);setError("");
   try{
    const db=getSupabase();if(!db)throw new Error("Conexão indisponível");
@@ -55,7 +66,7 @@ export default function LeagueFinalizationControls({mode,leagueId,isAdmin=false}
    if(closeError)throw closeError;
    setLeague({...league,finished_at:(data as LeagueFinalSummary).finished_at,final_summary:data as LeagueFinalSummary});
    setConfirmOpen(false);
-  }catch(e){setError(e instanceof Error?e.message:String(e));}
+  }catch(e){setError(readError(e));}
   finally{setBusy(false);}
  }
 
@@ -81,7 +92,7 @@ export default function LeagueFinalizationControls({mode,leagueId,isAdmin=false}
  return <>
   <div className="mm-final-floating" role="region" aria-label="Encerramento da Liga">
    <div><strong>Encerramento da Liga</strong><small>Gerar o resumo e arquivar os resultados.</small></div>
-   <button type="button" disabled={busy} className="btn mm-final-danger" onClick={()=>{setConfirmText("");setConfirmOpen(true);setError("");}}>
+   <button type="button" disabled={busy} className="btn mm-final-danger" onClick={()=>{setConfirmOpen(true);setError("");}}>
     Finalizar Liga
    </button>
   </div>
@@ -89,15 +100,11 @@ export default function LeagueFinalizationControls({mode,leagueId,isAdmin=false}
    <div className="mm-final-modal" role="dialog" aria-modal="true" aria-label="Finalizar Liga" aria-describedby="mm-final-warning">
     <h2>Finalizar {league.name}?</h2>
     <p id="mm-final-warning">Esta ação encerra definitivamente a Liga e gera um relatório com os campeões de Poker e Blackjack, rankings e histórico. Não será possível criar novos eventos nem editar a identidade da Liga.</p>
-    {scheduled>0?<p className="mm-final-error">Ainda existem {scheduled} eventos agendados. Encerre ou cancele esses eventos antes de finalizar a Liga.</p>:
-    <label htmlFor="mm-confirm-finish">Para confirmar, digite <strong>FINALIZAR</strong>:
-     <input id="mm-confirm-finish" autoComplete="off" value={confirmText}
-      onChange={e=>setConfirmText(e.target.value.toUpperCase())} placeholder="FINALIZAR"/>
-    </label>}
+    {scheduled>0&&<p className="mm-final-error">Ainda existem {scheduled} eventos agendados. Encerre ou cancele esses eventos antes de finalizar a Liga.</p>}
     {error&&<p className="mm-final-error" role="alert">{error}</p>}
     <div className="mm-final-modal-actions">
      <button className="btn" type="button" disabled={busy} onClick={()=>setConfirmOpen(false)}>Cancelar</button>
-     <button className="btn mm-final-danger" type="button" disabled={busy||scheduled>0||confirmText.trim()!=="FINALIZAR"} onClick={()=>void finalize()}>
+     <button className="btn mm-final-danger" type="button" disabled={busy||scheduled>0} onClick={()=>void finalize()}>
       {busy?"Finalizando...":"Confirmar encerramento"}
      </button>
     </div>
