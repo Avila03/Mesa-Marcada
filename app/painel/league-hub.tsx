@@ -178,10 +178,11 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
   if(!current)return;
   await run(async()=>{
    const db=getSupabase();if(!db)throw new Error("Sem conexão");
-   const {error:err}=await db.rpc("request_league_join",{p_league_id:current.id,p_token:null});
+   const {data,error:err}=await db.rpc("request_league_join",{p_league_id:current.id,p_token:null});
    if(err)throw err;
-   void pushOwner(current.id);
-  },"Pedido enviado! O dono da liga precisa aprovar sua entrada.");
+   if(data==="pending")void pushOwner(current.id);
+   else changed.current?.();
+  },current.visibility==="public"?"Você entrou na Liga!":"Pedido enviado! Aguarde aprovação.");
  }
  async function decide(id:string,approve:boolean){
   if(!current)return;
