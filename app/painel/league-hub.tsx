@@ -71,13 +71,13 @@ export function LeagueHomePreview({onBrowse,onOpen}:{onBrowse:()=>void;onOpen:(i
  </section>;
 }
 type Props={
- leagueId:string;mode:"list"|"detail"|"manage";userId:string;
+ leagueId:string;mode:"list"|"detail"|"manage";userId:string;isAdmin:boolean;
  events:Event[];profiles:Profile[];rooms:Room[];attendances:Attendance[];
  onOpenLeague:(id:string,manage?:boolean)=>void;
  onBack:()=>void;onOpenEvent:(id:string)=>void;onCreateEvent:(id:string)=>void;
  onMembershipChanged?:()=>void;
 };
-export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,attendances,
+export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles,rooms,attendances,
  onOpenLeague,onBack,onOpenEvent,onCreateEvent,onMembershipChanged}:Props){
  const changed=useRef(onMembershipChanged);
  useEffect(()=>{changed.current=onMembershipChanged},[onMembershipChanged]);
@@ -102,9 +102,9 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
  const [leagueFilter,setLeagueFilter]=useState<"active"|"finished">("active");
  const [showAllEvents,setShowAllEvents]=useState(false);
  const current=leagues.find(l=>l.id===leagueId);
- const owner=current?.owner_id===userId;
+ const owner=current?.owner_id===userId||isAdmin;
  const canOrganize=owner||current?.my_role==="organizer";
- const joined=Boolean(current?.my_role);
+ const joined=Boolean(current?.my_role)||isAdmin;
  const refresh=useCallback(async()=>{
   const db=getSupabase();if(!db)return;
   const {data,error:readError}=await db.rpc("get_league_catalog_final");
