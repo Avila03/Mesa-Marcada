@@ -18,7 +18,7 @@ for(const text of [panel,companion,features]){
 }
 assert.ok(panel.includes('<UiIcon name={icon} size={22}/>'),"Navigation does not use SVG icons");
 assert.equal((panel.match(/name="log-out"/g)||[]).length,2,"Desktop and mobile logout need icons");
-const card=panel.indexOf('<MobileAppCompanion onUpdate={reload} visible={page==="inicio"}/>');
+const card=panel.indexOf('<MobileAppCompanion onUpdate={()=>refreshScope("catalog")} visible={page==="inicio"}/>');
 assert.ok(card>panel.indexOf('{page==="inicio"&&'),'Install settings render too high in dashboard');
 assert.ok(card<panel.indexOf("<footer"),"Install settings must precede the footer");
 assert.ok(companion.includes("appInstalled?\"Avisos de eventos\""),"Installed PWA tutorial not compact");
