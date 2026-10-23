@@ -464,7 +464,7 @@ export default function PainelPage(){
         });
     };
     refresh();
-    const t=window.setInterval(refresh,12000);
+    const t=window.setInterval(refresh,45000);
     return()=>{active=false;window.clearInterval(t);};
   },[user,selectedId,page,detailTab]);
 
@@ -478,7 +478,7 @@ export default function PainelPage(){
     tick();
     const handleVisibility=()=>{if(document.visibilityState==="visible")tick()};
     document.addEventListener("visibilitychange",handleVisibility);
-    const timer=window.setInterval(tick,15000);
+    const timer=window.setInterval(tick,60000);
     return()=>{
       active=false;
       document.removeEventListener("visibilitychange",handleVisibility);
@@ -1424,7 +1424,7 @@ export default function PainelPage(){
           <section className="panel"><p>Confirme sua presença para consultar o resumo financeiro do evento.</p></section>)}
       </>}
 
-      <MobileAppCompanion onUpdate={reload} visible={page==="inicio"}/>
+      <MobileAppCompanion onUpdate={()=>refreshScope("catalog")} visible={page==="inicio"}/>
       <footer className="mm-formfoot" style={{marginTop:35}}>Mesa Marcada · Organize seus encontros. Valores em reais são apenas registros informativos.</footer>
     </main>
 
