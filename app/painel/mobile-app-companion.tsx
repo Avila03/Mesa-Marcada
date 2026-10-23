@@ -87,9 +87,9 @@ export default function MobileAppCompanion({onUpdate,visible}:{onUpdate:()=>Prom
       baseline.current=next;
     }
     void checkEvents();
-    const polling=window.setInterval(()=>void checkEvents(),60000);
+    const polling=window.setInterval(()=>void checkEvents(),90000);
     return()=>{active=false;window.clearInterval(polling)};
-  },[]);
+  },[visible]);
 
   async function install(){
     if(!installPrompt)return;
