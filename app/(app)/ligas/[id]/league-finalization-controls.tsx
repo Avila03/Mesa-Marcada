@@ -10,10 +10,9 @@ type LeagueArchiveRow={
  finished_at:string|null;final_summary:LeagueFinalSummary|null;emblem:CrestConfig;
 };
 
-export default function LeagueFinalizationControls({mode,leagueId}:{mode:"detail"|"manage";leagueId:string}){
+export default function LeagueFinalizationControls({mode,leagueId,isAdmin=false}:{mode:"detail"|"manage";leagueId:string;isAdmin?:boolean}){
  const [league,setLeague]=useState<LeagueArchiveRow|null>(null);
  const [userId,setUserId]=useState("");
- const [admin,setAdmin]=useState(false);
  const [scheduled,setScheduled]=useState(0);
  const [loading,setLoading]=useState(true);
  const [busy,setBusy]=useState(false);
@@ -35,10 +34,8 @@ export default function LeagueFinalizationControls({mode,leagueId}:{mode:"detail
     if(catalogError)throw catalogError;
     const row=((data||[]) as LeagueArchiveRow[]).find(x=>x.id===leagueId)||null;
     if(!active)return;
-    const {data:adminData}=await db.from("app_admins").select("user_id").eq("user_id",user.id).maybeSingle();
-    if(!active)return;
-    setAdmin(Boolean(adminData));setUserId(user.id);setLeague(row);
-    if(row&&(row.owner_id===user.id||adminData)&&!row.finished_at){
+    setUserId(user.id);setLeague(row);
+    if(row&&(row.owner_id===user.id||isAdmin)&&!row.finished_at){
      const count=await db.from("sessions").select("id",{head:true,count:"exact"}).eq("league_id",leagueId).eq("status","scheduled");
      if(count.error)throw count.error;
      if(active)setScheduled(count.count||0);
@@ -47,14 +44,14 @@ export default function LeagueFinalizationControls({mode,leagueId}:{mode:"detail
    finally{if(active)setLoading(false);}
   })();
   return()=>{active=false};
- },[leagueId]);
+ },[leagueId,isAdmin]);
  
  async function finalize(){
   if(!league||confirmText.trim()!=="FINALIZAR")return;
   setBusy(true);setError("");
   try{
    const db=getSupabase();if(!db)throw new Error("Conexão indisponível");
-   const {data,error:closeError}=await db.rpc(admin&&league.owner_id!==userId?"admin_finish_league":"finish_league",{p_league_id:league.id});
+   const {data,error:closeError}=await db.rpc(isAdmin&&league.owner_id!==userId?"admin_finish_league":"finish_league",{p_league_id:league.id});
    if(closeError)throw closeError;
    setLeague({...league,finished_at:(data as LeagueFinalSummary).finished_at,final_summary:data as LeagueFinalSummary});
    setConfirmOpen(false);
@@ -80,7 +77,7 @@ export default function LeagueFinalizationControls({mode,leagueId}:{mode:"detail
   </div>
  </div>;
 
- if(mode!=="manage"||(league.owner_id!==userId&&!admin))return null;
+ if(mode!=="manage"||(league.owner_id!==userId&&!isAdmin))return null;
  return <>
   <div className="mm-final-floating" role="region" aria-label="Encerramento da Liga">
    <div><strong>Encerramento da Liga</strong><small>Gerar o resumo e arquivar os resultados.</small></div>
