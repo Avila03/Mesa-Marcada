@@ -301,12 +301,15 @@ export default function PainelPage(){
       return;
     }
     if(scope==="polls"){
-      const [survey,options,voting]=await Promise.all([
-        db.from("session_polls").select("*").eq("session_id",selectedId).order("created_at",{ascending:false}),
-        db.from("session_poll_options").select("*").order("position"),
-        db.from("session_poll_votes").select("poll_id,option_id,user_id")
-      ]);
-      setPolls(prev=>merge(prev,unwrap(survey) as Poll[],selectedId));
+      const survey=await db.from("session_polls").select("*")
+        .eq("session_id",selectedId).order("created_at",{ascending:false});
+      const pollRows=unwrap(survey) as Poll[];
+      const pollIds=pollRows.map(p=>p.id);
+      const [options,voting]=pollIds.length?await Promise.all([
+        db.from("session_poll_options").select("*").in("poll_id",pollIds).order("position"),
+        db.from("session_poll_votes").select("poll_id,option_id,user_id").in("poll_id",pollIds)
+      ]):[{data:[],error:null},{data:[],error:null}];
+      setPolls(prev=>merge(prev,pollRows,selectedId));
       setChoices(unwrap(options) as Choice[]);
       setVotes(unwrap(voting) as Vote[]);
       return;
@@ -334,9 +337,8 @@ export default function PainelPage(){
       return;
     }
     if(scope==="chips"){
-      const [purchases,items,resultsRows,finals,payouts,cashouts,approvalsRows,live]=await Promise.all([
+      const [purchases,resultsRows,finals,payouts,cashouts,approvalsRows,live]=await Promise.all([
         db.from("session_chip_purchases").select("*").eq("session_id",selectedId),
-        db.from("session_chip_purchase_items").select("*"),
         db.from("session_chip_results").select("*").eq("session_id",selectedId),
         db.from("session_chip_final_items").select("session_id,user_id,chip_value,quantity").eq("session_id",selectedId),
         db.from("session_chip_payouts").select("session_id,user_id,confirmed_at").eq("session_id",selectedId),
@@ -344,7 +346,12 @@ export default function PainelPage(){
         db.from("session_finance_approvals").select("session_id,user_id,reviewed_at").eq("session_id",selectedId),
         db.from("session_live_state").select("session_id,started_at,started_by").eq("session_id",selectedId)
       ]);
-      setBuys(prev=>merge(prev,unwrap(purchases) as Buy[],selectedId));
+      const purchaseRows=unwrap(purchases) as Buy[];
+      const purchaseIds=purchaseRows.map(b=>b.id);
+      const items=purchaseIds.length
+        ?await db.from("session_chip_purchase_items").select("*").in("purchase_id",purchaseIds)
+        :{data:[],error:null};
+      setBuys(prev=>merge(prev,purchaseRows,selectedId));
       setChipItems(unwrap(items) as BuyItem[]);
       setResults(prev=>merge(prev,unwrap(resultsRows) as ChipResult[],selectedId));
       setFinalItems(prev=>merge(prev,unwrap(finals) as {session_id:string;user_id:string;chip_value:number;quantity:number}[],selectedId));
