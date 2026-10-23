@@ -56,6 +56,7 @@ export default function MobileAppCompanion({onUpdate,visible}:{onUpdate:()=>Prom
   },[]);
 
   useEffect(()=>{
+    if(!visible)return;
     let active=true;
     async function checkEvents(){
       if(document.visibilityState==="hidden")return;
