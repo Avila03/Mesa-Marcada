@@ -110,7 +110,7 @@ console.log("✓ v2.0 event overview, live purchase-first, no receipts, post-fin
 // O cadastro de despesas agora está dentro da Visão geral, sem aba própria.
 assert.ok(!panel.includes('["gastos","Despesas"]'),"Remove standalone Despesas tab");
 assert.ok(panel.includes('id="event-expenses"')&&panel.includes('<ExpenseSplitsPanel'),"Show expenses in overview");
-assert.ok(panel.includes('createForm={showAddExpense?<section'),"Expense create form must be collapsible");
+assert.ok(panel.includes('<ExpenseComposer')&&panel.includes('createForm={null}'),"Expense creator must be inside event info, not below expenses");
 assert.ok(panel.includes('sub==="gastos"?"visao"')||panel.includes('sub==="gastos"'),"Keep old profile expense links working");
 assert.ok(panel.includes('Ver despesas e rachas →'),"Link to expenses from event summary");
 console.log("✓ v2.1: assentos, enquetes e despesas dentro da Visão geral");
