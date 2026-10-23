@@ -313,9 +313,9 @@ export default function LeagueHub({leagueId,mode,userId,events,profiles,rooms,at
    {!joined&&!current.finished_at&&<section className="panel mm-league-join">
     <h2>{current.request_status==="pending"?"Solicitação em análise":"Participar desta liga"}</h2>
     <p>{current.request_status==="pending"?"O dono ainda não analisou seu pedido.":
-     "A entrada exige aprovação do dono. Você terá acesso aos eventos e rankings após ser aprovado."}</p>
+     "Em Ligas públicas, a entrada é imediata. Ligas privadas ainda exigem convite e aprovação."}</p>
     {current.request_status!=="pending"&&current.visibility==="public"&&
-     <button className="btn gold" disabled={working} onClick={()=>void apply()}>Solicitar entrada</button>}
+     <button className="btn gold" disabled={working} onClick={()=>void apply()}>Entrar na Liga</button>}
     {current.visibility==="private"&&<p className="mm-formfoot">Ligas privadas exigem um convite válido para solicitar entrada.</p>}
    </section>}
    {joined&&<>
