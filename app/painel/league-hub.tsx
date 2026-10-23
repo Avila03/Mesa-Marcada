@@ -477,6 +477,6 @@ export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles,
     </div>
    </div>
   </div>}
-  {mode!=="list"&&current&&<LeagueFinalizationControls mode={mode==="manage"?"manage":"detail"} leagueId={current.id}/>}
+  {mode!=="list"&&current&&<LeagueFinalizationControls mode={mode==="manage"?"manage":"detail"} leagueId={current.id} isAdmin={isAdmin}/>}
  </div>;
 }
