@@ -144,7 +144,7 @@ export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles,
    .on("postgres_changes",{event:"*",schema:"public",table:"league_members",filter:"league_id=eq."+leagueId},
      ()=>{void Promise.all([refresh(),refreshDetails()]).catch(()=>{});changed.current?.()})
    .subscribe();
-  const timer=setInterval(()=>{if(document.visibilityState==="visible")void Promise.all([refresh(),refreshDetails()]).catch(()=>{})},30000);
+  const timer=setInterval(()=>{if(document.visibilityState==="visible")void Promise.all([refresh(),refreshDetails()]).catch(()=>{})},90000);
   return()=>{clearInterval(timer);void db.removeChannel(channel)};
  },[leagueId,mode,refresh,refreshDetails]);
  async function run(fn:()=>Promise<void>,done:string){
