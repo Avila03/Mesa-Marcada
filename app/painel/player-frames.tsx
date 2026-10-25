@@ -105,7 +105,7 @@ export default function PlayerFrames({playerId,userId,name,photoUrl}:{
   </div>
   <div className="mm-frames-content">
    <div className="mm-frames-grid">
-    <button type="button" aria-pressed={selected===null}
+    {filter==="Todas"&&<button type="button" aria-pressed={selected===null}
      className={"mm-frame-tile mm-frame-none "+(selected===null?"selected ":"")+"unlocked"}
      style={{"--frame-accent":"#7399bb"} as CSSProperties}
      onClick={()=>{setSelected(null);setVariant("original");setError("");}}>
@@ -113,7 +113,7 @@ export default function PlayerFrames({playerId,userId,name,photoUrl}:{
      <FrameSample id={null} variant="original" name={name} photoUrl={photoUrl}/>
      <strong>Sem moldura</strong><span className="mm-frame-rarity">Padrão</span>
      <small className="mm-frame-status">Sempre disponível</small>
-    </button>
+    </button>}
     {(filter==="Todas"||filter==="Exclusivas")&&
      <button type="button" aria-pressed={selected==="fundador"}
       className={"mm-frame-tile mm-frame-founder "+(selected==="fundador"?"selected ":"")+(unlocked("fundador")?"unlocked":"locked")}
