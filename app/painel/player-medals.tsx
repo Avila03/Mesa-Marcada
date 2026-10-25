@@ -110,7 +110,7 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
   </div>
   <div className="mm-medals-preview">
    <div className={"mm-medals-avatar "+(primary?"earned":"")} style={primary?{"--medal-color":primary.color} as CSSProperties:undefined}>
-    <PlayerAvatar photoUrl={photoUrl} name={name} large/>
+    <FrameAvatar playerId={playerId} photoUrl={photoUrl} name={name} large/>
     {primary&&<span className="mm-medals-avatar-icon" aria-hidden="true">{primary.symbol}</span>}
    </div>
    <div className="mm-medals-preview-info">
