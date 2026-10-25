@@ -49,6 +49,7 @@ export const MEDALS:Medal[]=[
   description:"Organize 5, 15, 30 ou 60 eventos concluídos com pelo menos dois jogadores.",group:"Organização",levels:bronze(5,15,30,60),color:"#c7a4ec",unit:"eventos organizados"}
 ];
 type Progress=Record<string,number>;
+type MedalGrant={medal_id:string;level_index:number};
 type Showcase={user_id:string;featured_id:string|null;pinned_ids:string[];visible:boolean};
 
 const levelOf=(m:Medal,amount:number)=>m.levels.reduce((index,level,i)=>amount>=level.threshold?i:index,-1);
@@ -58,6 +59,7 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
 }){
  const own=playerId===userId;
  const [progress,setProgress]=useState<Progress>({});
+ const [granted,setGranted]=useState<Progress>({});
  const [featured,setFeatured]=useState<string|null>(null);
  const [pinned,setPinned]=useState<string[]>([]);
  const [visible,setVisible]=useState(true);
@@ -71,21 +73,28 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
 
  useEffect(()=>{
   let alive=true;
-  setLoading(true);setProgress({});setFeatured(null);setPinned([]);setError("");
+  setLoading(true);setProgress({});setGranted({});setFeatured(null);setPinned([]);setError("");
   const db=getSupabase();
   if(!db){setLoading(false);setError("Conexão indisponível.");return;}
   void (async()=>{
-   const [stats,settings]=await Promise.all([
+   const [stats,settings,grants]=await Promise.all([
     db.rpc("get_player_medal_progress",{p_user_id:playerId}),
     db.from("profile_medal_showcase").select("user_id,featured_id,pinned_ids,visible")
-      .eq("user_id",playerId).maybeSingle()
+      .eq("user_id",playerId).maybeSingle(),
+    db.from("player_medal_grants").select("medal_id,level_index").eq("user_id",playerId)
    ]);
    if(!alive)return;
-   if(stats.error||settings.error){setError(stats.error?.message||settings.error?.message||"Não foi possível consultar as conquistas.");setLoading(false);return;}
+   if(stats.error||settings.error||grants.error){setError(stats.error?.message||settings.error?.message||grants.error?.message||"Não foi possível consultar as conquistas.");setLoading(false);return;}
    const source=(stats.data||{}) as Record<string,unknown>;
    const values:Progress={};
    for(const m of MEDALS)values[m.id]=Math.max(0,Number(source[m.id])||0);
    const row=(settings.data||null) as Showcase|null;
+   const grantedLevels:Progress={};
+   for(const grant of (grants.data||[]) as MedalGrant[]){
+    const medal=MEDALS.find(m=>m.id===grant.medal_id);
+    if(medal)grantedLevels[grant.medal_id]=Math.max(0,Math.min(grant.level_index,medal.levels.length-1));
+   }
+   setGranted(grantedLevels);
    setProgress(values);setFeatured(row?.featured_id||null);
    setPinned(row?.pinned_ids||[]);setVisible(row?.visible??true);
    setLoading(false);
@@ -93,7 +102,8 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
   return()=>{alive=false};
  },[playerId]);
 
- const unlocked=MEDALS.filter(m=>levelOf(m,progress[m.id]||0)>=0);
+ const medalLevel=(m:Medal)=>Math.max(levelOf(m,progress[m.id]||0),granted[m.id]??-1);
+ const unlocked=MEDALS.filter(m=>medalLevel(m)>=0);
  const earned=new Set(unlocked.map(m=>m.id));
  const chosen=(featured&&earned.has(featured)?featured:null)||unlocked[0]?.id||null;
  const primary=MEDALS.find(m=>m.id===chosen);
@@ -101,7 +111,8 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
   .map(id=>MEDALS.find(m=>m.id===id)).filter((m):m is Medal=>Boolean(m));
  const inspect=MEDALS.find(m=>m.id===selected)||MEDALS[0];
  const inspectValue=progress[inspect.id]||0;
- const inspectLevel=levelOf(inspect,inspectValue);
+ const inspectLevel=medalLevel(inspect);
+ const inspectGranted=granted[inspect.id]!==undefined;
  const inspectNext=inspect.levels.find(t=>inspectValue<t.threshold);
  const allowed=own||visible;
  async function save(nextFeatured:string|null,nextPins:string[],nextVisible:boolean){
@@ -138,7 +149,7 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
    </div>
    <div className="mm-medals-preview-info">
     <strong>{name}</strong>
-    <span>{primary?primary.title+" · "+primary.levels[levelOf(primary,progress[primary.id])].name:"Nenhuma medalha desbloqueada"}</span>
+    <span>{primary?primary.title+" · "+primary.levels[medalLevel(primary)].name:"Nenhuma medalha desbloqueada"}</span>
     <small>{primary?primary.summary:"Jogue suas primeiras partidas para começar sua coleção."}</small>
    </div>
   </div>
@@ -163,7 +174,7 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
    </div>
    <div className="mm-medals-grid">
     {MEDALS.filter(m=>filter==="Todas"||m.group===filter).map(m=>{
-     const level=levelOf(m,progress[m.id]||0);
+     const level=medalLevel(m);
      return <button type="button" key={m.id} onClick={()=>setSelected(m.id)}
       className={"mm-medals-card "+(level<0?"locked ":"")+(selected===m.id?"selected":"")}
       aria-pressed={selected===m.id} style={{"--medal-color":m.color} as CSSProperties}>
@@ -182,7 +193,9 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
      aria-label={"Progresso em "+inspect.title} className="mm-medals-meter">
      <div style={{width:(Math.min(1,inspectValue/inspect.levels[inspect.levels.length-1].threshold)*100)+"%"}}/>
     </div>
-    <small className="mm-medals-muted">{inspectNext?"Próxima meta: "+inspectNext.threshold+" "+inspect.unit:"Nível máximo alcançado!"}</small>
+    <small className="mm-medals-muted">{inspectGranted
+     ?"Conquista permanente concedida pela administração. A estatística acima mostra apenas resultados reais."
+     :inspectNext?"Próxima meta: "+inspectNext.threshold+" "+inspect.unit:"Nível máximo alcançado!"}</small>
     {own&&inspectLevel>=0&&<div className="mm-medals-choose">
      <button type="button" disabled={saving||chosen===inspect.id} className="btn"
       onClick={()=>void save(inspect.id,pinned.filter(id=>id!==inspect.id),visible)}>
