@@ -99,8 +99,8 @@ export default function FrameArtwork({id,variant="original",className}:{
  const theme=COLORS[id];
  const accent=id==="safira"?(variant==="ciano"?"#4be4fa":variant==="noturno"?"#7768ff":"#258bff"):theme.accent;
  const gold=id==="dupla-coroa"||id==="rei-sequencia"||id==="high-roller";
- const idMetal=uniq+"metal",idCore=uniq+"core",idBlue=uniq+"blue",idSpark=uniq+"spark";
- return <svg aria-hidden="true" className={className||"mm-frame-artwork"} viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg">
+ const idMetal=uniq+"metal",idCore=uniq+"core",idBlue=uniq+"blue",idSpark=uniq+"spark",idAperture=uniq+"aperture";
+ return <svg aria-hidden="true" className={className||"mm-frame-artwork"} viewBox="-28 -28 316 316" xmlns="http://www.w3.org/2000/svg">
   <defs>
    <linearGradient id={idMetal} x1="0" x2="1" y1=".85" y2=".2">
     <stop offset="0" stopColor={theme.dark}/><stop offset=".15" stopColor={theme.metal}/>
@@ -120,7 +120,13 @@ export default function FrameArtwork({id,variant="original",className}:{
    <filter id={idSpark} x="-60%" y="-60%" width="220%" height="220%">
     <feGaussianBlur stdDeviation="3"/>
    </filter>
+   {/* Cut the full center from EVERY decoration: zero overlap with photos. */}
+   <mask id={idAperture} maskUnits="userSpaceOnUse" x="-28" y="-28" width="316" height="316">
+    <rect x="-28" y="-28" width="316" height="316" fill="white"/>
+    <circle cx="130" cy="130" r="96" fill="black"/>
+   </mask>
   </defs>
+  <g mask={"url(#"+idAperture+")"}>
   {/* Central photo aperture remains fully transparent. */}
   <circle cx="130" cy="130" r="114" fill="none" stroke={accent} opacity=".55" strokeWidth="2.2" filter={"url(#"+idSpark+")"}/>
   <circle cx="130" cy="130" r="110.5" fill="none" stroke={"url(#"+idCore+")"} strokeWidth="16"/>
@@ -192,5 +198,6 @@ export default function FrameArtwork({id,variant="original",className}:{
     <circle cx={x} cy={y} r={i%3===0?1.5:.8} fill="#fff7d6" opacity=".95"/>
    </g>;
   })}
+  </g>
  </svg>;
 }

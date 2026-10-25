@@ -17,11 +17,11 @@ const VARIANTS:{id:FrameVariant;label:string;hex:string}[]=[
  {id:"noturno",label:"Noturno",hex:"#7768ff"}
 ];
 function FrameSample({id,variant,name,photoUrl,large=false}:{
- id:FrameId;variant:FrameVariant;name:string;photoUrl?:string;large?:boolean
+ id:FrameId|null;variant:FrameVariant;name:string;photoUrl?:string;large?:boolean
 }){
  return <div className={"mm-frame-sample "+(large?"mm-frame-large":"")}>
    <div className="mm-frame-sample-photo"><PlayerAvatar photoUrl={photoUrl} name={name}/></div>
-   <FrameArtwork id={id} variant={variant} className="mm-frame-artwork"/>
+   {id&&<FrameArtwork id={id} variant={variant} className="mm-frame-artwork"/>}
   </div>;
 }
 export default function PlayerFrames({playerId,userId,name,photoUrl}:{
@@ -31,7 +31,7 @@ export default function PlayerFrames({playerId,userId,name,photoUrl}:{
  const [progress,setProgress]=useState<Progress>({});
  const [granted,setGranted]=useState<string[]>([]);
  const [equipped,setEquipped]=useState<RecordEquipped>({frame_id:null,variant:"original"});
- const [selected,setSelected]=useState<FrameId>("safira");
+ const [selected,setSelected]=useState<FrameId|null>(null);
  const [variant,setVariant]=useState<FrameVariant>("original");
  const [filter,setFilter]=useState("Todas");
  const [busy,setBusy]=useState(false);
@@ -61,16 +61,17 @@ export default function PlayerFrames({playerId,userId,name,photoUrl}:{
    const currentVariant=(choice.data?.variant||"original") as FrameVariant;
    setProgress(values);setGranted(gifts);
    setEquipped({frame_id:active,variant:currentVariant});
-   setSelected(active||"safira");setVariant(active==="safira"?currentVariant:"original");
+   setSelected(active);setVariant(active==="safira"?currentVariant:"original");
    setLoading(false);
   })();
   return()=>{mounted=false};
  },[playerId]);
  const unlocked=(id:FrameId)=>granted.includes(id)||progress[id]>=(FRAMES.find(f=>f.id===id)?.goal||Infinity);
  const count=FRAMES.filter(f=>unlocked(f.id)).length;
- const current=FRAMES.find(f=>f.id===selected)||FRAMES[0];
- const owned=unlocked(current.id);
- const isEquipped=equipped.frame_id===selected&&equipped.variant===(selected==="safira"?variant:"original");
+ const current=FRAMES.find(f=>f.id===selected)||null;
+ const owned=selected===null||unlocked(selected);
+ const isEquipped=equipped.frame_id===selected&&
+  (selected===null||equipped.variant===(selected==="safira"?variant:"original"));
  async function equip(frameId:FrameId|null,newVariant:FrameVariant="original"){
   if(!mine||busy||frameId&&!unlocked(frameId))return;
   const db=getSupabase();if(!db)return;
@@ -102,6 +103,15 @@ export default function PlayerFrames({playerId,userId,name,photoUrl}:{
   </div>
   <div className="mm-frames-content">
    <div className="mm-frames-grid">
+    <button type="button" aria-pressed={selected===null}
+     className={"mm-frame-tile mm-frame-none "+(selected===null?"selected ":"")+"unlocked"}
+     style={{"--frame-accent":"#7399bb"} as CSSProperties}
+     onClick={()=>{setSelected(null);setVariant("original");setError("");}}>
+     {equipped.frame_id===null&&<span className="mm-frame-equipped-label">Equipada</span>}
+     <FrameSample id={null} variant="original" name={name} photoUrl={photoUrl}/>
+     <strong>Sem moldura</strong><span className="mm-frame-rarity">Padrão</span>
+     <small className="mm-frame-status">Sempre disponível</small>
+    </button>
     {FRAMES.filter(f=>filter==="Todas"||(filter==="Raras"&&f.rarity==="Rara")||
      (filter==="Épicas"&&f.rarity==="Épica")||(filter==="Lendárias"&&f.rarity==="Lendária"))
      .map(frame=><button key={frame.id} type="button" aria-pressed={selected===frame.id}
@@ -116,32 +126,34 @@ export default function PlayerFrames({playerId,userId,name,photoUrl}:{
      </button>)}
    </div>
    <aside className="mm-frames-inspector">
-    <div className="mm-frames-inspector-art"><FrameSample id={current.id} variant={variant}
+    <div className="mm-frames-inspector-art"><FrameSample id={selected} variant={variant}
       name={name} photoUrl={photoUrl} large/></div>
-    <h3>{current.name}</h3><span className="mm-frame-inspector-rarity">{current.rarity}</span>
-    <p className="mm-frames-title">{current.title}</p>
-    <div className="mm-frame-rule"><strong>COMO CONQUISTAR</strong><p>{current.requirement}</p></div>
-    <div className="mm-frame-progress-header"><strong>Progresso</strong>
-     <span>{Math.min(progress[current.id]||0,current.goal)} / {current.goal}</span></div>
-    <div className="mm-frame-progress" role="progressbar" aria-label={"Progresso "+current.name}
-     aria-valuenow={Math.min(progress[current.id]||0,current.goal)} aria-valuemin={0} aria-valuemax={current.goal}>
-     <div style={{width:Math.min(100,100*(progress[current.id]||0)/current.goal)+"%"}}/>
-    </div>
-    {granted.includes(current.id)&&<p className="mm-frames-manual">Concessão permanente da administração: desbloqueada independentemente do progresso.</p>}
-    {current.variations&&<div className="mm-frames-variants"><strong>VARIAÇÕES DE COR</strong>
-     <div>{VARIANTS.map(t=><button type="button" key={t.id} aria-label={"Acabamento "+t.label}
-      aria-pressed={variant===t.id} className={variant===t.id?"active":""}
-      disabled={!mine} onClick={()=>setVariant(t.id)}>
-      <span style={{"--tone":t.hex} as CSSProperties}/><small>{t.label}</small>
-     </button>)}</div>
-    </div>}
+    <h3>{current?.name||"Sem moldura"}</h3>
+    <span className="mm-frame-inspector-rarity">{current?.rarity||"Padrão"}</span>
+    <p className="mm-frames-title">{current?.title||"Sua foto original, sem decoração."}</p>
+    {current?<><div className="mm-frame-rule"><strong>COMO CONQUISTAR</strong><p>{current.requirement}</p></div>
+     <div className="mm-frame-progress-header"><strong>Progresso</strong>
+      <span>{Math.min(progress[current.id]||0,current.goal)} / {current.goal}</span></div>
+     <div className="mm-frame-progress" role="progressbar" aria-label={"Progresso "+current.name}
+      aria-valuenow={Math.min(progress[current.id]||0,current.goal)} aria-valuemin={0} aria-valuemax={current.goal}>
+      <div style={{width:Math.min(100,100*(progress[current.id]||0)/current.goal)+"%"}}/>
+     </div>
+     {granted.includes(current.id)&&<p className="mm-frames-manual">Concessão permanente da administração: desbloqueada independentemente do progresso.</p>}
+     {current.variations&&<div className="mm-frames-variants"><strong>VARIAÇÕES DE COR</strong>
+      <div>{VARIANTS.map(t=><button type="button" key={t.id} aria-label={"Acabamento "+t.label}
+       aria-pressed={variant===t.id} className={variant===t.id?"active":""}
+       disabled={!mine} onClick={()=>setVariant(t.id)}>
+       <span style={{"--tone":t.hex} as CSSProperties}/><small>{t.label}</small>
+      </button>)}</div>
+     </div>}</>:
+     <p className="mm-frames-note">Exibe somente a foto do perfil. Você pode voltar a usar qualquer moldura desbloqueada quando quiser.</p>}
     {mine&&<div className="mm-frames-actions">
      <button className="btn gold" type="button" disabled={busy||!owned||isEquipped}
-      onClick={()=>void equip(current.id,variant)}>
-      {busy?"Salvando…":!owned?"Moldura bloqueada":isEquipped?"Moldura equipada":"Equipar moldura"}
+      onClick={()=>void equip(selected,variant)}>
+      {busy?"Salvando…":!owned?"Moldura bloqueada":isEquipped?
+       selected===null?"Sem moldura selecionada":"Moldura equipada":
+       selected===null?"Usar sem moldura":"Equipar moldura"}
      </button>
-     {equipped.frame_id&&<button className="btn" type="button" disabled={busy}
-      onClick={()=>void equip(null)}>Remover moldura</button>}
     </div>}
    </aside>
   </div>

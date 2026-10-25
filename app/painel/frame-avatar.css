@@ -1,7 +1,9 @@
-
-.mm-prestige-avatar{position:relative;display:inline-grid!important;place-items:center;isolation:isolate;overflow:visible!important;flex:none;min-width:0;min-height:0}
-.mm-prestige-avatar>.mm-player-photo{width:100%;height:100%;border-radius:50%;object-fit:cover;z-index:0}
-.mm-prestige-avatar>.mm-frame-artwork{position:absolute;inset:-17.5%;width:135%;height:135%;max-width:none;max-height:none;overflow:visible;z-index:3;pointer-events:none;filter:drop-shadow(0 0 2px #050e22)}
+/* The frame and its portrait are fully contained in the avatar's own box. */
+.mm-prestige-avatar{position:relative;display:inline-grid!important;place-items:center;isolation:isolate;overflow:hidden!important;flex:none;min-width:0;min-height:0;border-radius:50%;line-height:1}
+.mm-prestige-avatar-portrait{grid-area:1/1;width:100%;height:100%;border-radius:50%;overflow:hidden;display:grid;place-items:center;position:relative;z-index:1;background:#182c41;color:#f1f5fb}
+.mm-prestige-avatar-portrait>.mm-player-photo{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
+.mm-prestige-avatar.has-frame .mm-prestige-avatar-portrait{width:56%;height:56%;font-size:65%}
+.mm-prestige-avatar>.mm-frame-artwork{position:absolute;inset:0;width:100%;height:100%;max-width:100%;max-height:100%;overflow:hidden;z-index:3;pointer-events:none}
 .mm-seat-chair-circle>.mm-prestige-avatar{width:100%;height:100%;border-radius:50%}
 .mm-v09-attendee .mm-prestige-avatar{width:31px;height:31px}
 .mm-player-preview-head .mm-prestige-avatar{width:57px;height:57px}
