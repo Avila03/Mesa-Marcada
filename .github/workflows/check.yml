@@ -29,6 +29,7 @@ jobs:
       - run: npm run check:expense
       - run: npm run check:performance
       - run: npm run check:medals
+      - run: npm run check:player-previews
       - run: npm run check:scroll
       - run: npm run build
       - run: npm run smoke
