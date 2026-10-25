@@ -46,7 +46,7 @@ export default function SeatingTable({game,capacity,seats,myId,confirmed,canChan
    const content=<>
      <span className="mm-seat-chair-circle">
        {occupant?
-         <PlayerAvatar name={name} photoUrl={photoUrls[occupant.user_id]}/>:
+         <FrameAvatar playerId={occupant.user_id} name={name} photoUrl={photoUrls[occupant.user_id]}/>:
          isDealer?"♛":"+"}
      </span>
      <span className="mm-seat-chair-caption">{caption}</span>
