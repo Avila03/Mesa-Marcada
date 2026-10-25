@@ -34,6 +34,10 @@ const level=(medal:Medal,total:number)=>medal.levels.reduce(
  (current,tier,i)=>total>=tier.threshold?i:current,-1);
 const cache=new Map<string,{time:number;promise:Promise<MedalSummary|null>}>();
 const CACHE_MS=120000;
+if(typeof window!=="undefined")window.addEventListener("mm-medal-showcase-updated",(event:Event)=>{
+ const id=(event as CustomEvent<{userId:string}>).detail?.userId;
+ if(id)cache.delete(id);
+});
 
 async function getMedalSummary(playerId:string):Promise<MedalSummary|null>{
  const db=getSupabase();
