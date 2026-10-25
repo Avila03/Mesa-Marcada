@@ -5,6 +5,7 @@ import type {FormEvent, ReactNode} from "react";
 import type {Game,Profile,Rank,Attendance,Event} from "@/lib/mesa-types";
 import {fullDate} from "@/lib/mesa-types";
 import UiIcon from "./ui-icon";
+import FrameAvatar from "./frame-avatar";
 
 const favoriteOptions:Game[]=["poker","blackjack"];
 const number=(n:unknown)=>new Intl.NumberFormat("pt-BR",{maximumFractionDigits:1}).format(Number(n)||0);
