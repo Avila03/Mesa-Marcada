@@ -90,6 +90,9 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
    if(saveError)throw saveError;
    setFeatured(nextFeatured);setPinned(filteredPins);setVisible(nextVisible);
    setMessage("Vitrine de conquistas atualizada.");
+   if(typeof window!=="undefined")window.dispatchEvent(
+    new CustomEvent("mm-medal-showcase-updated",{detail:{userId}})
+   );
    return true;
   }catch(e){setError(e instanceof Error?e.message:"Não foi possível salvar a vitrine.");return false;}
   finally{setSaving(false);}
