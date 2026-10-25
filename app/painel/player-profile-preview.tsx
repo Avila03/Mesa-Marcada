@@ -5,7 +5,7 @@ import {useCallback,useEffect,useRef,useState} from "react";
 import type {CSSProperties,ReactNode} from "react";
 import type {Profile} from "@/lib/mesa-types";
 import {getSupabase} from "@/lib/supabase/browser";
-import {PlayerAvatar} from "./v09-features";
+import FrameAvatar from "./frame-avatar";
 import {MEDALS} from "./medal-catalog";
 import "./player-profile-preview.css";
 
