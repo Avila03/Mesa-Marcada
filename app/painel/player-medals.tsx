@@ -70,6 +70,8 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
  const [selected,setSelected]=useState("first");
  const [filter,setFilter]=useState("Todas");
  const [expanded,setExpanded]=useState(false);
+ const [showPinPicker,setShowPinPicker]=useState(false);
+ const [draftPins,setDraftPins]=useState<string[]>([]);
 
  useEffect(()=>{
   let alive=true;
@@ -115,8 +117,8 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
  const inspectGranted=granted[inspect.id]!==undefined;
  const inspectNext=inspect.levels.find(t=>inspectValue<t.threshold);
  const allowed=own||visible;
- async function save(nextFeatured:string|null,nextPins:string[],nextVisible:boolean){
-  const db=getSupabase();if(!db)return;
+ async function save(nextFeatured:string|null,nextPins:string[],nextVisible:boolean):Promise<boolean>{
+  const db=getSupabase();if(!db)return false;
   setSaving(true);setError("");setMessage("");
   try{
    const filteredPins=[...new Set(nextPins)].filter(id=>earned.has(id)&&id!==nextFeatured).slice(0,3);
@@ -128,7 +130,8 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
    if(saveError)throw saveError;
    setFeatured(nextFeatured);setPinned(filteredPins);setVisible(nextVisible);
    setMessage("Vitrine de conquistas atualizada.");
-  }catch(e){setError(e instanceof Error?e.message:"Não foi possível salvar a vitrine.");}
+   return true;
+  }catch(e){setError(e instanceof Error?e.message:"Não foi possível salvar a vitrine.");return false;}
   finally{setSaving(false);}
  }
  if(loading)return <section className="mm-medals-shell"><p className="mm-medals-muted">Carregando conquistas…</p></section>;
@@ -156,6 +159,50 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
   {highlights.length>0&&<div className="mm-medals-highlights" aria-label="Medalhas em destaque">
    {highlights.map(m=><button type="button" key={m.id} onClick={()=>{setSelected(m.id);setExpanded(true);}}>
     <span>{m.symbol}</span><small>{m.title}</small></button>)}
+  </div>}
+  {own&&<div className="mm-medals-pin-section">
+   <div className="mm-medals-pin-head">
+    <div><strong>Meus três troféus em destaque</strong>
+     <small>Escolha até três medalhas desbloqueadas para aparecerem no seu perfil e nas prévias.</small>
+    </div>
+    <button type="button" className="btn" disabled={saving} aria-expanded={showPinPicker}
+     onClick={()=>{setDraftPins(pinned.filter(id=>earned.has(id)&&id!==chosen));setShowPinPicker(value=>!value);}}>
+     {showPinPicker?"Fechar seleção":"Escolher meus 3 troféus"}
+    </button>
+   </div>
+   <div className="mm-medals-pin-slots" aria-label="Troféus selecionados">
+    {Array.from({length:3},(_,index)=>{
+     const selectedMedal=highlights[index];
+     return <div key={index} className={"mm-medals-pin-slot "+(selectedMedal?"filled":"empty")}>
+      <span aria-hidden="true">{selectedMedal?selectedMedal.symbol:"＋"}</span>
+      <small>{selectedMedal?selectedMedal.title:"Escolher"}</small>
+     </div>;
+    })}
+   </div>
+   {showPinPicker&&<div className="mm-medals-picker">
+    <div className="mm-medals-picker-header"><strong>Selecionar troféus</strong>
+     <small>{draftPins.length} de 3 selecionados</small>
+    </div>
+    <div className="mm-medals-picker-grid">
+     {unlocked.filter(m=>m.id!==chosen).map(m=>{
+      const active=draftPins.includes(m.id);
+      return <button key={m.id} type="button" disabled={saving||(!active&&draftPins.length>=3)}
+       className={"mm-medals-picker-choice "+(active?"chosen":"")}
+       aria-pressed={active} onClick={()=>setDraftPins(previous=>previous.includes(m.id)
+        ?previous.filter(id=>id!==m.id):previous.length<3?[...previous,m.id]:previous)}>
+       <span aria-hidden="true">{m.symbol}</span><small>{m.title}</small>
+       <span className="mm-medals-picker-check">{active?"✓":""}</span>
+      </button>;
+     })}
+    </div>
+    <div className="mm-medals-picker-footer">
+     <button type="button" className="btn" onClick={()=>setShowPinPicker(false)}>Cancelar</button>
+     <button type="button" className="btn gold" disabled={saving}
+      onClick={()=>void save(featured,draftPins,visible).then(ok=>{if(ok)setShowPinPicker(false);})}>
+      {saving?"Salvando...":"Salvar troféus"}
+     </button>
+    </div>
+   </div>}
   </div>}
   {own&&<div className="mm-medals-privacy">
    <label><input type="checkbox" checked={visible} disabled={saving} onChange={e=>void save(featured,pinned,e.target.checked)}/>
