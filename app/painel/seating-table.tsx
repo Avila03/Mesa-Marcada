@@ -1,7 +1,7 @@
 "use client";
 
 import type {Game,Profile} from "@/lib/mesa-types";
-import {PlayerAvatar} from "./v09-features";
+import FrameAvatar from "./frame-avatar";
 import PlayerProfileTrigger from "./player-profile-preview";
 import "./seating-table.css";
 
