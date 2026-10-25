@@ -1,6 +1,8 @@
 "use client";
 
-import type {Game} from "@/lib/mesa-types";
+import type {Game,Profile} from "@/lib/mesa-types";
+import {PlayerAvatar} from "./v09-features";
+import PlayerProfileTrigger from "./player-profile-preview";
 import "./seating-table.css";
 
 export type TableSeat={session_id:string;user_id:string;seat_no:number;chosen_at:string};
@@ -14,14 +16,14 @@ type Props={
  canChange:boolean;
  busy:boolean;
  nameFor:(id:string)=>string;
+ profiles:Profile[];
+ photoUrls:Record<string,string>;
+ onOpenProfile:(id:string)=>void;
  onChoose:(seat:number|null)=>void;
 };
 
-function initials(name:string){
- return name.trim().split(/\s+/).slice(0,2).map(s=>s[0]||"").join("").toUpperCase()||"?";
-}
 
-export default function SeatingTable({game,capacity,seats,myId,confirmed,canChange,busy,nameFor,onChoose}:Props){
+export default function SeatingTable({game,capacity,seats,myId,confirmed,canChange,busy,nameFor,profiles,photoUrls,onOpenProfile,onChoose}:Props){
  const blackjack=game==="blackjack";
  const maxPlayers=blackjack?Math.max(0,Math.min(9,capacity-1)):Math.max(0,Math.min(10,capacity));
  const slots=Array.from({length:maxPlayers},(_,i)=>i+1);
@@ -32,6 +34,32 @@ export default function SeatingTable({game,capacity,seats,myId,confirmed,canChan
    if(!canChange||busy)return;
    if(seats.some(s=>s.seat_no===n&&s.user_id!==myId))return;
    onChoose(mine?.seat_no===n?null:n);
+ };
+ const renderChair=(n:number,left:string,top:string,isDealer=false)=>{
+   const occupant=seats.find(s=>s.seat_no===n);
+   const mineHere=occupant?.user_id===myId;
+   const name=occupant?nameFor(occupant.user_id):"";
+   const caption=isDealer?"CRUPIÊ":mineHere?"VOCÊ":occupant?name:"CADEIRA "+n;
+   const className="mm-seat-chair "+(isDealer?"mm-seat-dealer ":"")+
+     (mineHere?"is-mine":occupant?"is-taken":"is-free");
+   const style={left,top};
+   const content=<>
+     <span className="mm-seat-chair-circle">
+       {occupant?
+         <PlayerAvatar name={name} photoUrl={photoUrls[occupant.user_id]}/>:
+         isDealer?"♛":"+"}
+     </span>
+     <span className="mm-seat-chair-caption">{caption}</span>
+   </>;
+   if(occupant)return <PlayerProfileTrigger key={n} variant="seat"
+      className={className} style={style} playerId={occupant.user_id}
+      fallbackName={name} photoUrl={photoUrls[occupant.user_id]}
+      profile={profiles.find(p=>p.id===occupant.user_id)}
+      caption={(isDealer?"Crupiê":"Cadeira "+n)+": "+name+". Ver prévia do perfil."}
+      onOpenProfile={()=>onOpenProfile(occupant.user_id)}>{content}</PlayerProfileTrigger>;
+   return <button type="button" key={n} className={className} style={style}
+     disabled={!canChange||busy} aria-label={isDealer?"Ocupar a cadeira do crupiê":"Ocupar cadeira "+n}
+     onClick={()=>select(n)}>{content}</button>;
  };
  return <section className={"mm-seat-shell "+(blackjack?"is-blackjack":"is-poker")} aria-label={"Assentos da mesa de "+(blackjack?"Blackjack":"Poker")}>
    <div className="mm-seat-topline">
@@ -51,35 +79,12 @@ export default function SeatingTable({game,capacity,seats,myId,confirmed,canChan
            <small>{blackjack?"CRUPIÊ · 21":"MESA MARCADA"}</small>
          </div>
        </div>
-       {blackjack&&<button
-         type="button"
-         className={"mm-seat-chair mm-seat-dealer "+(dealer?(dealer.user_id===myId?"is-mine":"is-taken"):"is-free")}
-         style={{left:"50%",top:"11%"}}
-         disabled={!canChange||busy||Boolean(dealer&&dealer.user_id!==myId)}
-         aria-label={dealer?"Crupiê: "+nameFor(dealer.user_id):"Ocupar a cadeira do crupiê"}
-         title={dealer?nameFor(dealer.user_id):"Sentar como crupiê"}
-         aria-pressed={dealer?.user_id===myId}
-         onClick={()=>select(0)}>
-         <span className="mm-seat-chair-circle">{dealer?initials(nameFor(dealer.user_id)):"♛"}</span>
-         <span className="mm-seat-chair-caption">CRUPIÊ</span>
-       </button>}
+       {blackjack&&renderChair(0,"50%","11%",true)}
        {slots.map((n,i)=>{
-         const seat=seats.find(s=>s.seat_no===n);
-         const mineHere=seat?.user_id===myId;
          const theta=blackjack?(slots.length===1?Math.PI/2:Math.PI-(i/(slots.length-1))*Math.PI):(-Math.PI/2)+(i/slots.length)*Math.PI*2;
-         const x=blackjack?50+42*Math.cos(theta):50+42*Math.cos(theta);
+         const x=50+42*Math.cos(theta);
          const y=blackjack?54+32*Math.sin(theta):51+40*Math.sin(theta);
-         return <button key={n} type="button"
-           className={"mm-seat-chair "+(mineHere?"is-mine":seat?"is-taken":"is-free")}
-           style={{left:x+"%",top:y+"%"}}
-           disabled={!canChange||busy||Boolean(seat&&!mineHere)}
-           aria-label={seat?"Cadeira "+n+": "+nameFor(seat.user_id):"Ocupar cadeira "+n}
-           title={seat?nameFor(seat.user_id):"Cadeira "+n}
-           aria-pressed={mineHere}
-           onClick={()=>select(n)}>
-           <span className="mm-seat-chair-circle">{seat?initials(nameFor(seat.user_id)):"+"}</span>
-           <span className="mm-seat-chair-caption">{mineHere?"VOCÊ":seat?nameFor(seat.user_id):"CADEIRA "+n}</span>
-         </button>;
+         return renderChair(n,x+"%",y+"%");
        })}
      </div>
      <aside className="mm-seat-detail">

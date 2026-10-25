@@ -21,7 +21,8 @@
     "check:poll": "node scripts/check-poll-composer.mjs",
     "check:expense": "node scripts/check-expense-composer.mjs",
     "check:performance": "node scripts/check-performance.mjs",
-    "check:medals": "node scripts/check-medals.mjs"
+    "check:medals": "node scripts/check-medals.mjs",
+    "check:player-previews": "node scripts/check-player-previews.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.0",

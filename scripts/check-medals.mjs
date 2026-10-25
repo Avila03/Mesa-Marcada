@@ -2,15 +2,16 @@ import {strict as assert} from "node:assert";
 import {readFileSync} from "node:fs";
 const read=p=>readFileSync(new URL("../"+p,import.meta.url),"utf8");
 const frontend=read("app/painel/player-medals.tsx");
+const catalog=read("app/painel/medal-catalog.ts");
 const styles=read("app/painel/player-medals.css");
 const page=read("app/painel/mobile-first.tsx");
 const migration=read("supabase/migrations/20261025160000_medals_profile_showcase.sql");
 const ids=["first","collector","podium","shark","positive","record","veteran","loyal","poker","blackjack","versatile","champ","multi","pioneer","host"];
 for(const id of ids){
- assert.ok(frontend.includes('id:"'+id+'"'),"Missing medal "+id);
+ assert.ok(catalog.includes('id:"'+id+'"'),"Missing medal "+id);
  assert.ok(migration.includes("('"+id+"'")||migration.includes("'"+id+"',"),"Missing SQL progress "+id);
 }
-assert.equal((frontend.match(/id:"(first|collector|podium|shark|positive|record|veteran|loyal|poker|blackjack|versatile|champ|multi|pioneer|host)"/g)||[]).length,15,
+assert.equal((catalog.match(/id:"(first|collector|podium|shark|positive|record|veteran|loyal|poker|blackjack|versatile|champ|multi|pioneer|host)"/g)||[]).length,15,
  "Must define exactly 15 distinct medals");
 assert.ok(migration.includes("ENABLE ROW LEVEL SECURITY")&&migration.includes("medal_showcase_update"),"Showcase needs owner RLS");
 assert.ok(migration.includes("app_private.is_event_hidden")&&migration.includes("session_finance_approvals"),"No incomplete or hidden games");

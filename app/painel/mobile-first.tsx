@@ -28,6 +28,7 @@ import type {League} from "./league-hub";
 import PrivateInviteShare from "./private-invite-share";
 import PollComposer from "./poll-composer";
 import ExpenseComposer from "./expense-composer";
+import PlayerProfileTrigger from "./player-profile-preview";
 import type {TableSeat} from "./seating-table";
 import {useStableDialog} from "./use-stable-dialog";
 import {readClubRoute,clubHref} from "@/lib/app-routes";
@@ -1202,16 +1203,22 @@ export default function PainelPage(){
           myId={user.id} confirmed={meConfirmed}
           canChange={selected.status==="scheduled"&&!Boolean(selectedLive)}
           busy={working} nameFor={nameFor}
+          profiles={profiles} photoUrls={photoUrls}
+          onOpenProfile={id=>{setProfileReturn("detalhe");setProfileId(id);go("perfil");}}
           onChoose={seatNo=>void chooseSeat(seatNo)}/>
 
           <div className="two">
           <section className="panel">
             <div className="panelhead"><h2>Participantes</h2><span className="tag">{guests.length}/{selected.max_participants}</span></div>
             <div className="mm-progress"><div style={{width:(Math.min(1,guests.length/selected.max_participants)*100)+"%"}}/></div>
-            <div className="mm-chipgroup">{guests.map(g=><button className="mm-v09-attendee-link" type="button" key={g.user_id}
-              onClick={()=>{setProfileReturn("detalhe");setProfileId(g.user_id);go("perfil")}}>
-              <AttendeeMiniCard photoUrl={photoUrls[g.user_id]} name={nameFor(g.user_id)}/>
-            </button>)}</div>
+            <div className="mm-chipgroup">{guests.map(g=>
+              <PlayerProfileTrigger key={g.user_id} variant="attendee"
+                className="mm-v09-attendee-link" playerId={g.user_id}
+                profile={profiles.find(p=>p.id===g.user_id)}
+                photoUrl={photoUrls[g.user_id]} fallbackName={nameFor(g.user_id)}
+                onOpenProfile={()=>{setProfileReturn("detalhe");setProfileId(g.user_id);go("perfil");}}>
+                <AttendeeMiniCard photoUrl={photoUrls[g.user_id]} name={nameFor(g.user_id)}/>
+              </PlayerProfileTrigger>)}</div>
             {!guests.length&&<p>Ainda não há participantes sentados. Convide seus amigos para escolher uma cadeira!</p>}
             {organizer&&!meConfirmed&&<p className="mm-formfoot">Como anfitrião, escolha uma cadeira para participar da partida.</p>}
           </section>
