@@ -4,6 +4,7 @@ import {useMemo,useState} from "react";
 import type {Event,Profile,Attendance,Buy} from "@/lib/mesa-types";
 import {fullDate,money} from "@/lib/mesa-types";
 import UiIcon from "./ui-icon";
+import FounderAdminControls from "./founder-admin-controls";
 
 export type HiddenEvent={session_id:string;previous_status:string;hidden_at:string;hidden_by:string};
 export type AdminAudit={id:number;session_id:string|null;action:string;performed_by:string;occurred_at:string;description:string};
@@ -97,6 +98,7 @@ export default function AdminPanel({
         {!rows.length&&<p className="mm-empty">Nenhum evento encontrado nesse filtro.</p>}
       </div>
     </section>
+    <FounderAdminControls profiles={profiles}/>
     <section className="panel mm-admin-audit">
       <div className="panelhead"><h2>Histórico administrativo</h2></div>
       <p className="mm-formfoot">Ações administrativas ficam registradas para conferência.</p>
