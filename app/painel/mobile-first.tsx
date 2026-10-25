@@ -48,6 +48,7 @@ const SeatingTable=dynamic(()=>import("./seating-table"),{loading:()=>null});
 const AdvancedRankingPanel=dynamic(()=>import("./advanced-ranking"),{loading:()=>null});
 const PlayerAchievements=dynamic(()=>import("./advanced-ranking").then(module=>module.PlayerAchievements),{loading:()=>null});
 const PlayerMedals=dynamic(()=>import("./player-medals"),{loading:()=>null});
+const PlayerFrames=dynamic(()=>import("./player-frames"),{loading:()=>null});
 
 
 type LiveSubtab="compra"|"resumo"|"encerrar";
@@ -1103,6 +1104,9 @@ export default function PainelPage(){
       <PlayerMedals key={profileId||user.id} playerId={profileId||user.id}
         userId={user.id} name={nameFor(profileId||user.id)}
         photoUrl={photoUrls[profileId||user.id]}/>
+      <PlayerFrames key={"frames-"+(profileId||user.id)} playerId={profileId||user.id}
+        userId={user.id} name={nameFor(profileId||user.id)}
+        photoUrl={photoUrls[profileId||user.id]}/>
       <PlayerAchievements stats={annualStats} userId={profileId||user.id}/>
       {(profileId||user.id)===user.id&&<MySplitsSummary
         splits={mySplits} settlements={settlements} userId={user.id} nameFor={nameFor}
@@ -1217,7 +1221,7 @@ export default function PainelPage(){
                 profile={profiles.find(p=>p.id===g.user_id)}
                 photoUrl={photoUrls[g.user_id]} fallbackName={nameFor(g.user_id)}
                 onOpenProfile={()=>{setProfileReturn("detalhe");setProfileId(g.user_id);go("perfil");}}>
-                <AttendeeMiniCard photoUrl={photoUrls[g.user_id]} name={nameFor(g.user_id)}/>
+                <AttendeeMiniCard playerId={g.user_id} photoUrl={photoUrls[g.user_id]} name={nameFor(g.user_id)}/>
               </PlayerProfileTrigger>)}</div>
             {!guests.length&&<p>Ainda não há participantes sentados. Convide seus amigos para escolher uma cadeira!</p>}
             {organizer&&!meConfirmed&&<p className="mm-formfoot">Como anfitrião, escolha uma cadeira para participar da partida.</p>}

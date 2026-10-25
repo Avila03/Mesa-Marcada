@@ -1,7 +1,7 @@
 "use client";
 
 import type {Game,Profile} from "@/lib/mesa-types";
-import {PlayerAvatar} from "./v09-features";
+import FrameAvatar from "./frame-avatar";
 import PlayerProfileTrigger from "./player-profile-preview";
 import "./seating-table.css";
 
@@ -46,7 +46,7 @@ export default function SeatingTable({game,capacity,seats,myId,confirmed,canChan
    const content=<>
      <span className="mm-seat-chair-circle">
        {occupant?
-         <PlayerAvatar name={name} photoUrl={photoUrls[occupant.user_id]}/>:
+         <FrameAvatar playerId={occupant.user_id} name={name} photoUrl={photoUrls[occupant.user_id]}/>:
          isDealer?"♛":"+"}
      </span>
      <span className="mm-seat-chair-caption">{caption}</span>

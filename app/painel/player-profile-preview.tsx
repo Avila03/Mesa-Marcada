@@ -5,7 +5,7 @@ import {useCallback,useEffect,useRef,useState} from "react";
 import type {CSSProperties,ReactNode} from "react";
 import type {Profile} from "@/lib/mesa-types";
 import {getSupabase} from "@/lib/supabase/browser";
-import {PlayerAvatar} from "./v09-features";
+import FrameAvatar from "./frame-avatar";
 import {MEDALS} from "./medal-catalog";
 import "./player-profile-preview.css";
 
@@ -87,7 +87,7 @@ function PreviewContent({playerId,profile,photoUrl,fallbackName,onOpenProfile}:{
  const name=profile?.display_name||fallbackName;
  return <div className="mm-player-preview-content" aria-label={"Prévia do perfil de "+name}>
   <div className="mm-player-preview-head">
-   <PlayerAvatar name={name} photoUrl={photoUrl} large/>
+   <FrameAvatar playerId={playerId} name={name} photoUrl={photoUrl} large/>
    <div className="mm-player-preview-identity">
     <strong>{name}</strong>
     <small>{profile?.favorite_game==="blackjack"?"♦ Blackjack":"♠ Poker"} · Jogador</small>
