@@ -6,7 +6,7 @@ import type {CSSProperties,ReactNode} from "react";
 import type {Profile} from "@/lib/mesa-types";
 import {getSupabase} from "@/lib/supabase/browser";
 import {PlayerAvatar} from "./v09-features";
-import {MEDALS} from "./player-medals";
+import {MEDALS} from "./medal-catalog";
 import "./player-profile-preview.css";
 
 type Medal=typeof MEDALS[number];
