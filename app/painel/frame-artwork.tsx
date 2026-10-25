@@ -1,13 +1,14 @@
 "use client";
 import {useId} from "react";
+import FounderArtwork from "./founder-artwork";
 
 /** Five bespoke, scalable transparent frame artworks for Mesa Marcada.
  * No emojis, raster placeholders or stock borders; the center stays clear for the profile photo.
  */
-export type FrameId="safira"|"dupla-coroa"|"rei-sequencia"|"high-roller"|"conclave";
+export type FrameId="safira"|"dupla-coroa"|"rei-sequencia"|"high-roller"|"conclave"|"fundador";
 export type FrameVariant="original"|"ciano"|"noturno";
 
-const COLORS:Record<FrameId,{metal:string;light:string;accent:string;dark:string}>={
+const COLORS:Record<Exclude<FrameId,"fundador">,{metal:string;light:string;accent:string;dark:string}>={
  safira:{metal:"#bddbea",light:"#f7ffff",accent:"#258bff",dark:"#102444"},
  "dupla-coroa":{metal:"#e9b75e",light:"#fff0b6",accent:"#ed5156",dark:"#493016"},
  "rei-sequencia":{metal:"#deb15e",light:"#fff0a0",accent:"#258bff",dark:"#45301a"},
@@ -96,6 +97,7 @@ export default function FrameArtwork({id,variant="original",className}:{
  id:FrameId;variant?:FrameVariant;className?:string;
 }){
  const uniq=useId().replace(/:/g,"");
+ if(id==="fundador")return <FounderArtwork className={className}/>;
  const theme=COLORS[id];
  const accent=id==="safira"?(variant==="ciano"?"#4be4fa":variant==="noturno"?"#7768ff":"#258bff"):theme.accent;
  const gold=id==="dupla-coroa"||id==="rei-sequencia"||id==="high-roller";

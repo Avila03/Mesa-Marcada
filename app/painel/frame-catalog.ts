@@ -1,6 +1,6 @@
-export type FrameId="safira"|"dupla-coroa"|"rei-sequencia"|"high-roller"|"conclave";
+export type FrameId="safira"|"dupla-coroa"|"rei-sequencia"|"high-roller"|"conclave"|"fundador";
 export type FrameVariant="original"|"ciano"|"noturno";
-export type FrameRarity="Rara"|"Épica"|"Lendária";
+export type FrameRarity="Rara"|"Épica"|"Lendária"|"Exclusiva";
 export type FrameInfo={id:FrameId;name:string;rarity:FrameRarity;title:string;requirement:string;goal:number;unit:string;accent:string;variations:boolean};
 export const FRAMES:FrameInfo[]=[
  {id:"safira",name:"Horizonte de Safira",rarity:"Rara",title:"Identidade impecável",
@@ -19,4 +19,10 @@ export const FRAMES:FrameInfo[]=[
   requirement:"Participe de ao menos um evento concluído e válido em 3 Ligas diferentes.",
   goal:3,unit:"Ligas distintas",accent:"#bb8bff",variations:false}
 ];
+/** Not in FRAMES: exclusive recognition never contributes to earnable progression. */
+export const FOUNDER_FRAME:FrameInfo={
+ id:"fundador",name:"Eixo Fundação",rarity:"Exclusiva",title:"O início de tudo",
+ requirement:"Concessão manual do administrador principal aos membros fundadores. Não pode ser obtida por partidas, rankings, compras ou conquistas.",
+ goal:0,unit:"concessão administrativa",accent:"#258bff",variations:false
+};
 export const FRAME_IDS=FRAMES.map(f=>f.id);

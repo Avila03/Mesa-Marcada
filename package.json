@@ -23,7 +23,8 @@
     "check:performance": "node scripts/check-performance.mjs",
     "check:medals": "node scripts/check-medals.mjs",
     "check:player-previews": "node scripts/check-player-previews.mjs",
-    "check:frames": "node scripts/check-frames.mjs"
+    "check:frames": "node scripts/check-frames.mjs",
+    "check:founder": "node scripts/check-founder-frame.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.0",

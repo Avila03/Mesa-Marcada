@@ -5,7 +5,7 @@ import {getSupabase} from "@/lib/supabase/browser";
 import {PlayerAvatar} from "./v09-features";
 import FrameArtwork from "./frame-artwork";
 import type {FrameId,FrameVariant} from "./frame-catalog";
-import {FRAMES} from "./frame-catalog";
+import {FRAMES,FOUNDER_FRAME} from "./frame-catalog";
 import {notifyFrameUpdated} from "./frame-avatar";
 import "./player-frames.css";
 
@@ -66,9 +66,11 @@ export default function PlayerFrames({playerId,userId,name,photoUrl}:{
   })();
   return()=>{mounted=false};
  },[playerId]);
- const unlocked=(id:FrameId)=>granted.includes(id)||progress[id]>=(FRAMES.find(f=>f.id===id)?.goal||Infinity);
+ const unlocked=(id:FrameId)=>id==="fundador"
+  ?granted.includes("fundador")
+  :granted.includes(id)||progress[id]>=(FRAMES.find(f=>f.id===id)?.goal||Infinity);
  const count=FRAMES.filter(f=>unlocked(f.id)).length;
- const current=FRAMES.find(f=>f.id===selected)||null;
+ const current=selected==="fundador"?FOUNDER_FRAME:FRAMES.find(f=>f.id===selected)||null;
  const owned=selected===null||unlocked(selected);
  const isEquipped=equipped.frame_id===selected&&
   (selected===null||equipped.variant===(selected==="safira"?variant:"original"));
@@ -93,17 +95,17 @@ export default function PlayerFrames({playerId,userId,name,photoUrl}:{
  return <section className="mm-frames-shell" aria-label={"Molduras de prestígio de "+name}>
   <div className="mm-frames-header">
    <div><span className="mm-frames-eyebrow">MESA MARCADA · ATELIÊ</span>
-    <h2>Molduras de Prestígio</h2><p>Cinco artes exclusivas. Conquiste e equipe sua favorita.</p></div>
+    <h2>Molduras de Prestígio</h2><p>Cinco molduras conquistáveis e a exclusiva Eixo Fundação, concedida apenas a fundadores.</p></div>
    <strong className="mm-frames-unlocked">{count} / 5 <small>desbloqueadas</small></strong>
   </div>
   <div className="mm-frames-filters" aria-label="Filtrar molduras por raridade">
-   {["Todas","Raras","Épicas","Lendárias"].map(label=>
+   {["Todas","Raras","Épicas","Lendárias","Exclusivas"].map(label=>
     <button type="button" key={label} aria-pressed={filter===label}
      className={filter===label?"selected":""} onClick={()=>setFilter(label)}>{label}</button>)}
   </div>
   <div className="mm-frames-content">
    <div className="mm-frames-grid">
-    <button type="button" aria-pressed={selected===null}
+    {filter==="Todas"&&<button type="button" aria-pressed={selected===null}
      className={"mm-frame-tile mm-frame-none "+(selected===null?"selected ":"")+"unlocked"}
      style={{"--frame-accent":"#7399bb"} as CSSProperties}
      onClick={()=>{setSelected(null);setVariant("original");setError("");}}>
@@ -111,7 +113,17 @@ export default function PlayerFrames({playerId,userId,name,photoUrl}:{
      <FrameSample id={null} variant="original" name={name} photoUrl={photoUrl}/>
      <strong>Sem moldura</strong><span className="mm-frame-rarity">Padrão</span>
      <small className="mm-frame-status">Sempre disponível</small>
-    </button>
+    </button>}
+    {(filter==="Todas"||filter==="Exclusivas")&&
+     <button type="button" aria-pressed={selected==="fundador"}
+      className={"mm-frame-tile mm-frame-founder "+(selected==="fundador"?"selected ":"")+(unlocked("fundador")?"unlocked":"locked")}
+      style={{"--frame-accent":"#258bff"} as CSSProperties}
+      onClick={()=>{setSelected("fundador");setVariant("original");setError("");}}>
+      {equipped.frame_id==="fundador"&&<span className="mm-frame-equipped-label">Equipada</span>}
+      <FrameSample id="fundador" variant="original" name={name} photoUrl={photoUrl}/>
+      <strong>Eixo Fundação</strong><span className="mm-frame-rarity">EXCLUSIVA</span>
+      <small className="mm-frame-status">{unlocked("fundador")?"✓ Fundador reconhecido":"Concessão manual"}</small>
+     </button>}
     {FRAMES.filter(f=>filter==="Todas"||(filter==="Raras"&&f.rarity==="Rara")||
      (filter==="Épicas"&&f.rarity==="Épica")||(filter==="Lendárias"&&f.rarity==="Lendária"))
      .map(frame=><button key={frame.id} type="button" aria-pressed={selected===frame.id}
@@ -131,14 +143,19 @@ export default function PlayerFrames({playerId,userId,name,photoUrl}:{
     <h3>{current?.name||"Sem moldura"}</h3>
     <span className="mm-frame-inspector-rarity">{current?.rarity||"Padrão"}</span>
     <p className="mm-frames-title">{current?.title||"Sua foto original, sem decoração."}</p>
-    {current?<><div className="mm-frame-rule"><strong>COMO CONQUISTAR</strong><p>{current.requirement}</p></div>
-     <div className="mm-frame-progress-header"><strong>Progresso</strong>
+    {current?<><div className="mm-frame-rule"><strong>{current.id==="fundador"?"RECONHECIMENTO EXCLUSIVO":"COMO CONQUISTAR"}</strong>
+      <p>{current.requirement}</p></div>
+     {current.id!=="fundador"&&<><div className="mm-frame-progress-header"><strong>Progresso</strong>
       <span>{Math.min(progress[current.id]||0,current.goal)} / {current.goal}</span></div>
      <div className="mm-frame-progress" role="progressbar" aria-label={"Progresso "+current.name}
       aria-valuenow={Math.min(progress[current.id]||0,current.goal)} aria-valuemin={0} aria-valuemax={current.goal}>
       <div style={{width:Math.min(100,100*(progress[current.id]||0)/current.goal)+"%"}}/>
-     </div>
-     {granted.includes(current.id)&&<p className="mm-frames-manual">Concessão permanente da administração: desbloqueada independentemente do progresso.</p>}
+     </div></>}
+     {current.id==="fundador"?<p className="mm-frames-manual">
+       {unlocked("fundador")?"Reconhecido como fundador. Este selo não é conquistável por progresso.":
+       "Esta moldura só pode ser concedida manualmente pelo administrador principal."}
+      </p>:granted.includes(current.id)&&<p className="mm-frames-manual">
+       Concessão permanente da administração: desbloqueada independentemente do progresso.</p>}
      {current.variations&&<div className="mm-frames-variants"><strong>VARIAÇÕES DE COR</strong>
       <div>{VARIANTS.map(t=><button type="button" key={t.id} aria-label={"Acabamento "+t.label}
        aria-pressed={variant===t.id} className={variant===t.id?"active":""}

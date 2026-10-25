@@ -1,0 +1,19 @@
+.mm-founder-admin{display:grid;gap:15px;margin-top:16px}
+.mm-founder-admin-intro{display:flex;align-items:center;gap:15px;padding:12px;border:1px solid #2b435f;background:linear-gradient(130deg,#0b1523,#080a0e);border-radius:10px}
+.mm-founder-admin-emblem{width:95px;height:95px;flex:none;overflow:hidden;border-radius:10px;background:#0b1420}
+.mm-founder-admin-emblem svg{width:100%;height:100%}
+.mm-founder-admin-intro strong{font-size:13px;color:#c7dbef}
+.mm-founder-admin-intro p{font-size:11px;color:#a8bfd8;line-height:1.5;margin:6px 0 0}
+.mm-founder-admin-search{display:grid;gap:8px}
+.mm-founder-admin-search span{font-size:11px;color:#94b3d2;font-weight:700}
+.mm-founder-admin-search input{width:100%;min-height:42px;border:1px solid #36506c;background:#0f1d2d;color:#f1f5fb;border-radius:9px;padding:10px 12px;font-size:13px}
+.mm-founder-admin-list{max-height:390px;overflow:auto;display:grid;gap:7px}
+.mm-founder-admin-person{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #263b54;padding:11px 13px;border-radius:9px;background:#111d2b}
+.mm-founder-admin-person div{display:grid;gap:4px;min-width:0}
+.mm-founder-admin-person strong{font-size:13px;overflow-wrap:anywhere}
+.mm-founder-admin-person small{font-size:10px;color:#90abc6}
+.mm-founder-admin-person .btn,.mm-founder-revoke{min-height:39px;padding:7px 12px;flex:none;font-size:11px}
+.mm-founder-revoke{border:1px solid #87404c;border-radius:8px;color:#ff9ba2;background:#291820;cursor:pointer}
+.mm-founder-admin-success{color:#75d9ae;font-size:12px;margin:0}
+.mm-founder-admin-error{color:#ff9ca6;font-size:12px;margin:0}
+@media(max-width:490px){.mm-founder-admin-emblem{width:69px;height:69px}.mm-founder-admin-intro{gap:10px}.mm-founder-admin-person{padding:9px}}
