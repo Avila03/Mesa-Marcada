@@ -53,10 +53,12 @@ export default function FrameAvatar({playerId,name,photoUrl,large=false,classNam
  useEffect(()=>setPhotoFailed(false),[photoUrl]);
  const initials=name.trim().split(/\s+/).filter(Boolean).slice(0,2)
   .map(part=>part[0].toUpperCase()).join("")||"MM";
- return <span className={"mm-player-avatar mm-prestige-avatar "+(large?"large ":"")+className}
+ return <span className={"mm-player-avatar mm-prestige-avatar "+(frame?.frame_id?"has-frame ":"")+(large?"large ":"")+className}
   aria-label={"Foto de "+name+(frame?.frame_id?", moldura equipada "+frame.frame_id:"")}>
-  {photoUrl&&!photoFailed?<img src={photoUrl} alt="" className="mm-player-photo"
-   loading={large?"eager":"lazy"} referrerPolicy="no-referrer" onError={()=>setPhotoFailed(true)}/>:initials}
+  <span className="mm-prestige-avatar-portrait">
+   {photoUrl&&!photoFailed?<img src={photoUrl} alt="" className="mm-player-photo"
+    loading={large?"eager":"lazy"} referrerPolicy="no-referrer" onError={()=>setPhotoFailed(true)}/>:initials}
+  </span>
   {frame?.frame_id&&<FrameArtwork id={frame.frame_id} variant={frame.variant} className="mm-frame-artwork"/>}
  </span>;
 }
