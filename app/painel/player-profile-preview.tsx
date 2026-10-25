@@ -158,7 +158,7 @@ export default function PlayerProfileTrigger({
    aria-haspopup="dialog" aria-expanded={open}
    onMouseEnter={openCard} onMouseLeave={scheduleClose}
    onFocus={openCard}
-   onClick={()=>{if(open)close();else openCard();}}>
+   onClick={openCard}>
    {children}
   </button>
   {open&&typeof document!=="undefined"&&createPortal(
