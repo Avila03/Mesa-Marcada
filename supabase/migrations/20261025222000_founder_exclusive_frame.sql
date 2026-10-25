@@ -84,6 +84,21 @@ END; $founderrpc$;
 REVOKE ALL ON FUNCTION public.admin_manage_founder_frame(uuid,text) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.admin_manage_founder_frame(uuid,text) TO authenticated;
 
+-- Owner-only list bypasses private profile showcase visibility so administrative
+-- controls can accurately show the true founder grants even for hidden profiles.
+CREATE OR REPLACE FUNCTION public.admin_list_founder_frames()
+RETURNS SETOF uuid LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=''
+AS $founderlist$
+BEGIN
+ IF (SELECT auth.uid()) IS DISTINCT FROM
+  (SELECT a.user_id FROM public.app_admins a ORDER BY a.created_at,a.user_id LIMIT 1)
+ THEN RAISE EXCEPTION 'Acesso exclusivo do administrador principal'; END IF;
+ RETURN QUERY SELECT g.user_id FROM public.player_frame_grants g
+   WHERE g.frame_id='fundador' ORDER BY g.created_at,g.user_id;
+END; $founderlist$;
+REVOKE ALL ON FUNCTION public.admin_list_founder_frames() FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.admin_list_founder_frames() TO authenticated;
+
 -- Treat the owner as founding member, without equipping/changing their current frame.
 DO $seed$
 DECLARE original_admin uuid;
