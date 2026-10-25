@@ -181,6 +181,33 @@ END; $$;
 REVOKE ALL ON FUNCTION public.get_player_frame_progress(uuid) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.get_player_frame_progress(uuid) TO authenticated;
 
+-- Prevent spoofing an earned frame by writing an arbitrary frame_id.
+CREATE OR REPLACE FUNCTION public.has_player_frame(p_user_id uuid,p_frame_id text)
+RETURNS boolean LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $
+DECLARE needed int; score int;
+BEGIN
+ IF (SELECT auth.uid()) IS NULL OR p_user_id IS NULL THEN RETURN false; END IF;
+ IF p_frame_id IS NULL THEN RETURN true; END IF;
+ IF p_frame_id NOT IN ('safira','dupla-coroa','rei-sequencia','high-roller','conclave') THEN RETURN false; END IF;
+ IF EXISTS(SELECT 1 FROM public.player_frame_grants g WHERE g.user_id=p_user_id AND g.frame_id=p_frame_id)
+ THEN RETURN true; END IF;
+ needed=CASE p_frame_id WHEN 'safira' THEN 5 WHEN 'dupla-coroa' THEN 1
+  WHEN 'rei-sequencia' THEN 6 WHEN 'high-roller' THEN 5 WHEN 'conclave' THEN 3 END;
+ score=coalesce((public.get_player_frame_progress(p_user_id)->>p_frame_id)::int,0);
+ RETURN score>=needed;
+END; $;
+REVOKE ALL ON FUNCTION public.has_player_frame(uuid,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.has_player_frame(uuid,text) TO authenticated;
+DROP POLICY IF EXISTS frame_showcase_insert ON public.profile_frame_showcase;
+CREATE POLICY frame_showcase_insert ON public.profile_frame_showcase FOR INSERT TO authenticated
+ WITH CHECK(user_id=(SELECT auth.uid()) AND
+  (frame_id IS NULL OR public.has_player_frame(user_id,frame_id)));
+DROP POLICY IF EXISTS frame_showcase_update ON public.profile_frame_showcase;
+CREATE POLICY frame_showcase_update ON public.profile_frame_showcase FOR UPDATE TO authenticated
+ USING(user_id=(SELECT auth.uid()))
+ WITH CHECK(user_id=(SELECT auth.uid()) AND
+  (frame_id IS NULL OR public.has_player_frame(user_id,frame_id)));
+
 -- Exactly five true administrator grants; no fabricated games or finances.
 DO $$
 DECLARE principal uuid;
