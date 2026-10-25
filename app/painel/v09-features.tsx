@@ -123,7 +123,7 @@ export function ProfilePanel({
     {onBack&&<button className="back" type="button" onClick={onBack}>← Voltar ao ranking</button>}
     <div className="heading"><div><div className="eyebrow">JOGADORES DA MESA</div><h1>{own?"Meu perfil":"Perfil do jogador"}</h1><p>Apelido, avatar e histórico das suas noites.</p></div></div>
     <section className="mm-v09-profile-hero">
-      <PlayerAvatar photoUrl={photoUrl} name={nameShown} large/>
+      <FrameAvatar playerId={profile?.id||userId} photoUrl={photoUrl} name={nameShown} large/>
       <div className="mm-v09-profile-name"><h2>{nameShown}</h2><span className={"tag "+(profile?.favorite_game||"poker")}>Jogo favorito: {profile?.favorite_game==="blackjack"?"Blackjack":"Poker"}</span>
       {profile?.bio&&<p>{profile.bio}</p>}</div>
       {own&&<button type="button" className="btn" onClick={()=>setEdit(v=>!v)}>{edit?"Cancelar":"✎ Editar perfil"}</button>}
@@ -302,6 +302,6 @@ export function FinanceReviewBoard({
   </section>;
 }
 
-export function AttendeeMiniCard({name,photoUrl}:{name:string;photoUrl?:string}){
-  return <span className="mm-v09-attendee"><PlayerAvatar photoUrl={photoUrl} name={name}/><span>{name}</span></span>;
+export function AttendeeMiniCard({name,photoUrl,playerId}:{name:string;photoUrl?:string;playerId?:string}){
+  return <span className="mm-v09-attendee">{playerId?<FrameAvatar playerId={playerId} photoUrl={photoUrl} name={name}/>:<PlayerAvatar photoUrl={photoUrl} name={name}/>}<span>{name}</span></span>;
 }
