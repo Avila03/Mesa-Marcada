@@ -48,6 +48,7 @@ const SeatingTable=dynamic(()=>import("./seating-table"),{loading:()=>null});
 const AdvancedRankingPanel=dynamic(()=>import("./advanced-ranking"),{loading:()=>null});
 const PlayerAchievements=dynamic(()=>import("./advanced-ranking").then(module=>module.PlayerAchievements),{loading:()=>null});
 const PlayerMedals=dynamic(()=>import("./player-medals"),{loading:()=>null});
+const PlayerFrames=dynamic(()=>import("./player-frames"),{loading:()=>null});
 
 
 type LiveSubtab="compra"|"resumo"|"encerrar";
