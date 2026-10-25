@@ -183,7 +183,7 @@ GRANT EXECUTE ON FUNCTION public.get_player_frame_progress(uuid) TO authenticate
 
 -- Prevent spoofing an earned frame by writing an arbitrary frame_id.
 CREATE OR REPLACE FUNCTION public.has_player_frame(p_user_id uuid,p_frame_id text)
-RETURNS boolean LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $
+RETURNS boolean LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $frameguard$
 DECLARE needed int; score int;
 BEGIN
  IF (SELECT auth.uid()) IS NULL OR p_user_id IS NULL THEN RETURN false; END IF;
@@ -195,7 +195,7 @@ BEGIN
   WHEN 'rei-sequencia' THEN 6 WHEN 'high-roller' THEN 5 WHEN 'conclave' THEN 3 END;
  score=coalesce((public.get_player_frame_progress(p_user_id)->>p_frame_id)::int,0);
  RETURN score>=needed;
-END; $;
+END; $frameguard$;
 REVOKE ALL ON FUNCTION public.has_player_frame(uuid,text) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.has_player_frame(uuid,text) TO authenticated;
 DROP POLICY IF EXISTS frame_showcase_insert ON public.profile_frame_showcase;
