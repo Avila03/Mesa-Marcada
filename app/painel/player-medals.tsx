@@ -2,7 +2,7 @@
 import {useEffect,useState} from "react";
 import type {CSSProperties} from "react";
 import {getSupabase} from "@/lib/supabase/browser";
-import {PlayerAvatar} from "./v09-features";
+import FrameAvatar from "./frame-avatar";
 import UiIcon from "./ui-icon";
 import {MEDALS} from "./medal-catalog";
 import type {Medal} from "./medal-catalog";
