@@ -1,0 +1,9 @@
+
+.mm-prestige-avatar{position:relative;display:inline-grid!important;place-items:center;isolation:isolate;overflow:visible!important;flex:none;min-width:0;min-height:0}
+.mm-prestige-avatar>.mm-player-photo{width:100%;height:100%;border-radius:50%;object-fit:cover;z-index:0}
+.mm-prestige-avatar>.mm-frame-artwork{position:absolute;inset:-17.5%;width:135%;height:135%;max-width:none;max-height:none;overflow:visible;z-index:3;pointer-events:none;filter:drop-shadow(0 0 2px #050e22)}
+.mm-seat-chair-circle>.mm-prestige-avatar{width:100%;height:100%;border-radius:50%}
+.mm-v09-attendee .mm-prestige-avatar{width:31px;height:31px}
+.mm-player-preview-head .mm-prestige-avatar{width:57px;height:57px}
+.mm-medals-avatar .mm-prestige-avatar{width:100%;height:100%;border-radius:50%}
+@media(prefers-reduced-motion:no-preference){.mm-prestige-avatar>.mm-frame-artwork{transition:filter .2s ease}}
