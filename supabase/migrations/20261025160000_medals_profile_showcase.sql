@@ -103,7 +103,7 @@ BEGIN
   SELECT game,count(*)::bigint AS total,sum(net)::bigint AS sum_net FROM my GROUP BY game
  ),
  pioneers AS (
-  SELECT distinct p_league.id AS league_id,p_league.session_id
+  SELECT p_league.league_id,p_league.session_id
   FROM (
    SELECT id AS session_id,league_id,
     row_number() OVER(PARTITION BY league_id ORDER BY starts_at,id) AS position
