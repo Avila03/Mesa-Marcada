@@ -87,7 +87,7 @@ function PreviewContent({playerId,profile,photoUrl,fallbackName,onOpenProfile}:{
  const name=profile?.display_name||fallbackName;
  return <div className="mm-player-preview-content" aria-label={"Prévia do perfil de "+name}>
   <div className="mm-player-preview-head">
-   <PlayerAvatar name={name} photoUrl={photoUrl} large/>
+   <FrameAvatar playerId={playerId} name={name} photoUrl={photoUrl} large/>
    <div className="mm-player-preview-identity">
     <strong>{name}</strong>
     <small>{profile?.favorite_game==="blackjack"?"♦ Blackjack":"♠ Poker"} · Jogador</small>
