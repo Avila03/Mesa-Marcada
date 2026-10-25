@@ -9,7 +9,7 @@ const medals=read("app/painel/player-medals.tsx");
 const medalStyle=read("app/painel/player-medals.css");
 
 assert.ok(seats.includes('if(occupant)return <PlayerProfileTrigger'),"Occupied seats need profile preview.");
-assert.ok(seats.includes('<PlayerAvatar name={name} photoUrl={photoUrls[occupant.user_id]}/>'),
+assert.ok(seats.includes('<FrameAvatar playerId={occupant.user_id} name={name} photoUrl={photoUrls[occupant.user_id]}/>'),
  "Occupied chairs must render the actual player's photo.");
 assert.ok(seats.includes('onClick={()=>select(n)}'),"Free chairs must still allow choosing a seat.");
 assert.ok(seats.includes('onClick={()=>onChoose(null)}'),"Keep leave-table function.");
