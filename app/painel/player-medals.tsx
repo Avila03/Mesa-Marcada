@@ -1,5 +1,6 @@
 "use client";
 import {useEffect,useState} from "react";
+import type {CSSProperties} from "react";
 import {getSupabase} from "@/lib/supabase/browser";
 import {PlayerAvatar} from "./v09-features";
 import UiIcon from "./ui-icon";
@@ -131,7 +132,7 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
    <span className="mm-medals-total">{unlocked.length} / 15</span>
   </div>
   <div className="mm-medals-preview">
-   <div className={"mm-medals-avatar "+(primary?"earned":"")} style={primary?{"--medal-color":primary.color} as React.CSSProperties:undefined}>
+   <div className={"mm-medals-avatar "+(primary?"earned":"")} style={primary?{"--medal-color":primary.color} as CSSProperties:undefined}>
     <PlayerAvatar photoUrl={photoUrl} name={name} large/>
     {primary&&<span className="mm-medals-avatar-icon" aria-hidden="true">{primary.symbol}</span>}
    </div>
@@ -151,7 +152,7 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
   </div>}
   <button type="button" className="btn mm-medals-expand" aria-expanded={expanded}
    onClick={()=>setExpanded(value=>!value)}>
-   <UiIcon name={expanded?"chevron-up":"chevron-down"} size={16}/>
+   <UiIcon name="arrow-right" size={16}/>
    {expanded?"Recolher coleção":"Ver minhas 15 conquistas"}
   </button>
   {expanded&&<>
@@ -165,7 +166,7 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
      const level=levelOf(m,progress[m.id]||0);
      return <button type="button" key={m.id} onClick={()=>setSelected(m.id)}
       className={"mm-medals-card "+(level<0?"locked ":"")+(selected===m.id?"selected":"")}
-      aria-pressed={selected===m.id} style={{"--medal-color":m.color} as React.CSSProperties}>
+      aria-pressed={selected===m.id} style={{"--medal-color":m.color} as CSSProperties}>
       <span className="mm-medals-symbol" aria-hidden="true">{m.symbol}</span>
       <strong>{m.title}</strong><small>{level<0?"Bloqueada":m.levels[level].name}</small>
      </button>;
