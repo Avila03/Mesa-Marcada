@@ -153,7 +153,7 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
   <button type="button" className="btn mm-medals-expand" aria-expanded={expanded}
    onClick={()=>setExpanded(value=>!value)}>
    <UiIcon name="arrow-right" size={16}/>
-   {expanded?"Recolher coleção":"Ver minhas 15 conquistas"}
+   {expanded?"Recolher coleção":own?"Ver minhas 15 conquistas":"Ver coleção de conquistas"}
   </button>
   {expanded&&<>
    <div className="mm-medals-filters" aria-label="Filtrar conquistas">
