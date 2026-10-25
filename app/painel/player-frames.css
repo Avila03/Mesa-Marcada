@@ -54,3 +54,11 @@
 @media(max-width:620px){.mm-frames-shell{padding:13px;gap:14px}.mm-frames-header h2{font-size:20px}.mm-frames-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.mm-frame-tile{grid-template-rows:137px minmax(38px,auto) 22px 18px;min-height:265px;padding:12px 6px 11px;gap:7px}.mm-frame-tile strong{font-size:11px}.mm-frame-sample{width:min(137px,100%);height:137px}.mm-frames-inspector{padding:14px}.mm-frames-inspector-art{min-height:225px}.mm-frame-sample.mm-frame-large{width:min(224px,100%) }}
 @media(max-width:355px){.mm-frame-tile{grid-template-rows:119px minmax(42px,auto) 22px 18px;min-height:250px}.mm-frame-sample{width:min(119px,100%);height:119px}.mm-frame-tile strong{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.mm-frame-tile{transition:none}}
+
+/* Eixo Fundação: unique black-piano showcase, separated from earned prestige frames. */
+.mm-frame-founder{background:radial-gradient(ellipse at 50% 24%,#102138 0%,#080c14 70%);border-color:#344f70}
+.mm-frame-founder.selected{border-color:#258bff;box-shadow:inset 0 0 0 1px #258bff80,0 0 20px #1263d235}
+.mm-frame-founder>.mm-frame-rarity,.mm-frame-inspector-rarity:has(+ .mm-frames-title){letter-spacing:.07em}
+.mm-frame-founder>.mm-frame-rarity{color:#bdb0ff;border-color:#7748c0;background:#271738}
+.mm-frame-founder>.mm-frame-status{color:#adcae8}
+.mm-frame-founder .mm-frame-sample>.mm-frame-artwork{filter:drop-shadow(0 2px 5px #020911)}
