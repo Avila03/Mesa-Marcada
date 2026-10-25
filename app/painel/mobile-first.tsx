@@ -46,6 +46,7 @@ const NightSummary=dynamic(()=>import("./night-summary"),{loading:()=>null});
 const SeatingTable=dynamic(()=>import("./seating-table"),{loading:()=>null});
 const AdvancedRankingPanel=dynamic(()=>import("./advanced-ranking"),{loading:()=>null});
 const PlayerAchievements=dynamic(()=>import("./advanced-ranking").then(module=>module.PlayerAchievements),{loading:()=>null});
+const PlayerMedals=dynamic(()=>import("./player-medals"),{loading:()=>null});
 
 
 type LiveSubtab="compra"|"resumo"|"encerrar";
@@ -1098,6 +1099,9 @@ export default function PainelPage(){
           }finally{setWorking(false);}
         }}
       />
+      <PlayerMedals key={profileId||user.id} playerId={profileId||user.id}
+        userId={user.id} name={nameFor(profileId||user.id)}
+        photoUrl={photoUrls[profileId||user.id]}/>
       <PlayerAchievements stats={annualStats} userId={profileId||user.id}/>
       {(profileId||user.id)===user.id&&<MySplitsSummary
         splits={mySplits} settlements={settlements} userId={user.id} nameFor={nameFor}
