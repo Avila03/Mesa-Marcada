@@ -1,0 +1,45 @@
+.mm-medals-shell{background:linear-gradient(145deg,#101927,#0a111c);border:1px solid #2d415c;border-radius:14px;padding:20px;margin-top:16px;color:#f1f5fb;display:grid;gap:16px;min-width:0}
+.mm-medals-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mm-medals-heading h2{font-size:19px;font-weight:800;margin:4px 0}.mm-medals-heading p{font-size:12px;color:#9dafc4;margin:0;line-height:1.5}
+.mm-medals-eyebrow{font-size:10px;letter-spacing:.09em;font-weight:800;color:#76b9fa}
+.mm-medals-total{border:1px solid #35577c;border-radius:8px;background:#152c44;color:#a7d2ff;font-size:12px;font-weight:800;padding:9px 11px;white-space:nowrap}
+.mm-medals-preview{display:flex;align-items:center;gap:17px;padding:15px;background:#111e30;border:1px solid #304862;border-radius:12px}
+.mm-medals-avatar{position:relative;flex:none;width:77px;height:77px;border-radius:50%;display:grid;place-items:center}
+.mm-medals-avatar.earned{border:3px solid var(--medal-color);box-shadow:0 0 0 4px #091320,0 0 22px color-mix(in srgb,var(--medal-color) 35%,transparent)}
+.mm-medals-avatar .mm-v09-avatar{max-width:100%;max-height:100%}.mm-medals-avatar-icon{position:absolute;bottom:-8px;right:-10px;background:#18263a;border:2px solid var(--medal-color);border-radius:9px;width:32px;height:32px;display:grid;place-items:center;font-size:17px}
+.mm-medals-preview-info{display:grid;gap:5px;min-width:0}.mm-medals-preview-info>strong{font-size:18px;overflow-wrap:anywhere}
+.mm-medals-preview-info span{font-size:13px;color:#8ac5ff;font-weight:700}
+.mm-medals-preview-info small{font-size:11px;color:#a5b6ca;line-height:1.45}
+.mm-medals-highlights{display:flex;gap:9px;flex-wrap:wrap}
+.mm-medals-highlights button{background:#172438;color:#e9f2ff;border:1px solid #34516e;border-radius:9px;display:flex;gap:7px;align-items:center;padding:8px 10px;min-height:43px;cursor:pointer}
+.mm-medals-highlights button span{font-size:17px}.mm-medals-highlights button small{font-size:11px}
+.mm-medals-privacy{background:#111b2a;border-radius:9px;padding:11px}
+.mm-medals-privacy label{display:flex;align-items:center;gap:9px;font-size:11px;line-height:1.4;cursor:pointer}
+.mm-medals-privacy input{accent-color:#258bff;width:17px;height:17px}
+.mm-medals-expand{justify-self:start;min-height:44px}
+.mm-medals-filters{display:flex;gap:6px;flex-wrap:wrap}
+.mm-medals-filters button{border:1px solid #354961;background:#152238;color:#b2c6dc;padding:9px 11px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;min-height:41px}
+.mm-medals-filters button.active{border-color:#258bff;background:#173c63;color:#fff}
+.mm-medals-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.mm-medals-card{min-height:127px;background:#141f2e;border:1px solid #334962;border-radius:10px;color:#ecf3fa;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:11px 6px;text-align:center}
+.mm-medals-card.selected{border-color:var(--medal-color);background:#1b2d42}
+.mm-medals-symbol{width:49px;height:49px;display:grid;place-items:center;border:2px solid var(--medal-color);border-radius:50%;background:#0f1928;font-size:26px;line-height:1}
+.mm-medals-card strong{font-size:11px;font-weight:750;overflow-wrap:anywhere;line-height:1.25}
+.mm-medals-card small{font-size:10px;color:#9db4cd}
+.mm-medals-card.locked{opacity:.57;filter:grayscale(.4)}
+.mm-medals-details{background:#111d2c;border:1px solid #324b65;border-radius:11px;padding:15px;display:grid;gap:11px}
+.mm-medals-details-title{display:flex;align-items:center;gap:12px}
+.mm-medals-details-title>span{font-size:30px}.mm-medals-details-title>div{display:grid;gap:5px}
+.mm-medals-details-title strong{font-size:15px}.mm-medals-details-title small{font-size:11px;color:#afc1d6;line-height:1.5}
+.mm-medals-meter-head{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:12px;color:#a9bfd7}
+.mm-medals-meter-head strong{color:#e6f2ff}
+.mm-medals-meter{width:100%;height:9px;background:#273a52;border-radius:99px;overflow:hidden}
+.mm-medals-meter>div{height:100%;border-radius:99px;background:#258bff}
+.mm-medals-muted{color:#96aac1;font-size:11px}
+.mm-medals-choose{display:flex;gap:9px;flex-wrap:wrap}
+.mm-medals-choose button{font-size:11px;min-height:43px}
+.mm-medals-error,.mm-medals-success{font-size:12px;line-height:1.5;margin:0}
+.mm-medals-error{color:#ff969d}.mm-medals-success{color:#83d7ab}
+@media(max-width:600px){.mm-medals-shell{padding:13px;gap:13px}.mm-medals-preview{padding:11px;gap:13px}.mm-medals-avatar{width:65px;height:65px}.mm-medals-preview-info>strong{font-size:15px}.mm-medals-grid{gap:7px}.mm-medals-card{min-height:115px;padding:8px 5px}.mm-medals-card strong{font-size:10px}.mm-medals-symbol{width:43px;height:43px;font-size:22px}.mm-medals-choose .btn{flex:1}}
+@media(max-width:360px){.mm-medals-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){.mm-medals-avatar{transition:none}}
