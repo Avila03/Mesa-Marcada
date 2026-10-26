@@ -1,7 +1,7 @@
 /* Dark Cards Duo — dois acentos protagonistas, com base #080A0E preservada. */
 :root{--mm-red:#ff424d;--mm-red-soft:#ff9097;--mm-blue:#258bff;--mm-red-glow:#ff424d34}
 body{background:radial-gradient(ellipse at 94% 7%,#081f3b 0,transparent 33%),radial-gradient(ellipse at 0 80%,#260d18 0,transparent 30%),#080a0e}
-.mm-site-logo .mm-site-logo-mark{box-shadow:-3px 0 17px #258bff28,3px 0 17px #ff424d25}
+.mm-site-logo .mm-site-logo-mark{box-shadow:none!important;border:0!important;border-radius:0!important;background:transparent!important}
 .mm-site-logo .brandname em{background:linear-gradient(100deg,#258bff 10%,#258bff 56%,#ff424d 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .mm-home-head h1 span{background:linear-gradient(100deg,#58adff 4%,#ff606a 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .mm-home-featured:before{background:linear-gradient(90deg,#258bff 0%,#258bff 39%,#ff424d 94%,transparent)}
