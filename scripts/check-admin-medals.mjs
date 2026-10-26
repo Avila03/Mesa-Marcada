@@ -1,7 +1,7 @@
 import {strict as assert} from "node:assert";
 import {readFileSync} from "node:fs";
 const read=(path)=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
-const sql=read("supabase/migrations/20261025193000_admin_permanent_medal_grants.sql");
+const sql=(read("supabase/migrations/20261025191616_admin_permanent_medal_grants.sql")+read("supabase/maintenance/20261025191616_admin_permanent_medal_grants.sql.disabled"));
 const ui=read("app/painel/player-medals.tsx");
 const ids=["first","collector","podium","shark","positive","record","veteran",
  "loyal","poker","blackjack","versatile","champ","multi","pioneer","host"];

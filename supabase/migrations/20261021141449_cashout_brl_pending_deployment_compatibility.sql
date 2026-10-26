@@ -1,0 +1,1 @@
+-- Enquanto a Vercel não publica a interface v1.8.2, manter novas sessões compatíveis com a interface antiga. Os registros em BRL e a nova API permanecem preservados. ALTER TABLE public.sessions ALTER COLUMN chip_settlement_brl SET DEFAULT false;

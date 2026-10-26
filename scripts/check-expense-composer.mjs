@@ -15,7 +15,7 @@ assert.equal((panel.match(/<ExpenseComposer key=/g)||[]).length,1,
 assert.ok(panel.includes('createForm={null}'),"Remove old bottom expense form");
 for(const obsolete of ["showAddExpense","mm-overview-expense-tools","setExpenseName","expenseAmount","expensePayer"])
  assert.ok(!panel.includes(obsolete),"Old bottom expense input remains: "+obsolete);
-for(const token of ["session_expenses","paid_by:payer",'await refreshScope("expenses")',
+for(const token of ["session_expenses","paid_by:payer",'afterSaved("expenses"',
  '<ExpenseSplitsPanel','onToggleOpen','onDelete','Ver despesas e rachas →'])
  assert.ok(panel.includes(token),"Original expense and split behavior missing: "+token);
 for(const token of ["aria-expanded={open}","setOpen(v=>!v)","setOpen(false)",

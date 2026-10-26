@@ -67,4 +67,4 @@ BEGIN
    UNION SELECT lm.user_id FROM public.league_members lm JOIN public.sessions s ON s.league_id=lm.league_id WHERE s.id=p_event_id AND p_kind='edit'
  )
  LIMIT 200;
-END; $function$
+END; $function$;

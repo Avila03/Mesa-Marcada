@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import {validPostLoginRoute} from "@/lib/app-routes";
 import { createServerClient } from "@supabase/ssr";
 
 /**
@@ -20,8 +21,7 @@ export async function GET(request: NextRequest) {
   if (!supabaseUrl || !supabaseKey) return errorRedirect();
 
   const requestedNext=url.searchParams.get("next");
-  const safeDestination=requestedNext&&/^\/painel\?evento=[0-9a-f-]{36}$/i.test(requestedNext)
-    ?requestedNext:"/painel";
+  const safeDestination=requestedNext==="/redefinir-senha"?requestedNext:validPostLoginRoute(requestedNext||"/painel");
   const response = NextResponse.redirect(new URL(safeDestination, url.origin));
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {

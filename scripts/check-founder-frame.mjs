@@ -7,7 +7,7 @@ const gallery=read("app/painel/player-frames.tsx");
 const catalog=read("app/painel/frame-catalog.ts");
 const admin=read("app/painel/founder-admin-controls.tsx");
 const adminPage=read("app/painel/admin-panel.tsx");
-const migration=read("supabase/migrations/20261025222000_founder_exclusive_frame.sql");
+const migration=(read("supabase/migrations/20261025225134_founder_exclusive_frame.sql")+read("supabase/maintenance/20261025225134_founder_exclusive_frame.sql.disabled"));
 const css=read("app/painel/player-frames.css");
 for(const x of ['FUNDADOR','viewBox="-28 -28 316 316"','id={mask}','<g mask={"url(#"+mask+")"}',
  'Black','♠','21','Concessão']){

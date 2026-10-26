@@ -208,21 +208,4 @@ CREATE POLICY frame_showcase_update ON public.profile_frame_showcase FOR UPDATE 
  WITH CHECK(user_id=(SELECT auth.uid()) AND
   (frame_id IS NULL OR public.has_player_frame(user_id,frame_id)));
 
--- Exactly five true administrator grants; no fabricated games or finances.
-DO $$
-DECLARE principal uuid;
-BEGIN
- IF (SELECT count(*) FROM public.app_admins)<>1 THEN
-  RAISE EXCEPTION 'Revisar conta principal antes de conceder molduras';
- END IF;
- SELECT a.user_id INTO STRICT principal
- FROM public.app_admins a JOIN public.profiles p ON p.id=a.user_id
- WHERE p.display_name='Bruno Avila';
- INSERT INTO public.player_frame_grants(user_id,frame_id,granted_by,reason)
- SELECT principal,x.id,principal,'Concessão real das 5 molduras solicitada pelo proprietário'
- FROM (VALUES('safira'),('dupla-coroa'),('rei-sequencia'),('high-roller'),('conclave')) x(id)
- ON CONFLICT(user_id,frame_id) DO NOTHING;
- INSERT INTO public.profile_frame_showcase(user_id,frame_id,variant)
- VALUES(principal,'safira','original')
- ON CONFLICT(user_id) DO NOTHING;
-END $$;
+-- Historical owner grants are preserved in production and not replayed.

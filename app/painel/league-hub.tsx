@@ -18,6 +18,7 @@ type Member={league_id:string;user_id:string;role:"owner"|"organizer"|"member";j
 type Request={league_id:string;user_id:string;status:string;created_at:string};
 type LeagueRank={user_id:string;game:Game;played:number;net_chips:number};
 const errorText=(error:unknown)=>error instanceof Error?error.message:String(error);
+const cash=(n:number)=>(Number(n)/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const format=(n:number)=>new Intl.NumberFormat("pt-BR",{maximumFractionDigits:0}).format(Number(n)||0);
 const leagueName=(id:string,profiles:Profile[])=>profiles.find(p=>p.id===id)?.display_name||"Jogador";
 const crestFinishLabel=(value:unknown)=>{const id=normalizeCrest(value).finish;return id==="minimal"?"Minimalista":id==="classic"?"Clássico":"Premium"};
@@ -116,7 +117,7 @@ export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles,
   const [roster,pending,ranking]=await Promise.all([
    db.from("league_members").select("league_id,user_id,role,joined_at").eq("league_id",leagueId),
    db.from("league_requests").select("league_id,user_id,status,created_at").eq("league_id",leagueId).eq("status","pending"),
-   db.rpc("get_league_ranking",{p_league_id:leagueId})
+   db.rpc("get_league_ranking_v2",{p_league_id:leagueId})
   ]);
   if(roster.error)throw roster.error;
   if(pending.error)throw pending.error;
@@ -354,7 +355,7 @@ export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles,
       </div>
       <div>{leaders.map((player,i)=><div key={player.user_id}>
        <b>{i+1}º</b><strong>{leagueName(player.user_id,profiles)}</strong>
-       <span>{Number(player.net_chips)>0?"+":""}{format(player.net_chips)} pts</span>
+       <span>{cash(player.net_chips)}</span>
       </div>)}</div>
      </div>}
     </section>
@@ -381,7 +382,7 @@ export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles,
      {rankings.length?<div className="mm-league-ranks">{rankings.map((r,i)=>
        <div key={r.user_id} className="mm-league-rank"><span>{i+1}º</span>
         <strong>{leagueName(r.user_id,profiles)}</strong><small>{r.played} noites</small>
-        <b className={Number(r.net_chips)>=0?"positive":"negative"}>{Number(r.net_chips)>0?"+":""}{format(r.net_chips)} pts</b>
+        <b className={Number(r.net_chips)>=0?"positive":"negative"}>{cash(r.net_chips)}</b>
        </div>)}</div>:<p className="mm-league-empty">O ranking começa quando os primeiros eventos da liga forem concluídos.</p>}
     </section>
     <section className="panel">

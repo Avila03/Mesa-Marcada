@@ -7,7 +7,7 @@ import "./league-final-report.css";
 export type LeagueFinalPlayer={user_id:string;name:string;played:number;net_chips:number};
 export type LeagueFinalEvent={title:string;starts_at:string;status:string;game:"poker"|"blackjack"};
 export type LeagueFinalSummary={
- version:number;league_name:string;started_at:string;finished_at:string;
+ version:number;score_unit?:"brl_cents";league_name:string;started_at:string;finished_at:string;
  members:number;events_total:number;events_finished:number;events_cancelled:number;
  events:LeagueFinalEvent[];
  games:Record<"poker"|"blackjack",{events:number;ranking:LeagueFinalPlayer[]}>;
@@ -21,6 +21,7 @@ export default function LeagueFinalReport({summary,emblem}:{
 }){
  const [game,setGame]=useState<"poker"|"blackjack">("poker");
  const [copied,setCopied]=useState(false);
+ const result=(n:number)=>summary.score_unit==="brl_cents"?(n/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}):points(n)+" fichas";
  const ranking=summary.games?.[game]?.ranking||[];
  const events=summary.events||[];
  async function copyReport(){
@@ -35,7 +36,7 @@ export default function LeagueFinalReport({summary,emblem}:{
    parts.push("",gameLabel(key)+" · "+(summary.games?.[key]?.events||0)+" eventos");
    const rows=summary.games?.[key]?.ranking||[];
    if(!rows.length)parts.push("Sem partidas com resultados registrados");
-   rows.forEach((p,i)=>parts.push((i+1)+"º "+p.name+" · "+points(p.net_chips)+" fichas líquidas · "+p.played+" rodadas"));
+   rows.forEach((p,i)=>parts.push((i+1)+"º "+p.name+" · "+result(p.net_chips)+" de saldo · "+p.played+" rodadas"));
   }
   try{await navigator.clipboard.writeText(parts.join("\n"));setCopied(true);}
   catch{setCopied(false);}
@@ -65,14 +66,14 @@ export default function LeagueFinalReport({summary,emblem}:{
      {g==="poker"?"♠ Poker":"♦ Blackjack"}</button>)}
    </div>
   </div>
-  <p className="mm-final-context">{summary.games?.[game]?.events||0} eventos concluídos nesta modalidade. Pontuação: saldo líquido de fichas dos eventos finalizados.</p>
+  <p className="mm-final-context">{summary.games?.[game]?.events||0} eventos concluídos nesta modalidade. {summary.score_unit==="brl_cents"?"Saldo em reais das partidas conciliadas.":"Pontuação histórica: saldo líquido de fichas."}</p>
   {ranking.length?<div className="mm-final-ranking">
    {ranking.map((player,i)=><div className={"mm-final-player "+(i===0?"champion":"")} key={player.user_id}>
     <div className="mm-final-place">{i===0?"★":i+1+"º"}</div>
     <div className="mm-final-player-name"><strong>{player.name}</strong>
      <small>{player.played} {player.played===1?"resultado":"resultados"} registrados</small></div>
     <div className={"mm-final-net "+(player.net_chips>=0?"positive":"negative")}>
-     {player.net_chips>0?"+":""}{points(player.net_chips)} <small>fichas</small></div>
+     {player.net_chips>0?"+":""}{result(player.net_chips)}</div>
    </div>)}
   </div>:<p className="mm-league-empty">Nenhuma pontuação registrada em {gameLabel(game)}. Não há campeão desta modalidade.</p>}
   <div className="mm-final-events">

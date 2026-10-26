@@ -6,15 +6,15 @@ const read=path=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
 const panel=read("app/painel/mobile-first.tsx");
 const types=read("lib/mesa-types.ts");
 const component=read("app/painel/event-live-panel.tsx");
-const sql=read("supabase/migrations/20261022010000_mesa_marcada_evento_ao_vivo.sql");
+const sql=read("supabase/migrations/20261021110004_mesa_marcada_evento_ao_vivo.sql");
 const styles=read("app/event-live.css");
-const newSql=read("supabase/migrations/20261022020000_live_chips_inventory_settlements.sql");
+const newSql=read("supabase/migrations/20261021134450_live_chips_inventory_settlements.sql");
 
 for(const piece of [
   '["ao-vivo","Ao vivo"]','["compra","Compra"]','id="event-expenses"',
   'db.rpc("start_live_event"','<EventLivePanel','setLiveSubtab("encerrar")',
   'canSee={privateVisible}','const canFinish=(!selected?.live_start_required||Boolean(selectedLive))',
-  'db.from("session_live_activity")','window.setInterval(tick,60000)'
+  'db.rpc("get_event_snapshot"','await loadEvent(selectedId)'
 ]){
   assert.ok(panel.includes(piece),"Missing feature or rule in panel: "+piece);
 }
@@ -44,7 +44,7 @@ assert.ok(!panel.includes('["fichas","Fichas"]'),"Fichas must not remain a top-l
 assert.ok(panel.includes('liveSubtab==="compra"')&&panel.includes('liveSubtab==="encerrar"'),"Checkout must live inside Ao vivo");
 
 // v1.8.2: o fechamento é um livro-caixa em reais, não uma segunda maleta.
-const cashSql=read("supabase/migrations/20261022030000_cashout_brl.sql");
+const cashSql=read("supabase/migrations/20261021140857_cashout_brl.sql");
 for(const term of ["session_chip_cashouts","record_chip_cashout","cashout_balanced","chip_settlement_brl","set_chip_payout"]){
   assert.ok(cashSql.includes(term),"Missing cash reconciliation requirement: "+term);
 }
@@ -60,7 +60,7 @@ assert.ok(!panel.includes('Caixa conciliado: o total dos repasses é igual ao da
 assert.ok(panel.includes('{!cashBalanced&&<p className="mm-message error">'),
  "Mismatched or missing cash amounts must still present an action warning");
 
-const seatsSql=read("supabase/migrations/20261022040000_table_seats_dealer.sql");
+const seatsSql=read("supabase/migrations/20261021152243_table_seats_dealer.sql");
 const seatsUi=read("app/painel/seating-table.tsx");
 const seatsCss=read("app/painel/seating-table.css");
 const duoCss=read("app/painel/duo-theme.css");
@@ -83,7 +83,7 @@ assert.ok(duoCss.includes("#258bff")&&duoCss.includes("#ff424d"),"Keep coequal D
 assert.ok(duoCss.includes(".mm-game-blackjack .btn.gold"),"Blackjack must use red primary action");
 console.log("✓ v1.9: seating, dealer, concurrency, responsive and Dark Cards Duo");
 
-const newFinanceSql=read("supabase/migrations/20261022050000_simplified_cashout_finish.sql");
+const newFinanceSql=read("supabase/migrations/20261021161036_simplified_cashout_finish.sql");
 const recap=read("app/painel/night-summary.tsx");
 const expenseUi=read("app/painel/expense-splits.tsx");
 const movements=read("app/painel/event-live-panel.tsx");
@@ -99,7 +99,7 @@ for(const gone of ['["enquetes","Enquetes"]','["assentos","Assentos"]',
 }
 assert.ok(newFinanceSql.includes("app_private.cashout_balanced(NEW.id)"),
  "Must enforce BRL cashout sum on finish");
-assert.ok(!newFinanceSql.includes("Há compras ainda não recebidas'; END IF;") || 
+assert.ok(!newFinanceSql.includes("Há compras ainda não recebidas'; END IF;") ||
  newFinanceSql.includes("ELSE"),"Old event requirements must stay legacy-only");
 assert.ok(!expenseUi.includes("onSettle("),"Manual racha receipt buttons should be removed");
 assert.ok(movements.includes("export function LiveMovements"),"Movement history needs reusable component");
@@ -115,7 +115,7 @@ assert.ok(panel.includes('sub==="gastos"?"visao"')||panel.includes('sub==="gasto
 assert.ok(panel.includes('Ver despesas e rachas →'),"Link to expenses from event summary");
 console.log("✓ v2.1: assentos, enquetes e despesas dentro da Visão geral");
 
-const seatAutoSql=read("supabase/migrations/20261022060000_seat_auto_attendance.sql");
+const seatAutoSql=read("supabase/migrations/20261021165041_seat_auto_attendance.sql");
 const homeV16=read("app/painel/dashboard-v16.tsx");
 for(const token of [
   "FOR UPDATE","INSERT INTO public.session_attendance(session_id,user_id)",
@@ -149,7 +149,7 @@ console.log("✓ v2.3: excluídos somente na administração, com restauração 
 
 const routeFile=read("lib/app-routes.ts");
 const realtimeHook=read("app/painel/use-club-realtime.ts");
-const realtimeSql=read("supabase/migrations/20261022070000_realtime_event_sync.sql");
+const realtimeSql=read("supabase/migrations/20261022001640_realtime_event_sync.sql");
 const appLayout=read("app/(app)/layout.tsx");
 const login=read("app/login/page.tsx");
 for(const expected of ["/eventos/","/ao-vivo","/resumo","/mesas/","/ranking","/perfil","/administracao"]){
@@ -162,7 +162,7 @@ for(const pageFile of ["painel","eventos","eventos/[id]","eventos/[id]/ao-vivo",
 }
 assert.ok(appLayout.includes("<PainelPage/>"),"Club state should survive in shared layout");
 for(const expected of ["popstate","window.history.pushState","clubHref(",
- "readClubRoute(","const lean=mode===\"list\"","fullDataRequested",
+ "readClubRoute(","get_club_catalog","get_event_snapshot",
  "const refreshScope=useCallback","useClubRealtime(","mm-sync-pill"]){
  assert.ok(panel.includes(expected),"Routing or performance regression: "+expected);
 }

@@ -2,9 +2,7 @@
 -- O banco armazena apenas SHA256 do segredo; a chave nunca entra no GitHub.
 CREATE TABLE IF NOT EXISTS app_private.push_server_auth(secret_hash text PRIMARY KEY);
 REVOKE ALL ON app_private.push_server_auth FROM PUBLIC,anon,authenticated;
-INSERT INTO app_private.push_server_auth(secret_hash)
-VALUES('ff329278c3b03a1204ec93cb61fd7518cac4674c47aa2df162aed6e780263a60')
-ON CONFLICT DO NOTHING;
+-- Provision the server-secret hash per environment; never replay production credentials.
 DROP FUNCTION IF EXISTS public.claim_event_push_targets(uuid,text);
 CREATE OR REPLACE FUNCTION public.claim_event_push_targets(p_event_id uuid,p_kind text,p_server_secret text)
 RETURNS TABLE(endpoint text,p256dh text,auth_key text)

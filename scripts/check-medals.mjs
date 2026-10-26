@@ -5,7 +5,7 @@ const frontend=read("app/painel/player-medals.tsx");
 const catalog=read("app/painel/medal-catalog.ts");
 const styles=read("app/painel/player-medals.css");
 const page=read("app/painel/mobile-first.tsx");
-const migration=read("supabase/migrations/20261025160000_medals_profile_showcase.sql");
+const migration=read("supabase/migrations/20261025185339_medals_profile_showcase.sql");
 const ids=["first","collector","podium","shark","positive","record","veteran","loyal","poker","blackjack","versatile","champ","multi","pioneer","host"];
 for(const id of ids){
  assert.ok(catalog.includes('id:"'+id+'"'),"Missing medal "+id);

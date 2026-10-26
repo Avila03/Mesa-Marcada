@@ -8,6 +8,7 @@ import UiIcon from "./ui-icon";
 import FrameAvatar from "./frame-avatar";
 
 const favoriteOptions:Game[]=["poker","blackjack"];
+const cash=(n:unknown)=>(Number(n)/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const number=(n:unknown)=>new Intl.NumberFormat("pt-BR",{maximumFractionDigits:1}).format(Number(n)||0);
 
 export type FinanceLine={
@@ -49,9 +50,9 @@ function ProfileStats({stats}:{stats:Rank[]}){
       <span className={"tag "+(item.game||"poker")}>{item.game==="blackjack"?"♦ Blackjack":"♠ Poker"}</span>
       <div className="mm-v09-stat-grid">
         <Stat name="Eventos válidos" value={number(item.sessions_played)}/>
-        <Stat name="Saldo de fichas" value={(Number(item.net_chips)>0?"+":"")+number(item.net_chips)}/>
-        <Stat name="Melhor resultado" value={(Number(item.best_event_chips)>0?"+":"")+number(item.best_event_chips)}/>
-        <Stat name="Rendimento médio" value={(Number(item.avg_yield_pct)>0?"+":"")+number(item.avg_yield_pct)+"%"} note="Variação média sobre fichas adquiridas"/>
+        <Stat name="Saldo no jogo" value={cash(item.net_chips)}/>
+        <Stat name="Melhor resultado" value={cash(item.best_event_chips)}/>
+        <Stat name="Rendimento médio" value={(Number(item.avg_yield_pct)>0?"+":"")+number(item.avg_yield_pct)+"%"} note="Variação sobre os valores comprados"/>
       </div>
     </section>)}
   </div>;
@@ -191,8 +192,8 @@ export function RankingPanel({
       {ordered.map((r,i)=><button className="mm-v09-rank-player" type="button" key={r.user_id} onClick={()=>onPlayer(r.user_id)}>
         <span className={"mm-v09-medal "+(i<3?"podium":"")}>{i+1}º</span>
         <PlayerAvatar photoUrl={photoUrls[r.user_id]} name={r.display_name}/>
-        <span className="mm-v09-rank-name"><strong>{r.display_name}</strong><small>{r.sessions_played} noites · Melhor: {Number(r.best_event_chips)>0?"+":""}{number(r.best_event_chips)} fichas</small></span>
-        <span className="mm-v09-rank-result"><strong>{Number(r.avg_yield_pct)>0?"+":""}{number(r.avg_yield_pct)}%</strong><small>{Number(r.net_chips)>0?"+":""}{number(r.net_chips)} fichas</small></span>
+        <span className="mm-v09-rank-name"><strong>{r.display_name}</strong><small>{r.sessions_played} noites · Melhor: {cash(r.best_event_chips)}</small></span>
+        <span className="mm-v09-rank-result"><strong>{Number(r.avg_yield_pct)>0?"+":""}{number(r.avg_yield_pct)}%</strong><small>{cash(r.net_chips)}</small></span>
         <span aria-hidden="true">›</span>
       </button>)}
       {ordered.length===0&&<div className="mm-empty"><span className="mm-empty-symbol">★</span>

@@ -1,7 +1,6 @@
--- Mesa Marcada: prevents recursive RLS evaluation when reading sessions
--- after INSERT ... RETURNING for non-admin league organizers.
--- The event invitation lookup is encapsulated in a SECURITY DEFINER helper
--- because the invite-member RLS policy itself refers to sessions.
+-- Evita recursão RLS sessions -> event_invite_members -> sessions.
+-- Uma função SECURITY DEFINER encapsula somente a consulta aos convites
+-- do próprio usuário, sem conceder acesso a linhas de terceiros.
 CREATE OR REPLACE FUNCTION app_private.is_my_event_invite(p_session uuid)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
  SELECT (SELECT auth.uid()) IS NOT NULL AND EXISTS (

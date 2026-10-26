@@ -1,7 +1,7 @@
 import {strict as assert} from "node:assert";
 import {readFileSync} from "node:fs";
 const read=(file)=>readFileSync(new URL("../"+file,import.meta.url),"utf8");
-const sql=read("supabase/migrations/20261022140000_leagues_v51_organizers_notices.sql");
+const sql=read("supabase/migrations/20261022111921_leagues_v51_organizers_notices.sql");
 for(const phrase of [
  "role IN ('owner','organizer','member')",
  "CREATE OR REPLACE FUNCTION app_private.can_organize_league",
@@ -55,9 +55,9 @@ assert.ok(sw.includes("ligas\\/[0-9a-f-]{36}\\/gerenciar"),
 // Regression for non-admin event creation with INSERT ... RETURNING.
 // The sessions SELECT policy must not query sessions by id from a
 // SECURITY DEFINER function; the INSERT snapshot cannot see that new row.
-const sessionRls=read("supabase/migrations/20261022193000_fix_session_insert_returning_policy.sql");
-const corrective=read("supabase/migrations/20261022194000_fix_session_invite_rls_recursion.sql");
-for(const candidate of [sessionRls,corrective]){
+const sessionRls=read("supabase/migrations/20261022134635_fix_session_insert_returning_policy.sql");
+const corrective=read("supabase/migrations/20261022134743_fix_sessions_select_invite_policy_recursion.sql");
+for(const candidate of [sessionRls+corrective]){
  for(const check of [
   "CREATE OR REPLACE FUNCTION app_private.is_my_event_invite",
   "SECURITY DEFINER",

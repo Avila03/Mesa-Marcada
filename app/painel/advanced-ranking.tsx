@@ -12,9 +12,10 @@ export type AdvancedRank=Rank&{
 };
 
 const formatNumber=(value:number)=>new Intl.NumberFormat("pt-BR",{maximumFractionDigits:1}).format(Number(value)||0);
+const cash=(value:number)=>(Number(value)/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const signed=(value:number)=>(Number(value)>0?"+":"")+formatNumber(value);
 
-/** O rendimento anual usa as fichas consolidadas, não a média mensal. */
+/** O rendimento anual usa valores consolidados em centavos. */
 function annualReturn(row:AdvancedRank){
   const bought=Number(row.total_chips_bought);
   return bought>0?Number(row.net_chips)/bought*100:null;
@@ -58,7 +59,7 @@ export default function AdvancedRankingPanel({
     <section className="panel mm-ranking-board">
       <div className="panelhead">
         <div><h2>{game==="poker"?"♠ Poker":"♦ Blackjack"} · resultado de {year}</h2>
-          <p className="mm-formfoot">Saldo anual de pontos e rendimento acumulado. Poker e Blackjack têm rankings separados.</p>
+          <p className="mm-formfoot">Saldo anual em reais e rendimento acumulado. Poker e Blackjack têm rankings separados.</p>
         </div>
         {busy&&<span className="tag">Atualizando...</span>}
       </div>
@@ -76,7 +77,7 @@ export default function AdvancedRankingPanel({
             </span>
             <span className="mm-rank-performance">
               <strong className={Number(player.net_chips)>=0?"mm-v09-good":"mm-v09-pending"}>
-                {signed(player.net_chips)} <span className="mm-annual-unit">pontos</span>
+                {cash(player.net_chips)}
               </strong>
               <small>{roi===null?"Sem base para percentual":signed(roi)+"% no ano"}</small>
             </span>
@@ -89,7 +90,7 @@ export default function AdvancedRankingPanel({
           <p>Os saldos aparecem quando os eventos deste ano forem encerrados, com as fichas e os pagamentos conferidos.</p>
         </div>}
     </section>
-    <p className="mm-formfoot">Saldo anual = pontos finais − pontos comprados, somados entre os eventos válidos do ano. Rendimento = saldo anual ÷ pontos comprados no ano. Não representa dinheiro.</p>
+    <p className="mm-formfoot">Saldo anual = valores finais − compras de fichas, somados nos eventos conciliados do ano. Rendimento = saldo anual ÷ total comprado. Valores informativos; o aplicativo não movimenta dinheiro.</p>
   </div>;
 }
 

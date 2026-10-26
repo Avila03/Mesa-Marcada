@@ -1,3 +1,4 @@
+-- Historical one-time operation. NEVER execute as part of deployment.
 -- One-time authorized clean start for Mesa Marcada.
 -- Preserves auth.users, profiles, app_admins, rooms, leagues and league_members.
 -- Removes old sessions and every dependent event/finance/audit row.

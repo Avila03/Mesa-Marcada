@@ -9,7 +9,7 @@ const page=read("app/painel/mobile-first.tsx");
 const seat=read("app/painel/seating-table.tsx");
 const features=read("app/painel/v09-features.tsx");
 const preview=read("app/painel/player-profile-preview.tsx");
-const sql=read("supabase/migrations/20261025205000_five_prestige_frames.sql");
+const sql=(read("supabase/migrations/20261025202515_five_prestige_frames.sql")+read("supabase/maintenance/20261025202515_five_prestige_frames.sql.disabled"));
 const ids=["safira","dupla-coroa","rei-sequencia","high-roller","conclave"];
 for(const id of ids){
  assert.ok(catalog.includes('id:"'+id+'"'),"Missing awarded frame "+id);

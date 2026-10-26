@@ -1,7 +1,7 @@
 import {strict as assert} from "node:assert";
 import {readFileSync} from "node:fs";
 const read=(name)=>readFileSync(new URL("../"+name,import.meta.url),"utf8");
-const db=read("supabase/migrations/20261022170000_league_premium_emblems.sql");
+const db=read("supabase/migrations/20261022124957_league_premium_emblems.sql");
 const hub=read("app/painel/league-hub.tsx");
 const editor=read("app/brasoes/demo/crest-editor.tsx");
 const css=read("app/painel/league-hub.css");
@@ -33,7 +33,7 @@ console.log("✓ Brasões Premium: schema validation, owner authorization, creat
 
 // Regression: all three finished crest styles are selectable, render differently,
 // and remain compatible with existing saved crests that lack a finish field.
-const finishes=read("supabase/migrations/20261022190000_league_crest_finishes.sql");
+const finishes=read("supabase/migrations/20261022132021_league_crest_finishes.sql");
 for(const name of ["minimal","classic","premium"]){
  assert.ok(editor.includes('id:"'+name+'"'),"Finish selector missing: "+name);
  assert.ok(finishes.includes("'"+name+"'"),"DB finish allowlist missing: "+name);

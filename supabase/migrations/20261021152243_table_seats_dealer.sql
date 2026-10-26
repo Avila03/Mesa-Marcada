@@ -108,4 +108,3 @@ BEGIN
   RETURN v_started;
 END;
 $$;
-

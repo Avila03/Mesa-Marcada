@@ -1,10 +1,8 @@
--- Atualiza a entrada mínima: compras anteriores abaixo do mínimo
--- exigem completar a diferença antes de recompras livres.
+-- Entrada inicial inclui compras antigas inferiores ao minimo.
+-- O total acumulado deve alcancar a entrada minima antes de recompras livres.
 CREATE OR REPLACE FUNCTION public.enforce_initial_buyin()
- RETURNS trigger
- LANGUAGE plpgsql
- SET search_path TO ''
-AS $function$
+RETURNS trigger LANGUAGE plpgsql SET search_path=''
+AS $$
 DECLARE event_min numeric; existing_total numeric;
 BEGIN
   SELECT min_entry_brl INTO event_min
@@ -18,4 +16,4 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$function$;
+$$;

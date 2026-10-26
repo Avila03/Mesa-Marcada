@@ -1,4 +1,4 @@
-# Mesa Marcada — v1.7.1
+# Mesa Marcada — v5.2.0
 
 Aplicação web para organizar encontros presenciais de **Poker** e **Blackjack** entre amigos. Construída com **Next.js 16, React 19 e Supabase Auth/PostgreSQL**, publicada na Vercel. Visual **Dark Cards** inspirado no protótipo HTML v0.5, com prioridade para smartphones.
 
@@ -21,15 +21,15 @@ lateral mantém todos os destinos.
 - **Perfis:** apelido, foto enviada pelo próprio jogador (Supabase Storage privado), jogo favorito, descrição, histórico e aba **Meus rachas** com valores a pagar e a receber.
 - **Enquetes** somente dentro dos eventos; um voto por participante, alterável enquanto aberta.
 - **Fichas e financeiro:** Fichas e Gastos em abas separadas. Compras/recompras por denominações 1/5/10/25/50; Anfitrião confirma os recebimentos. Em **Gastos**, cada participante confirmado escolhe entrar ou sair do racha individual de cada despesa; o perfil mostra valores a pagar e a receber, divididos exatamente em centavos.
-- **Ranking anual:** Poker e Blackjack com classificações separadas, sem visão mensal. Cada jogador tem um saldo acumulado de pontos e rendimento total do ano em uma única linha. Conquistas anuais nos perfis; só entram eventos encerrados, completos, revisados e não excluídos.
+- **Ranking anual:** Poker e Blackjack com classificações separadas, sem visão mensal. Cada jogador tem um saldo acumulado em reais e rendimento total do ano em uma única linha. Conquistas anuais nos perfis; só entram eventos encerrados, completos, revisados e não excluídos.
 - **Segurança:** RLS em todas as tabelas públicas, validação de capacidade e autorizações no Supabase. Não são realizadas apostas, cobranças nem pagamentos pelo aplicativo.
 
 ## Executar localmente
 
-Requer Node.js 22 e npm.
+Requer Node.js 24 e npm.
 
 ```bash
-npm install
+npm ci
 cp .env.example .env.local
 npm run dev
 ```
@@ -43,7 +43,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_SUBSTITUA_PELA_CHAVE_PUBLICA
 
 A chave **publishable** é pública e utilizada com regras RLS. **Nunca** coloque uma chave `sb_secret_`, `service_role` ou senha do banco no frontend ou no GitHub.
 
-Páginas: `/login`, `/painel`, `/evento/[id]` e `/demo.html` (protótipo antigo, apenas demonstração).
+Páginas: `/login`, `/recuperar-senha`, `/redefinir-senha`, `/painel`, `/eventos/[id]`, `/ranking`, `/perfil` e `/demo.html` (protótipo antigo, apenas demonstração).
 
 ## Banco e migrações
 
@@ -52,6 +52,9 @@ As migrações efetivamente aplicadas estão em [`supabase/migrations/`](supabas
 ## Qualidade e publicação
 
 ```bash
+npm run check:migrations
+npm run check:reliability
+npm run test:database
 npm run typecheck
 npm run build
 npm run smoke
@@ -61,10 +64,14 @@ O GitHub Actions executa essas verificações em PRs e pushes. A Vercel publica 
 
 ## Privacidade e limitações
 
-**Cadastro aberto significa que qualquer usuário autenticado pode visualizar títulos, horários e locais dos eventos.** Não inclua endereços pessoais detalhados. Links de convite exigem login, mas não oferecem acesso restrito a convidados.
+O acesso aos eventos segue as regras de visibilidade do evento e da liga no Supabase. Eventos públicos podem ser vistos por usuários autenticados; eventos privados exigem o vínculo ou convite correspondente. Evite inserir dados pessoais desnecessários em títulos e locais.
 
 Os resultados financeiros são **registros informativos**. O racha é opcional por despesa, dividido igualmente entre os participantes que aderiram, não representando obrigação legal ou transferência automática. O arquivo iCalendar usa duração estimada de quatro horas.
 
 Testes automáticos de compilação, rotas e regras financeiras do banco não substituem uma homologação **com duas contas reais em celulares diferentes**. Há uma lista dos cenários pendentes em `docs/TESTES-v0.9.md`.
 
 Código-fonte público: evite inserir dados privados, senhas e arquivos `.env.local` no repositório.
+
+## Atualizações do banco
+
+O histórico foi reconciliado com as versões realmente aplicadas em produção. Operações históricas de limpeza ficam em `supabase/maintenance/*.disabled` e não são reaplicadas. Leia `supabase/README.md` antes de qualquer migração.
