@@ -16,7 +16,7 @@ export default function manifest():MetadataRoute.Manifest{
     icons:[
       {src:"/icons/mesa-192.svg",sizes:"192x192",type:"image/svg+xml",purpose:"any"},
       {src:"/icons/mesa-512.svg",sizes:"512x512",type:"image/svg+xml",purpose:"maskable"},
-      {src:"/mesa-marcada-logo.webp",sizes:"96x96",type:"image/webp",purpose:"any"}
+      {src:"/icon",sizes:"512x512",type:"image/png",purpose:"any"}
     ],
     shortcuts:[
       {name:"Eventos",short_name:"Eventos",url:"/eventos"},

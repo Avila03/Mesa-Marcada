@@ -24,7 +24,8 @@
     "check:medals": "node scripts/check-medals.mjs",
     "check:player-previews": "node scripts/check-player-previews.mjs",
     "check:frames": "node scripts/check-frames.mjs",
-    "check:founder": "node scripts/check-founder-frame.mjs"
+    "check:founder": "node scripts/check-founder-frame.mjs",
+    "check:brand": "node scripts/check-brand-monogram.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.0",

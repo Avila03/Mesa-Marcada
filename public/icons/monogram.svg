@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-label="Monograma Mesa Marcada">
+  <defs>
+    <linearGradient id="mm-white" x1="106" y1="118" x2="240" y2="390" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F9FBFF"/><stop offset="1" stop-color="#C8D6E6"/>
+    </linearGradient>
+    <linearGradient id="mm-blue" x1="413" y1="110" x2="307" y2="394" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#42AEFF"/><stop offset=".55" stop-color="#258BFF"/><stop offset="1" stop-color="#075CCA"/>
+    </linearGradient>
+  </defs>
+  <path d="M104 399V113L244 225V310L177 256V399H104Z" fill="url(#mm-white)"/>
+  <path d="M408 113L268 225V311L335 257V399H408V113Z" fill="url(#mm-blue)"/>
+  <path d="M256 266C239 290 222 297 222 315C222 329 234 339 247 335L248 351H234V362H279V351H264L265 335C278 339 291 329 291 315C291 297 273 290 256 266Z" fill="#F1F5FB"/>
+</svg>
