@@ -611,16 +611,16 @@ a{text-decoration:none}
 
 /* v1.1: logo oficial e avatares de foto ou iniciais; nenhum emoji de perfil. */
 .mm-site-logo{display:flex;align-items:center;gap:11px;min-width:0}
-.mm-site-logo .mm-site-logo-mark{width:45px;height:45px;object-fit:cover;border-radius:12px;flex-shrink:0;box-shadow:0 1px 20px #1a81ee28}
+.mm-site-logo .mm-site-logo-mark{width:45px;height:45px;object-fit:contain;border-radius:0;flex-shrink:0;box-shadow:none;border:0;background:transparent}
 .mm-site-logo .brandname{font:850 19px/1.08 Arial,Helvetica,sans-serif;color:#f4f8ff;letter-spacing:-.7px;white-space:nowrap}
 .mm-site-logo .brandname em{color:#23a7ff;font-style:normal;font-weight:850}
 .mm-site-logo .brandsub{color:#9bb5ce;font-size:8.5px;letter-spacing:1.6px;font-family:Arial,Helvetica,sans-serif}
 .mm-site-logo-sidebar{padding:0 6px}
 .mm-site-logo-mobile{gap:7px;padding:0!important}
-.mm-site-logo-mobile .mm-site-logo-mark{width:35px;height:35px;border-radius:9px}
+.mm-site-logo-mobile .mm-site-logo-mark{width:35px;height:35px;border-radius:0}
 .mm-site-logo-mobile .brandname{font-size:16px;letter-spacing:-.6px}
 .mm-login-card .mm-site-logo-login{flex-direction:column;gap:12px;margin:0 0 27px!important;padding:0!important;align-items:center}
-.mm-site-logo-login .mm-site-logo-mark{width:105px;height:105px;border-radius:24px;box-shadow:0 2px 32px #1b7ce83c}
+.mm-site-logo-login .mm-site-logo-mark{width:105px;height:105px;border-radius:0;box-shadow:none}
 .mm-login-card .mm-site-logo-login .brandname{font-size:29px;line-height:1.2;letter-spacing:-1.25px}
 .mm-login-card #auth-title{text-align:center}
 .mm-player-avatar{overflow:hidden;border-radius:50%;background:linear-gradient(148deg,#203c5c,#101b2a);border:1px solid #3e5a77;
@@ -644,7 +644,7 @@ a{text-decoration:none}
 .mm-v09-finance-person .mm-player-avatar{font-size:14px}
 @media(max-width:750px){
  .mm-login-card .mm-site-logo-login .brandname{font-size:25px}
- .mm-login-card .mm-site-logo-login .mm-site-logo-mark{width:89px;height:89px;border-radius:20px}
+ .mm-login-card .mm-site-logo-login .mm-site-logo-mark{width:89px;height:89px;border-radius:0}
  .mm-site-logo-sidebar{padding:0}
  .mm-profile-upload{flex-direction:column;gap:13px}
  .mm-profile-upload .mm-player-avatar{width:81px;height:81px}
