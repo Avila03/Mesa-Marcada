@@ -6,7 +6,7 @@ const realtime=read("app/painel/use-club-realtime.ts");
 const league=read("app/painel/league-hub.tsx");
 const pwa=read("app/painel/mobile-app-companion.tsx");
 const notices=read("app/painel/notification-center.tsx");
-const migration=read("supabase/migrations/"+ (await import("node:fs")).readdirSync(new URL("../supabase/migrations",import.meta.url)).find(f=>f.endsWith("_reliability_results_transactions.sql")));
+const migration=(await import("node:fs")).readdirSync(new URL("../supabase/migrations",import.meta.url)).filter(f=>f.includes("_reliability_")).map(f=>read("supabase/migrations/"+f)).join("\n");
 for(const token of ['p.session_id=p_event_id','x.session_id=p_event_id','LIMIT 50','history_cursor'])
  assert.ok(migration.includes(token),"Bounded snapshot filtering missing: "+token);
 for(const rpc of ['get_event_snapshot','get_club_catalog','get_my_splits_snapshot'])assert.ok(panel.includes(rpc),"Snapshot missing: "+rpc);

@@ -1,5 +1,5 @@
 "use client";
-import {useCallback,useEffect,useRef,useState} from "react";
+import {useCallback,useEffect,useMemo,useRef,useState} from "react";
 import {getSupabase} from "@/lib/supabase/browser";
 import type {Attendance} from "@/lib/mesa-types";
 import LeagueFinalizationControls from "@/app/(app)/ligas/[id]/league-finalization-controls";
@@ -78,7 +78,7 @@ type Props={
  onBack:()=>void;onOpenEvent:(id:string)=>void;onCreateEvent:(id:string)=>void;
  onMembershipChanged?:()=>void;
 };
-export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles,rooms,attendances,
+export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles:catalogProfiles,rooms,attendances,
  onOpenLeague,onBack,onOpenEvent,onCreateEvent,onMembershipChanged}:Props){
  const changed=useRef(onMembershipChanged);
  useEffect(()=>{changed.current=onMembershipChanged},[onMembershipChanged]);
@@ -97,6 +97,8 @@ export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles,
  const [visibility,setVisibility]=useState<"public"|"private">("public");
  const [members,setMembers]=useState<Member[]>([]);
  const [requests,setRequests]=useState<Request[]>([]);
+ const [detailProfiles,setDetailProfiles]=useState<Profile[]>([]);
+ const profiles=useMemo(()=>[...new Map([...catalogProfiles,...detailProfiles].map(p=>[p.id,p])).values()],[catalogProfiles,detailProfiles]);
  const [rank,setRank]=useState<LeagueRank[]>([]);
  const [invite,setInvite]=useState("");
  const [game,setGame]=useState<Game>("poker");
@@ -110,6 +112,12 @@ export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles,
   const db=getSupabase();if(!db)return;
   const {data,error:readError}=await db.rpc("get_league_catalog_final");
   if(readError)throw readError;
+  const ownerIds=[...new Set((data||[]).map((l:League)=>l.owner_id))] as string[];
+  if(ownerIds.length){
+   const {data:owners,error}=await db.from("profiles").select("id,display_name,avatar_symbol,favorite_game,bio,avatar_path").in("id",ownerIds);
+   if(error)throw error;
+   setDetailProfiles(prev=>[...new Map([...prev,...(owners||[]) as Profile[]].map(p=>[p.id,p])).values()]);
+  }
   setLeagues((data||[]) as League[]);
  },[]);
  const refreshDetails=useCallback(async()=>{
@@ -122,6 +130,12 @@ export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles,
   if(roster.error)throw roster.error;
   if(pending.error)throw pending.error;
   if(ranking.error)throw ranking.error;
+  const ids=[...new Set([...(roster.data||[]),...(pending.data||[]),...(ranking.data||[])].map(row=>row.user_id))];
+  if(ids.length){
+   const {data,error}=await db.from("profiles").select("id,display_name,avatar_symbol,favorite_game,bio,avatar_path").in("id",ids);
+   if(error)throw error;
+   setDetailProfiles(prev=>[...new Map([...prev,...(data||[]) as Profile[]].map(p=>[p.id,p])).values()]);
+  }
   setMembers((roster.data||[]) as Member[]);
   setRequests((pending.data||[]) as Request[]);
   setRank((ranking.data||[]) as LeagueRank[]);

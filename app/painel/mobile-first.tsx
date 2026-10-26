@@ -40,7 +40,7 @@ import type {UpdateScope} from "./use-club-realtime";
 import type {LiveState,LiveActivity} from "./event-live-panel";
 import type {UiIconName} from "./ui-icon";
 import type {AdvancedRank} from "./advanced-ranking";
-import type {HiddenEvent,AdminAudit} from "./admin-panel";
+import type {HiddenEvent,AdminAudit,AdminFinance} from "./admin-panel";
 const TableTutorial=dynamic(()=>import("./table-tutorial"),{loading:()=>null});
 const AdminPanel=dynamic(()=>import("./admin-panel"),{loading:()=>null});
 const LeagueHub=dynamic(()=>import("./league-hub"),{loading:()=>null});
@@ -110,6 +110,7 @@ export default function PainelPage(){
   const [isAdmin,setIsAdmin]=useState(false);
   const [hiddenEvents,setHiddenEvents]=useState<HiddenEvent[]>([]);
   const [adminAudits,setAdminAudits]=useState<AdminAudit[]>([]);
+  const [adminFinance,setAdminFinance]=useState<AdminFinance[]>([]);
   const [page,setPage]=useState<View>("inicio");
   const [routeReady,setRouteReady]=useState(false);
   const [detailTab,setDetailTab]=useState<DetailTab>("visao");
@@ -188,7 +189,7 @@ export default function PainelPage(){
       if(readError)throw new Error(readError.message);
       if(context.current.selectedId!==requestedId)return;
       const value=data as Catalog;
-      setRooms(value.rooms);setHiddenEvents(value.hidden);
+      setRooms(value.rooms);setHiddenEvents(value.hidden);setAdminFinance(value.admin_finance);
       setEvents(previous=>older?[...new Map([...previous,...value.events].map(e=>[e.id,e])).values()]:value.events);
       setAttendances(previous=>older?[...new Map([...previous,...value.attendance].map(a=>[a.session_id+":"+a.user_id,a])).values()]:value.attendance);
       setProfiles(previous=>[...new Map([...previous,...value.profiles].map(p=>[p.id,p])).values()]);
@@ -919,7 +920,7 @@ export default function PainelPage(){
       />}
 
       {page==="admin"&&isAdmin&&<AdminPanel
-        events={events} profiles={profiles} attendances={attendances} buys={buys}
+        events={events} profiles={profiles} attendances={attendances} finance={adminFinance}
         hidden={hiddenEvents} audits={adminAudits}
         nameFor={nameFor} busy={working}
         onAction={(id,action)=>void manageAdminEvent(id,action)}

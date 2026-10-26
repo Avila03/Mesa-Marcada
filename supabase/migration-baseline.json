@@ -230,5 +230,29 @@
   {
     "version": "20261025225134",
     "name": "founder_exclusive_frame"
+  },
+  {
+    "name": "reliability_score_source",
+    "version": "20261026232305"
+  },
+  {
+    "name": "reliability_reward_progress",
+    "version": "20261026232424"
+  },
+  {
+    "name": "reliability_league_report",
+    "version": "20261026232425"
+  },
+  {
+    "name": "reliability_results_transactions",
+    "version": "20261026232449"
+  },
+  {
+    "name": "reliability_event_snapshots",
+    "version": "20261026232456"
+  },
+  {
+    "version": "20261026233050",
+    "name": "reliability_admin_catalog"
   }
 ]

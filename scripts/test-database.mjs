@@ -41,6 +41,10 @@ try{
  const replay=await scalar("SELECT public.record_chip_purchase_once($1,$2,'[20,0,0,0,0]',$3)",[req,event,A]);
  assert.equal(buy1,replay);
  assert.equal(Number(await scalar("SELECT count(*) FROM public.session_chip_purchases WHERE session_id=$1",[event])),1);
+ const adminCatalog=await scalar("SELECT public.get_club_catalog()");
+ assert.equal(adminCatalog.profiles.length,3,"Admin directory includes players without league membership or attendance");
+ assert.equal(Number(adminCatalog.admin_finance.find(x=>x.session_id===event).pending),1);
+ assert.equal(Number(adminCatalog.admin_finance.find(x=>x.session_id===event).total_brl),20);
  await assert.rejects(db.query("SELECT public.record_chip_purchase_once($1,$2,'[21,0,0,0,0]',$3)",[req,event,A]),/identificador/);
  await as(B);await db.query("SELECT public.record_chip_purchase_once('00000000-0000-4000-8000-000000000011',$1,'[20,0,0,0,0]',$2)",[event,B]);
  console.log("✓ Purchase replay returns the same receipt; changed payload is rejected");
@@ -53,6 +57,7 @@ try{
  await as(C);
  await assert.rejects(db.query("SELECT public.create_expense_once('00000000-0000-4000-8000-000000000015',$1,'Pizza',30,'food',$2)",[event,C]),/permissão/);
  const forbidden=await scalar("SELECT public.get_event_snapshot($1)",[event]);assert.equal(forbidden.buys.length,0);
+ const outsiderCatalog=await scalar("SELECT public.get_club_catalog()");assert.equal(outsiderCatalog.admin_finance.length,0);
  console.log("✓ Atomic polls, expense replay and non-participant isolation");
  await as(A);
  const present=await scalar("SELECT public.get_event_snapshot($1)",[event]);
