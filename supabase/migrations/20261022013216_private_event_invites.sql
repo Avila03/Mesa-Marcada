@@ -149,5 +149,4 @@ BEGIN
 END; $$;
 
 -- Antes de participar, convidados autenticados devem conseguir visualizar
--- quais cadeiras já estão ocupadas, sem liberar dados financeiros privados.
-
+-- quais cadeiras já estão ocupadas, sem liberar dados financeiros privados.;

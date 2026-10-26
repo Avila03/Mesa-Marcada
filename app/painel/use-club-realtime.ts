@@ -3,7 +3,7 @@ import {useEffect,useRef,useState} from "react";
 import {getSupabase} from "@/lib/supabase/browser";
 
 export type UpdateScope="catalog"|"presence"|"polls"|"expenses"|"chips"|"profiles"|"timeline";
-export type ConnectionState="connecting"|"connected"|"reconnecting"|"offline";
+export type ConnectionState="connecting"|"connected"|"reconnecting"|"offline"|"stale";
 
 // As políticas RLS continuam sendo aplicadas pelo Supabase Realtime.
 const watched:[string,UpdateScope][]=[
@@ -45,6 +45,8 @@ export function useClubRealtime({
    let lastReconcile=0;
    const pending=new Set<UpdateScope>();
    let debounce:ReturnType<typeof setTimeout>|undefined;
+   let retry:ReturnType<typeof setTimeout>|undefined;
+   let failures=0;
    // Consolida mudanças próximas para evitar chamadas redundantes.
    const flush=async()=>{
      if(!active||running){needsAgain=true;return;}
@@ -53,7 +55,18 @@ export function useClubRealtime({
        do{
          needsAgain=false;
          const scopes=[...pending];pending.clear();
-         await Promise.allSettled(scopes.map(scope=>handler.current(scope)));
+         const results=await Promise.allSettled(scopes.map(scope=>handler.current(scope)));
+         if(!active)return;
+         const rejected=scopes.filter((_,i)=>results[i].status==="rejected");
+         if(rejected.length){
+           rejected.forEach(scope=>pending.add(scope));
+           setStatus(navigator.onLine?"stale":"offline");
+           if(retry)clearTimeout(retry);
+           if(navigator.onLine)retry=setTimeout(()=>void flush(),Math.min(30000,1000*2**Math.min(++failures,5)));
+           return;
+         }
+         failures=0;
+         if(navigator.onLine&&(connected||db.realtime.isConnected())){connected=true;setStatus("connected");}
        }while(active&&(needsAgain||pending.size>0));
      }finally{running=false;}
    };
@@ -73,9 +86,9 @@ export function useClubRealtime({
    for(const [table,scope] of watched){
      // Fora de um evento, somente alterações relevantes à agenda
      // e aos perfis geram tráfego (não acompanha 12 tabelas à toa).
-     if(!eventId&&scope!=="catalog"&&scope!=="profiles"&&table!=="session_attendance")continue;
+     if(!eventId&&scope!=="catalog"&&scope!=="profiles"&&table!=="session_attendance"&&table!=="session_live_state")continue;
      channel.on("postgres_changes",{event:"*",schema:"public",table},payload=>{
-       if(!eventId&&table==="session_attendance"){enqueue("catalog");return;}
+       if(!eventId&&(table==="session_attendance"||table==="session_live_state")){enqueue("catalog");return;}
        const record=(payload.new&&Object.keys(payload.new).length?payload.new:payload.old) as Record<string,unknown>;
        // Eventos podem não incluir id em DELETE sob RLS; conciliação cobre esses casos.
        if(eventId&&record?.session_id&&record.session_id!==eventId&&scope!=="catalog")return;
@@ -105,7 +118,7 @@ export function useClubRealtime({
      if(!connected||Date.now()-lastReconcile>=180000)reconcile();
    },45000);
    return()=>{
-     active=false;if(debounce)clearTimeout(debounce);clearInterval(fallback);
+     active=false;if(debounce)clearTimeout(debounce);if(retry)clearTimeout(retry);clearInterval(fallback);
      window.removeEventListener("online",online);
      window.removeEventListener("offline",offline);
      document.removeEventListener("visibilitychange",visibility);

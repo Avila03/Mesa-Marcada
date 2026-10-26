@@ -1,0 +1,258 @@
+[
+  {
+    "version": "20261020213234",
+    "name": "mesa_marcada_v06_core"
+  },
+  {
+    "version": "20261020213318",
+    "name": "mesa_marcada_v06_finance_rankings"
+  },
+  {
+    "version": "20261020214051",
+    "name": "mesa_marcada_v06_harden_helpers"
+  },
+  {
+    "version": "20261020215117",
+    "name": "mesa_marcada_v06_secure_ranking_rpc"
+  },
+  {
+    "version": "20261021004006",
+    "name": "mesa_marcada_fixed_poker_blackjack_tables_v08"
+  },
+  {
+    "version": "20261021011447",
+    "name": "mesa_marcada_v09_profiles_reviews_stats"
+  },
+  {
+    "version": "20261021012159",
+    "name": "mesa_marcada_v09_harden_expense_payer"
+  },
+  {
+    "version": "20261021014554",
+    "name": "mesa_marcada_chip_denominations"
+  },
+  {
+    "version": "20261021014702",
+    "name": "mesa_marcada_harden_chip_purchase_rpc"
+  },
+  {
+    "version": "20261021021041",
+    "name": "mesa_marcada_minimum_first_buyin"
+  },
+  {
+    "version": "20261021021118",
+    "name": "mesa_marcada_complete_minimum_buyin"
+  },
+  {
+    "version": "20261021021227",
+    "name": "mesa_marcada_host_payment_confirmation"
+  },
+  {
+    "version": "20261021022737",
+    "name": "mesa_marcada_profile_photos"
+  },
+  {
+    "version": "20261021023739",
+    "name": "mesa_marcada_optional_expense_splits"
+  },
+  {
+    "version": "20261021025833",
+    "name": "mesa_marcada_expense_settlements"
+  },
+  {
+    "version": "20261021030404",
+    "name": "mesa_marcada_admin_panel"
+  },
+  {
+    "version": "20261021030538",
+    "name": "mesa_marcada_safe_admin_restore"
+  },
+  {
+    "version": "20261021031922",
+    "name": "mesa_marcada_advanced_rankings"
+  },
+  {
+    "version": "20261021110004",
+    "name": "mesa_marcada_evento_ao_vivo"
+  },
+  {
+    "version": "20261021134450",
+    "name": "live_chips_inventory_settlements"
+  },
+  {
+    "version": "20261021134756",
+    "name": "validate_live_points"
+  },
+  {
+    "version": "20261021140857",
+    "name": "cashout_brl"
+  },
+  {
+    "version": "20261021141449",
+    "name": "cashout_brl_pending_deployment_compatibility"
+  },
+  {
+    "version": "20261021141514",
+    "name": "cashout_brl_pending_deployment_safe_default"
+  },
+  {
+    "version": "20261021144417",
+    "name": "enable_cashout_brl_new_events"
+  },
+  {
+    "version": "20261021144432",
+    "name": "migrate_active_live_events_to_cashout_brl"
+  },
+  {
+    "version": "20261021152243",
+    "name": "table_seats_dealer"
+  },
+  {
+    "version": "20261021161036",
+    "name": "simplified_cashout_finish"
+  },
+  {
+    "version": "20261021165041",
+    "name": "seat_auto_attendance"
+  },
+  {
+    "version": "20261022001640",
+    "name": "realtime_event_sync"
+  },
+  {
+    "version": "20261022002018",
+    "name": "live_timeline_realtime"
+  },
+  {
+    "version": "20261022013216",
+    "name": "private_event_invites"
+  },
+  {
+    "version": "20261022013220",
+    "name": "web_push_subscriptions"
+  },
+  {
+    "version": "20261022013600",
+    "name": "push_server_auth"
+  },
+  {
+    "version": "20261022013915",
+    "name": "public_event_push"
+  },
+  {
+    "version": "20261022104547",
+    "name": "leagues_v5"
+  },
+  {
+    "version": "20261022104809",
+    "name": "leagues_realtime"
+  },
+  {
+    "version": "20261022111921",
+    "name": "leagues_v51_organizers_notices"
+  },
+  {
+    "version": "20261022112215",
+    "name": "league_notices_trigger_guard"
+  },
+  {
+    "version": "20261022124957",
+    "name": "league_premium_emblems"
+  },
+  {
+    "version": "20261022132021",
+    "name": "league_crest_finishes"
+  },
+  {
+    "version": "20261022134635",
+    "name": "fix_session_insert_returning_policy"
+  },
+  {
+    "version": "20261022134743",
+    "name": "fix_sessions_select_invite_policy_recursion"
+  },
+  {
+    "version": "20261022143548",
+    "name": "close_league_private_report"
+  },
+  {
+    "version": "20261022144751",
+    "name": "close_league_lock_history"
+  },
+  {
+    "version": "20261022154748",
+    "name": "edit_events_notices"
+  },
+  {
+    "version": "20261022154752",
+    "name": "edit_event_push"
+  },
+  {
+    "version": "20261022174400",
+    "name": "reschedule_reconfirmation"
+  },
+  {
+    "version": "20261022174829",
+    "name": "reconfirm_notifications_realtime"
+  },
+  {
+    "version": "20261023130921",
+    "name": "public_league_join_admin_finish"
+  },
+  {
+    "version": "20261023131017",
+    "name": "approved_clean_start"
+  },
+  {
+    "version": "20261023131104",
+    "name": "global_admin_league_permissions"
+  },
+  {
+    "version": "20261023131215",
+    "name": "admin_catalog_all_leagues"
+  },
+  {
+    "version": "20261023132119",
+    "name": "fix_admin_finish_league_permissions"
+  },
+  {
+    "version": "20261025185339",
+    "name": "medals_profile_showcase"
+  },
+  {
+    "version": "20261025191616",
+    "name": "admin_permanent_medal_grants"
+  },
+  {
+    "version": "20261025202515",
+    "name": "five_prestige_frames"
+  },
+  {
+    "version": "20261025225134",
+    "name": "founder_exclusive_frame"
+  },
+  {
+    "name": "reliability_score_source",
+    "version": "20261026232305"
+  },
+  {
+    "name": "reliability_reward_progress",
+    "version": "20261026232424"
+  },
+  {
+    "name": "reliability_league_report",
+    "version": "20261026232425"
+  },
+  {
+    "name": "reliability_results_transactions",
+    "version": "20261026232449"
+  },
+  {
+    "name": "reliability_event_snapshots",
+    "version": "20261026232456"
+  },
+  {
+    "version": "20261026233050",
+    "name": "reliability_admin_catalog"
+  }
+]

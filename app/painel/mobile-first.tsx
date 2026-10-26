@@ -2,6 +2,9 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import {runMutation} from "@/lib/mutations";
+import type {Catalog,EventSnapshot} from "@/lib/club-data";
+import {useProfilePhotos} from "./use-profile-photos";
 import { getSupabase } from "@/lib/supabase/browser";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Game, View, DetailTab, Profile, Room, Event, Attendance, Poll, Choice, Vote, Buy, BuyItem, ChipResult, Expense, Rank } from "@/lib/mesa-types";
@@ -37,7 +40,7 @@ import type {UpdateScope} from "./use-club-realtime";
 import type {LiveState,LiveActivity} from "./event-live-panel";
 import type {UiIconName} from "./ui-icon";
 import type {AdvancedRank} from "./advanced-ranking";
-import type {HiddenEvent,AdminAudit} from "./admin-panel";
+import type {HiddenEvent,AdminAudit,AdminFinance} from "./admin-panel";
 const TableTutorial=dynamic(()=>import("./table-tutorial"),{loading:()=>null});
 const AdminPanel=dynamic(()=>import("./admin-panel"),{loading:()=>null});
 const LeagueHub=dynamic(()=>import("./league-hub"),{loading:()=>null});
@@ -107,6 +110,7 @@ export default function PainelPage(){
   const [isAdmin,setIsAdmin]=useState(false);
   const [hiddenEvents,setHiddenEvents]=useState<HiddenEvent[]>([]);
   const [adminAudits,setAdminAudits]=useState<AdminAudit[]>([]);
+  const [adminFinance,setAdminFinance]=useState<AdminFinance[]>([]);
   const [page,setPage]=useState<View>("inicio");
   const [routeReady,setRouteReady]=useState(false);
   const [detailTab,setDetailTab]=useState<DetailTab>("visao");
@@ -116,13 +120,18 @@ export default function PainelPage(){
   const [profileId,setProfileId]=useState("");
   const [profileReturn,setProfileReturn]=useState<View>("ranking");
   const [financeRows,setFinanceRows]=useState<FinanceLine[]>([]);
-  const [financeLoading,setFinanceLoading]=useState(false);
   const [gameView,setGameView]=useState<Game>("poker");
   const [gameTab,setGameTab]=useState<"eventos"|"tutorial">("eventos");
   const [modal,setModal]=useState<Modal>(null);
   const modalOverlayRef=useStableDialog(modal!==null,page,()=>setModal(null));
   const [loading,setLoading]=useState(true);
-  const fullDataRequested=useRef(false);
+  const context=useRef({selectedId,page,profileId});context.current={selectedId,page,profileId};
+  const catalogFlight=useRef(new Map<string,Promise<void>>());
+  const eventFlights=useRef(new Map<string,Promise<void>>());
+  const profileFlight=useRef<Promise<void>|null>(null);
+  const [historyMore,setHistoryMore]=useState(false);
+  const historyCursor=useRef<{at:string;id:string}|null>(null);
+  const [historyLoading,setHistoryLoading]=useState(false);
   const [detailLoading,setDetailLoading]=useState(false);
   const [working,setWorking]=useState(false);
   const [message,setMessage]=useState("");
@@ -133,7 +142,7 @@ export default function PainelPage(){
   const [liveActivities,setLiveActivities]=useState<LiveActivity[]>([]);
   const [liveLoading,setLiveLoading]=useState(false);
   const [profiles,setProfiles]=useState<Profile[]>([]);
-  const [photoUrls,setPhotoUrls]=useState<Record<string,string>>({});
+
   const [attendances,setAttendances]=useState<Attendance[]>([]);
   const [tableSeats,setTableSeats]=useState<TableSeat[]>([]);
   const [polls,setPolls]=useState<Poll[]>([]);
@@ -166,80 +175,81 @@ export default function PainelPage(){
   const [chipCashouts,setChipCashouts]=useState<{session_id:string;user_id:string;final_brl:number;updated_at:string}[]>([]);
   const [chipPayouts,setChipPayouts]=useState<{session_id:string;user_id:string;confirmed_at:string}[]>([]);
 
-  const reload=useCallback(async(mode:"full"|"list"="full")=>{
-    const db=getSupabase();
-    if(!db)throw new Error("A conexão com o Supabase ainda não está configurada.");
-    if(mode==="full")fullDataRequested.current=true;
-    // A agenda precisa de poucas coleções; o restante só é carregado
-    // quando o usuário abre um evento, ranking, perfil ou administração.
-    const lean=mode==="list";
-    const skipped=Promise.resolve({data:[],error:null});
-    const requests=await Promise.all([
-      db.from("rooms").select("*").order("created_at",{ascending:false}),
-      db.from("sessions").select("*").order("starts_at",{ascending:true}),
-      db.from("profiles").select("id,display_name,avatar_symbol,favorite_game,bio,avatar_path"),
-      db.from("session_attendance").select("session_id,user_id"),
-      lean?skipped:db.from("session_polls").select("*").order("created_at",{ascending:false}),
-      lean?skipped:db.from("session_poll_options").select("*").order("position"),
-      lean?skipped:db.from("session_poll_votes").select("poll_id,option_id,user_id"),
-      lean?skipped:db.from("session_chip_purchases").select("*"),
-      lean?skipped:db.from("session_chip_purchase_items").select("*"),
-      lean?skipped:db.from("session_chip_results").select("*"),
-      lean?skipped:db.from("session_expenses").select("*"),
-      lean?skipped:db.from("session_finance_approvals").select("session_id,user_id,reviewed_at"),
-      lean?skipped:db.rpc("get_player_stats",{p_game:null}),
-      lean?skipped:db.from("expense_split_members").select("expense_id,session_id,user_id,joined_at"),
-      db.rpc("get_my_expense_splits"),
-      db.from("expense_split_settlements").select("expense_id,session_id,user_id,confirmed_at"),
-      db.from("admin_hidden_events").select("session_id,previous_status,hidden_by,hidden_at"),
-      lean?skipped:db.from("event_admin_audit").select("id,session_id,action,performed_by,occurred_at,description").order("occurred_at",{ascending:false}).limit(30),
-      lean?skipped:db.rpc("get_player_stats_period",{p_game:null,p_period:"ano"}),
-      lean?skipped:db.from("session_live_state").select("session_id,started_at,started_by"),
-      lean?skipped:db.from("session_chip_final_items").select("session_id,user_id,chip_value,quantity"),
-      lean?skipped:db.from("session_chip_payouts").select("session_id,user_id,confirmed_at"),
-      lean?skipped:db.from("session_chip_cashouts").select("session_id,user_id,final_brl,updated_at"),
-      lean?skipped:db.from("session_table_seats").select("session_id,user_id,seat_no,chosen_at")
-    ]);
-    requests.forEach(r=>{if(r.error)throw r.error});
-    setRooms((requests[0].data||[]) as Room[]);
-    setEvents((requests[1].data||[]) as Event[]);
-    setLiveStates((requests[19].data||[]) as LiveState[]);
-    setFinalItems((requests[20].data||[]) as {session_id:string;user_id:string;chip_value:number;quantity:number}[]);
-    setChipPayouts((requests[21].data||[]) as {session_id:string;user_id:string;confirmed_at:string}[]);
-    setChipCashouts((requests[22].data||[]) as {session_id:string;user_id:string;final_brl:number;updated_at:string}[]);
-    setTableSeats((requests[23].data||[]) as TableSeat[]);
-    const currentProfiles=(requests[2].data||[]) as Profile[];
-    setProfiles(currentProfiles);
-    const withPhotos=currentProfiles.filter(profile=>Boolean(profile.avatar_path));
-    if(withPhotos.length){
-      const {data:signed,error:signError}=await db.storage.from("player-avatars")
-        .createSignedUrls(withPhotos.map(profile=>profile.avatar_path as string),3600);
-      if(!signError&&signed){
-        const urls:Record<string,string>={};
-        for(let i=0;i<withPhotos.length;i++){
-          const signedUrl=signed[i]?.signedUrl;
-          if(signedUrl)urls[withPhotos[i].id]=signedUrl;
-        }
-        setPhotoUrls(urls);
-      }else setPhotoUrls({});
-    }else setPhotoUrls({});
-    setAttendances((requests[3].data||[]) as Attendance[]);
-    setPolls((requests[4].data||[]) as Poll[]);
-    setChoices((requests[5].data||[]) as Choice[]);
-    setVotes((requests[6].data||[]) as Vote[]);
-    setBuys((requests[7].data||[]) as Buy[]);
-    setChipItems((requests[8].data||[]) as BuyItem[]);
-    setResults((requests[9].data||[]) as ChipResult[]);
-    setExpenses((requests[10].data||[]) as Expense[]);
-    setApprovals((requests[11].data||[]) as {session_id:string;user_id:string;reviewed_at:string}[]);
-    setRanking((requests[12].data||[]) as Rank[]);
-    setExpenseMembers((requests[13].data||[]) as {expense_id:string;session_id:string;user_id:string;joined_at:string}[]);
-    setMySplits((requests[14].data||[]) as MyExpenseSplitRow[]);
-    setSettlements((requests[15].data||[]) as ExpenseSettlement[]);
-    setHiddenEvents((requests[16].data||[]) as HiddenEvent[]);
-    setAdminAudits((requests[17].data||[]) as AdminAudit[]);
-    setAnnualStats((requests[18].data||[]) as AdvancedRank[]);
+  const photoUrls=useProfilePhotos(profiles);
+  const loadCatalog=useCallback(async(older=false)=>{
+    const requestedId=context.current.selectedId;
+    const key=String(older)+":"+requestedId;
+    const existing=catalogFlight.current.get(key);if(existing)return existing;
+    const task=(async()=>{
+      const db=getSupabase();if(!db)throw new Error("Conexão indisponível.");
+      const cursor=older?historyCursor.current:null;
+      const {data,error:readError}=await db.rpc("get_club_catalog",{
+        p_before:cursor?.at||null,p_before_id:cursor?.id||null,p_event_id:requestedId||null
+      });
+      if(readError)throw new Error(readError.message);
+      if(context.current.selectedId!==requestedId)return;
+      const value=data as Catalog;
+      setRooms(value.rooms);setHiddenEvents(value.hidden);setAdminFinance(value.admin_finance);
+      setEvents(previous=>older?[...new Map([...previous,...value.events].map(e=>[e.id,e])).values()]:value.events);
+      setAttendances(previous=>older?[...new Map([...previous,...value.attendance].map(a=>[a.session_id+":"+a.user_id,a])).values()]:value.attendance);
+      setProfiles(previous=>[...new Map([...previous,...value.profiles].map(p=>[p.id,p])).values()]);
+      setLiveStates(value.live);setHistoryMore(value.history_more);historyCursor.current=value.history_cursor;
+    })();
+    catalogFlight.current.set(key,task);
+    try{await task}finally{if(catalogFlight.current.get(key)===task)catalogFlight.current.delete(key);}
   },[]);
+  const loadPersonalSplits=useCallback(async()=>{
+    const db=getSupabase();if(!db)return;
+    const {data,error:readError}=await db.rpc("get_my_splits_snapshot");
+    if(readError)throw new Error(readError.message);
+    setMySplits((data?.shares||[]) as MyExpenseSplitRow[]);
+    setSettlements((data?.settlements||[]) as ExpenseSettlement[]);
+  },[]);
+  const loadEvent=useCallback(async(id:string)=>{
+    const existing=eventFlights.current.get(id);if(existing)return existing;
+    const task=(async()=>{
+      const db=getSupabase();if(!db)throw new Error("Conexão indisponível.");
+      const {data,error:readError}=await db.rpc("get_event_snapshot",{p_event_id:id});
+      if(readError)throw new Error(readError.message);
+      if(context.current.selectedId!==id)return;
+      const v=data as EventSnapshot;
+      const merge=<T extends {session_id:string}>(prev:T[],next:T[])=>[...prev.filter(x=>x.session_id!==id),...next];
+      setAttendances(prev=>merge(prev,v.attendance));
+      setProfiles(prev=>[...new Map([...prev,...v.profiles].map(p=>[p.id,p])).values()]);
+      setPolls(v.polls);setChoices(v.choices);setVotes(v.votes);setChipItems(v.items);
+      setBuys(prev=>merge(prev,v.buys));setResults(prev=>merge(prev,v.results));
+      setExpenses(prev=>merge(prev,v.expenses));setExpenseMembers(prev=>merge(prev,v.members));
+      setSettlements(prev=>merge(prev,v.settlements));setApprovals(prev=>merge(prev,v.approvals));
+      setFinalItems(prev=>merge(prev,v.finals));setChipCashouts(prev=>merge(prev,v.cashouts));
+      setChipPayouts(prev=>merge(prev,v.payouts));setTableSeats(prev=>merge(prev,v.seats));
+      setLiveStates(prev=>merge(prev,v.live));setLiveActivities(v.timeline);
+      setFinanceRows(v.finance);setExpenseShares(v.shares);
+    })();
+    eventFlights.current.set(id,task);
+    try{await task}finally{if(eventFlights.current.get(id)===task)eventFlights.current.delete(id);}
+  },[]);
+  const loadProfileStats=useCallback(async()=>{
+    if(profileFlight.current)return profileFlight.current;
+    const task=(async()=>{
+      const db=getSupabase();if(!db)return;
+      const [all,annual]=await Promise.all([db.rpc("get_player_stats_v2",{p_game:null}),db.rpc("get_player_stats_period_v2",{p_game:null,p_period:"ano"})]);
+      if(all.error||annual.error)throw new Error(all.error?.message||annual.error?.message);
+      setRanking((all.data||[]) as Rank[]);setAnnualStats((annual.data||[]) as AdvancedRank[]);
+    })();
+    profileFlight.current=task;
+    try{await task}finally{if(profileFlight.current===task)profileFlight.current=null}
+  },[]);
+  const loadAdminAudits=useCallback(async()=>{
+    const db=getSupabase();if(!db)return;
+    const {data,error}=await db.from("event_admin_audit").select("*").order("occurred_at",{ascending:false}).limit(30);
+    if(error)throw new Error(error.message);setAdminAudits(data||[]);
+  },[]);
+  const reload=useCallback(async(_mode:"full"|"list"="full")=>{
+    await Promise.all([loadCatalog(),loadPersonalSplits()]);
+    if(context.current.page==="detalhe"&&context.current.selectedId)await loadEvent(context.current.selectedId);
+    if(context.current.page==="perfil")await loadProfileStats();
+    if(context.current.page==="admin")await loadAdminAudits();
+  },[loadCatalog,loadPersonalSplits,loadEvent,loadProfileStats,loadAdminAudits]);
 
   // O layout de (app) fica montado entre rotas: URL, voltar/avançar e
   // atualização de página reproduzem a mesma tela sem recarregar a SPA.
@@ -262,108 +272,22 @@ export default function PainelPage(){
     if(next!==now)window.history.pushState({mesaMarcada:true},"",next);
   },[routeReady,page,selectedId,detailTab,gameView,gameTab,selectedLeagueId]);
 
-  // Leituras incrementais por área: evita as 24 consultas de reload()
-  // quando outro participante escolhe cadeira, vota ou registra fichas.
+  // Concurrent scopes share one catalog request and one event snapshot.
   const refreshScope=useCallback(async(scope:UpdateScope)=>{
-    const db=getSupabase();
-    if(!db)return;
-    const unwrap=<T,>(result:{data:T|null;error:{message:string}|null}):T=>{
-      if(result.error)throw new Error(result.error.message);
-      return result.data as T;
-    };
-    const merge=<T extends {session_id:string}>(prev:T[],data:T[],id:string):T[]=>[
-      ...prev.filter(row=>row.session_id!==id),...data
-    ];
-    if(scope==="catalog"){
-      const [eventRows,attendeeRows,hiddenRows]=await Promise.all([
-        db.from("sessions").select("*").order("starts_at",{ascending:true}),
-        db.from("session_attendance").select("session_id,user_id"),
-        db.from("admin_hidden_events").select("session_id,previous_status,hidden_by,hidden_at")
-      ]);
-      setEvents(unwrap(eventRows) as Event[]);
-      setAttendances(unwrap(attendeeRows) as Attendance[]);
-      setHiddenEvents(unwrap(hiddenRows) as HiddenEvent[]);
-      return;
-    }
+    if(scope==="catalog")return loadCatalog();
     if(scope==="profiles"){
-      const result=await db.from("profiles").select("id,display_name,avatar_symbol,favorite_game,bio,avatar_path");
-      setProfiles(unwrap(result) as Profile[]);
+      await loadCatalog();
+      if(context.current.page==="perfil"&&context.current.profileId){
+        const db=getSupabase();if(!db)return;
+        const {data,error}=await db.from("profiles").select("id,display_name,avatar_symbol,favorite_game,bio,avatar_path").eq("id",context.current.profileId).maybeSingle();
+        if(error)throw new Error(error.message);
+        if(data)setProfiles(prev=>[...prev.filter(p=>p.id!==data.id),data as Profile]);
+      }
       return;
     }
-    if(!selectedId)return;
-    if(scope==="presence"){
-      const [attendance,seats,event]=await Promise.all([
-        db.from("session_attendance").select("session_id,user_id").eq("session_id",selectedId),
-        db.from("session_table_seats").select("session_id,user_id,seat_no,chosen_at").eq("session_id",selectedId),
-        db.from("sessions").select("*").eq("id",selectedId).maybeSingle()
-      ]);
-      setAttendances(prev=>merge(prev,unwrap(attendance) as Attendance[],selectedId));
-      setTableSeats(prev=>merge(prev,unwrap(seats) as TableSeat[],selectedId));
-      const updated=unwrap(event) as Event|null;
-      if(updated)setEvents(prev=>prev.map(ev=>ev.id===selectedId?updated:ev));
-      return;
-    }
-    if(scope==="polls"){
-      const survey=await db.from("session_polls").select("*")
-        .eq("session_id",selectedId).order("created_at",{ascending:false});
-      const pollRows=unwrap(survey) as Poll[];
-      const pollIds=pollRows.map(p=>p.id);
-      const [options,voting]=pollIds.length?await Promise.all([
-        db.from("session_poll_options").select("*").in("poll_id",pollIds).order("position"),
-        db.from("session_poll_votes").select("poll_id,option_id,user_id").in("poll_id",pollIds)
-      ]):[{data:[],error:null},{data:[],error:null}];
-      setPolls(prev=>merge(prev,pollRows,selectedId));
-      setChoices(unwrap(options) as Choice[]);
-      setVotes(unwrap(voting) as Vote[]);
-      return;
-    }
-    if(scope==="expenses"){
-      const [expensesForEvent,members,payments,personal,shares]=await Promise.all([
-        db.from("session_expenses").select("*").eq("session_id",selectedId),
-        db.from("expense_split_members").select("expense_id,session_id,user_id,joined_at").eq("session_id",selectedId),
-        db.from("expense_split_settlements").select("expense_id,session_id,user_id,confirmed_at").eq("session_id",selectedId),
-        db.rpc("get_my_expense_splits"),
-        db.rpc("get_expense_split_shares",{p_event_id:selectedId})
-      ]);
-      setExpenses(prev=>merge(prev,unwrap(expensesForEvent) as Expense[],selectedId));
-      setExpenseMembers(prev=>merge(prev,unwrap(members) as {expense_id:string;session_id:string;user_id:string;joined_at:string}[],selectedId));
-      setSettlements(prev=>merge(prev,unwrap(payments) as ExpenseSettlement[],selectedId));
-      setMySplits(unwrap(personal) as MyExpenseSplitRow[]);
-      setExpenseShares(unwrap(shares) as ExpenseSplitRow[]);
-      return;
-    }
-    if(scope==="timeline"){
-      const result=await db.from("session_live_activity")
-        .select("id,session_id,kind,actor_id,subject_id,occurred_at")
-        .eq("session_id",selectedId).order("occurred_at",{ascending:false}).limit(100);
-      setLiveActivities(unwrap(result) as LiveActivity[]);
-      return;
-    }
-    if(scope==="chips"){
-      const [purchases,resultsRows,finals,payouts,cashouts,approvalsRows,live]=await Promise.all([
-        db.from("session_chip_purchases").select("*").eq("session_id",selectedId),
-        db.from("session_chip_results").select("*").eq("session_id",selectedId),
-        db.from("session_chip_final_items").select("session_id,user_id,chip_value,quantity").eq("session_id",selectedId),
-        db.from("session_chip_payouts").select("session_id,user_id,confirmed_at").eq("session_id",selectedId),
-        db.from("session_chip_cashouts").select("session_id,user_id,final_brl,updated_at").eq("session_id",selectedId),
-        db.from("session_finance_approvals").select("session_id,user_id,reviewed_at").eq("session_id",selectedId),
-        db.from("session_live_state").select("session_id,started_at,started_by").eq("session_id",selectedId)
-      ]);
-      const purchaseRows=unwrap(purchases) as Buy[];
-      const purchaseIds=purchaseRows.map(b=>b.id);
-      const items=purchaseIds.length
-        ?await db.from("session_chip_purchase_items").select("*").in("purchase_id",purchaseIds)
-        :{data:[],error:null};
-      setBuys(prev=>merge(prev,purchaseRows,selectedId));
-      setChipItems(unwrap(items) as BuyItem[]);
-      setResults(prev=>merge(prev,unwrap(resultsRows) as ChipResult[],selectedId));
-      setFinalItems(prev=>merge(prev,unwrap(finals) as {session_id:string;user_id:string;chip_value:number;quantity:number}[],selectedId));
-      setChipPayouts(prev=>merge(prev,unwrap(payouts) as {session_id:string;user_id:string;confirmed_at:string}[],selectedId));
-      setChipCashouts(prev=>merge(prev,unwrap(cashouts) as {session_id:string;user_id:string;final_brl:number;updated_at:string}[],selectedId));
-      setApprovals(prev=>merge(prev,unwrap(approvalsRows) as {session_id:string;user_id:string;reviewed_at:string}[],selectedId));
-      setLiveStates(prev=>merge(prev,unwrap(live) as LiveState[],selectedId));
-    }
-  },[selectedId]);
+    if(context.current.selectedId)await loadEvent(context.current.selectedId);
+    if(scope==="expenses")await loadPersonalSplits();
+  },[loadCatalog,loadEvent,loadPersonalSplits]);
 
   const connection=useClubRealtime({enabled:Boolean(user),eventId:page==="detalhe"?selectedId:"",onRefresh:refreshScope});
 
@@ -393,19 +317,19 @@ export default function PainelPage(){
   },[reload]);
 
   useEffect(()=>{
-    if(!user)return;
+    if(!user||!["ranking","perfil"].includes(page))return;
     const db=getSupabase();
     if(!db)return;
     let active=true;
     setRankingLoading(true);
-    void Promise.resolve(db.rpc("get_player_stats_period",{p_game:rankGame,p_period:"ano"}))
+    void Promise.resolve(db.rpc("get_player_stats_period_v2",{p_game:rankGame,p_period:"ano"}))
       .then(({data,error:rankingError})=>{
         if(!active)return;
         if(rankingError)setError("Ranking indisponível: "+rankingError.message);
-        else setPeriodRanking((data||[]) as AdvancedRank[]);
+        else {setPeriodRanking((data||[]) as AdvancedRank[]);}
       }).finally(()=>{if(active)setRankingLoading(false);});
     return()=>{active=false};
-  },[user,rankGame,events,buys,results,approvals]);
+  },[user,rankGame,page,events]);
 
   // Compatibilidade com convites anteriores a v2: /painel?evento=UUID.
   useEffect(()=>{
@@ -418,98 +342,30 @@ export default function PainelPage(){
   },[user,routeReady,events,hiddenEvents]);
 
   useEffect(()=>{
-    if(!user||!routeReady||fullDataRequested.current)return;
-    if(!["detalhe","perfil","ranking","admin"].includes(page))return;
+    if(!user||!routeReady)return;
+    let active=true;
     setDetailLoading(true);
-    void reload().catch(e=>setError("Não foi possível carregar esta área: "+errText(e)))
-      .finally(()=>setDetailLoading(false));
-  },[user,routeReady,page,reload]);
+    const task=page==="detalhe"&&selectedId?loadEvent(selectedId):
+      page==="perfil"?loadProfileStats():page==="admin"?loadAdminAudits():Promise.resolve();
+    void task.catch(e=>{if(active)setError("Não foi possível carregar esta área: "+errText(e))})
+      .finally(()=>{if(active)setDetailLoading(false)});
+    return()=>{active=false};
+  },[user,routeReady,page,selectedId,loadEvent,loadProfileStats,loadAdminAudits]);
+
+  useEffect(()=>{
+    const id=profileId||user?.id;if(page!=="perfil"||!id)return;
+    const db=getSupabase();if(!db)return;let active=true;
+    void db.from("profiles").select("id,display_name,avatar_symbol,favorite_game,bio,avatar_path").eq("id",id).maybeSingle().then(({data,error})=>{
+      if(active&&data&&!error)setProfiles(prev=>[...prev.filter(p=>p.id!==id),data as Profile]);
+    });
+    return()=>{active=false};
+  },[page,profileId,user?.id]);
 
   const refreshLive=useCallback(async(showLoading=false)=>{
     if(!selectedId||!user)return;
-    const db=getSupabase();
-    if(!db)throw new Error("Conexão indisponível para consultar a linha do tempo.");
     if(showLoading)setLiveLoading(true);
-    try{
-      const [state,activity]=await Promise.all([
-        db.from("session_live_state")
-          .select("session_id,started_at,started_by").eq("session_id",selectedId).maybeSingle(),
-        db.from("session_live_activity")
-          .select("id,session_id,kind,actor_id,subject_id,occurred_at")
-          .eq("session_id",selectedId).order("occurred_at",{ascending:false}).limit(100)
-      ]);
-      if(state.error)throw state.error;
-      if(activity.error)throw activity.error;
-      setLiveStates(prev=>[
-        ...prev.filter(item=>item.session_id!==selectedId),
-        ...(state.data?[state.data as LiveState]:[])
-      ]);
-      setLiveActivities((activity.data||[]) as LiveActivity[]);
-    }finally{
-      if(showLoading)setLiveLoading(false);
-    }
-  },[selectedId,user]);
-
-  useEffect(()=>{
-    if(!user||!selectedId||page!=="detalhe"||detailTab!=="visao")return;
-    const db=getSupabase();
-    if(!db)return;
-    let active=true;
-    const refresh=()=>{
-      if(document.visibilityState==="hidden")return;
-      void db.from("session_table_seats").select("session_id,user_id,seat_no,chosen_at")
-        .eq("session_id",selectedId).then(({data,error:seatError})=>{
-          if(!active)return;
-          if(seatError){setError("Não foi possível atualizar os assentos: "+seatError.message);return;}
-          setTableSeats(previous=>[
-            ...previous.filter(st=>st.session_id!==selectedId),...((data||[]) as TableSeat[])
-          ]);
-        });
-    };
-    refresh();
-    const t=window.setInterval(refresh,45000);
-    return()=>{active=false;window.clearInterval(t);};
-  },[user,selectedId,page,detailTab]);
-
-  useEffect(()=>{
-    if(!user||!selectedId||page!=="detalhe"||detailTab!=="ao-vivo")return;
-    let active=true;
-    const tick=()=>{
-      if(document.visibilityState==="hidden")return;
-      void refreshLive().catch(e=>{if(active)setError("Linha do tempo: "+errText(e));});
-    };
-    tick();
-    const handleVisibility=()=>{if(document.visibilityState==="visible")tick()};
-    document.addEventListener("visibilitychange",handleVisibility);
-    const timer=window.setInterval(tick,60000);
-    return()=>{
-      active=false;
-      document.removeEventListener("visibilitychange",handleVisibility);
-      window.clearInterval(timer);
-    };
-  },[user,selectedId,page,detailTab,refreshLive]);
-
-  useEffect(()=>{
-    if(!user||!selectedId){setFinanceRows([]);setExpenseShares([]);return;}
-    const db=getSupabase();
-    if(!db)return;
-    let active=true;
-    setFinanceLoading(true);
-    void Promise.all([
-      db.rpc("get_event_finances",{p_event_id:selectedId}),
-      db.rpc("get_expense_split_shares",{p_event_id:selectedId})
-    ]).then(([finance,split])=>{
-      if(!active)return;
-      if(finance.error||split.error){
-        setFinanceRows([]);setExpenseShares([]);
-        setError("Não foi possível atualizar os gastos: "+(finance.error?.message||split.error?.message));
-      }else{
-        setFinanceRows((finance.data||[]) as FinanceLine[]);
-        setExpenseShares((split.data||[]) as ExpenseSplitRow[]);
-      }
-    }).finally(()=>{if(active)setFinanceLoading(false);});
-    return()=>{active=false};
-  },[user,selectedId,approvals,attendances,buys,results,expenses,expenseMembers]);
+    try{await loadEvent(selectedId)}finally{if(showLoading)setLiveLoading(false)}
+  },[selectedId,user,loadEvent]);
 
   async function manageAdminEvent(eventId:string,action:"hide"|"restore"|"cancel"|"finish"){
     const messages:Record<string,string>={
@@ -547,9 +403,10 @@ export default function PainelPage(){
     try{
       const {error:startError}=await db.rpc("start_live_event",{p_event_id:eventId});
       if(startError)throw startError;
-      await Promise.all([refreshScope("chips"),refreshScope("catalog")]);
+      void sendEventPush(eventId,"live");
+      const updates=await Promise.allSettled([refreshScope("chips"),refreshScope("catalog")]);
       setDetailTab("ao-vivo");setLiveSubtab("compra");
-      setMessage("Evento ao Vivo iniciado! Os registros da mesa aparecem na linha do tempo.");
+      setMessage("Evento ao Vivo iniciado!"+(updates.some(r=>r.status==="rejected")?" A atualização da tela está pendente.":" Os registros da mesa aparecem na linha do tempo."));
     }catch(e){setError(errText(e));}
     finally{setWorking(false);}
   }
@@ -564,9 +421,10 @@ export default function PainelPage(){
         ?await db.from("sessions").update({status:"finished"}).eq("id",eventId)
         :await db.rpc("admin_manage_event",{p_event_id:eventId,p_action:"finish"});
       if(finishError)throw finishError;
-      await Promise.all([refreshScope("chips"),refreshScope("catalog")]);
+      void sendEventPush(eventId,"summary");
+      const updates=await Promise.allSettled([refreshScope("chips"),refreshScope("catalog")]);
       setDetailTab("resumo-evento");
-      setMessage("Partida encerrada! Resumo da noite disponível.");
+      setMessage("Partida encerrada!"+(updates.some(r=>r.status==="rejected")?" A atualização da tela está pendente.":" Resumo da noite disponível."));
       window.scrollTo({top:0,behavior:"auto"});
     }catch(e){setError(errText(e));}finally{setWorking(false);}
   }
@@ -578,9 +436,11 @@ export default function PainelPage(){
     setWorking(true);setMessage("");setError("");
     try{
       await fn(db,user.id);
-      if(scope)await Promise.all((Array.isArray(scope)?scope:[scope]).map(item=>refreshScope(item)));
-      else await reload();
       setMessage(success);
+      try{
+        if(scope)await Promise.all((Array.isArray(scope)?scope:[scope]).map(item=>refreshScope(item)));
+        else await reload();
+      }catch{setMessage(success+" A atualização da tela está pendente.");}
     }catch(e){setError(errText(e));}
     finally{setWorking(false);}
   }
@@ -716,24 +576,20 @@ export default function PainelPage(){
     }finally{setWorking(false);}
   }
 
+  async function afterSaved(scope:UpdateScope,success:string){
+    setMessage(success);
+    try{await refreshScope(scope)}catch{setMessage(success+" A atualização da tela está pendente; não repita o lançamento.");}
+  }
   async function recordPurchase(quantities:number[]):Promise<boolean>{
-    const db=getSupabase();
-    if(!db||!user||!selected){setError("Entre em um evento para registrar fichas.");return false;}
-    if(!(organizer||isAdmin)&&!attendances.some(a=>a.session_id===selected.id&&a.user_id===user.id)){
-      setError("Escolha uma cadeira antes de comprar fichas.");
-      return false;
-    }
+    const db=getSupabase();if(!db||!user||!selected)return false;
     setWorking(true);setError("");setMessage("");
     try{
-      const {error:purchaseError}=await db.rpc("record_chip_purchase_for",{
-        p_event_id:selected.id,p_quantities:quantities,p_user_id:organizer||isAdmin?(purchaseFor||attendances.find(a=>a.session_id===selected.id)?.user_id||user.id):user.id
+      await runMutation(db,user.id,"record_chip_purchase_once",{
+        p_event_id:selected.id,p_quantities:quantities,
+        p_user_id:organizer||isAdmin?(purchaseFor||guests[0]?.user_id||user.id):user.id
       });
-      if(purchaseError)throw purchaseError;
-      await refreshScope("chips");
-      setMessage("Compra registrada! Quantidades, pontos e valor calculados pelo Supabase.");
-      return true;
-    }catch(e){setError(errText(e));return false;}
-    finally{setWorking(false);}
+      await afterSaved("chips","Compra registrada!");return true;
+    }catch(e){setError(errText(e));return false}finally{setWorking(false)}
   }
 
   function openEvent(id:string,sub:DetailTab="visao",adminAccess=false){
@@ -852,13 +708,10 @@ export default function PainelPage(){
     const payer=organizer&&guests.some(g=>g.user_id===details.paidBy)?details.paidBy:user.id;
     setWorking(true);setError("");setMessage("");
     try{
-      const {error:expenseError}=await db.from("session_expenses").insert({
-        session_id:selected.id,created_by:user.id,paid_by:payer,
-        label:details.label.trim(),category:details.category,amount_brl:details.amount
+      await runMutation(db,user.id,"create_expense_once",{
+        p_event_id:selected.id,p_label:details.label.trim(),p_amount:details.amount,p_category:details.category,p_paid_by:payer
       });
-      if(expenseError)throw expenseError;
-      await refreshScope("expenses");
-      setMessage("Despesa registrada!");
+      await afterSaved("expenses","Despesa registrada!");
     }catch(e){
       const description=errText(e);setError(description);throw new Error(description);
     }finally{setWorking(false);}
@@ -874,14 +727,8 @@ export default function PainelPage(){
     if(new Set(labels.map(label=>label.toLocaleLowerCase("pt-BR"))).size!==labels.length)throw new Error("Não é permitido repetir opções.");
     setWorking(true);setError("");setMessage("");
     try{
-      const {data,error:pollError}=await db.from("session_polls")
-        .insert({session_id:selected.id,created_by:user.id,question:question.trim()}).select("id").single();
-      if(pollError)throw pollError;
-      const {error:choiceError}=await db.from("session_poll_options")
-        .insert(labels.map((label,position)=>({poll_id:data.id,label,position})));
-      if(choiceError)throw new Error("A enquete foi criada, mas não foi possível salvar as opções: "+choiceError.message);
-      await refreshScope("polls");
-      setMessage("Enquete criada!");
+      await runMutation(db,user.id,"create_poll_once",{p_event_id:selected.id,p_question:question.trim(),p_options:labels});
+      await afterSaved("polls","Enquete criada!");
       void sendEventPush(selected.id,"poll");
     }catch(e){
       const description=errText(e);setError(description);throw new Error(description);
@@ -947,15 +794,15 @@ export default function PainelPage(){
         <div className="breadcrumb">Mesa Marcada　/　{page==="inicio"?"Visão geral":page==="detalhe"?"Evento":page==="mesa"?"Mesa de "+gameName(gameView):page==="eventos"?"Eventos":page==="mesas"?"Mesas":page==="perfil"?"Perfil":page==="admin"?"Administração":page==="ligas"||page==="liga"||page==="liga-admin"?"Ligas":"Ranking"}</div>
         <div className="mm-connection-group">
           <span className={"mm-sync-pill "+connection} role="status" aria-live="polite"
-            title={connection==="connected"?"Atualizações em tempo real ativas":connection==="offline"?"Sem conexão; atualiza ao reconectar":"Sincronizando dados"}>
+            title={connection==="connected"?"Atualizações em tempo real ativas":connection==="offline"?"Sem conexão; atualiza ao reconectar":connection==="stale"?"Atualização pendente; uma nova tentativa será feita automaticamente":"Sincronizando dados"}>
             <span className="mm-sync-dot" aria-hidden="true"/>
-            {connection==="connected"?"Em tempo real":connection==="offline"?"Sem conexão":"Sincronizando"}
+            {connection==="connected"?"Em tempo real":connection==="offline"?"Sem conexão":connection==="stale"?"Atualização pendente":"Sincronizando"}
           </span>
           <span className="pill"><UiIcon name={isAdmin?"settings":"user"} size={14}/>{isAdmin?"Administrador":firstName}</span>
         </div>
       </div>
       {detailLoading&&<p className="mm-message" role="status" style={{marginBottom:12}}>Carregando dados desta área...</p>}
-      {error&&<p className="mm-message error" role="alert" style={{marginBottom:16}}>{error}</p>}
+      {error&&<div className="mm-message error" role="alert" style={{marginBottom:16}}>{error} <button type="button" className="btn" onClick={()=>{setError("");void reload().catch(e=>setError(errText(e)))}}>Tentar novamente</button></div>}
       {message&&<p className="mm-message" role="status" style={{marginBottom:16}}>{message}</p>}
 
       <NotificationCenter userId={user.id} onOpenEvent={id=>openEvent(id)} onOpenLeague={openLeague}/>
@@ -998,6 +845,9 @@ export default function PainelPage(){
         </div>
         <div className="mm-eventgrid">
           {visibleEvents.map(ev=><EventTile key={ev.id} value={ev} room={roomFor(ev.room_id)} count={attendances.filter(a=>a.session_id===ev.id).length} confirmed={attendances.some(a=>a.session_id===ev.id&&a.user_id===user.id)} live={ev.status==="scheduled"&&liveStates.some(l=>l.session_id===ev.id)} open={()=>openEvent(ev.id)}/>)}
+          {historyMore&&eventFilter!=="agendados"&&<button type="button" className="btn" disabled={historyLoading} onClick={()=>{
+            setHistoryLoading(true);void loadCatalog(true).catch(e=>setError(errText(e))).finally(()=>setHistoryLoading(false));
+          }}>{historyLoading?"Carregando…":"Carregar eventos anteriores"}</button>}
         </div>
         {!visibleEvents.length&&<div className="panel mm-empty"><span className="mm-empty-symbol">♠</span><h2>Nenhum evento por aqui</h2><p>Que tal organizar a próxima noite?</p><button className="btn gold" onClick={()=>openCreator()}><UiIcon name="plus" size={18}/> Criar evento</button></div>}
       </>}
@@ -1070,7 +920,7 @@ export default function PainelPage(){
       />}
 
       {page==="admin"&&isAdmin&&<AdminPanel
-        events={events} profiles={profiles} attendances={attendances} buys={buys}
+        events={events} profiles={profiles} attendances={attendances} finance={adminFinance}
         hidden={hiddenEvents} audits={adminAudits}
         nameFor={nameFor} busy={working}
         onAction={(id,action)=>void manageAdminEvent(id,action)}
@@ -1131,7 +981,7 @@ export default function PainelPage(){
             <div className="mm-event-meta"><span>◷ {fullDate(selected.starts_at)}</span><span>⌖ {selected.location}</span><span>♠ {guests.length}/{selected.max_participants} participantes</span></div>
             <div className="mm-action-row">
 
-              
+
               {(organizer||isAdmin)&&selected.status==="scheduled"&&!selectedLive&&
                 <button type="button" className="btn" disabled={working} onClick={()=>openEditor(selected)}>
                   <UiIcon name="settings" size={16}/> Editar evento

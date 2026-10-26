@@ -3,10 +3,10 @@ import {spawn} from "node:child_process";
 import {setTimeout as sleep} from "node:timers/promises";
 import {strict as assert} from "node:assert";
 
-const port=3123;
+const port=Number(process.env.MM_SMOKE_PORT||3123);
 const base="http://127.0.0.1:"+port;
 const cli=process.platform==="win32"?"npm.cmd":"npm";
-const server=spawn(cli,["run","start","--","-p",String(port)],{stdio:["ignore","pipe","pipe"],detached:process.platform!=="win32"});
+const server=spawn(cli,["run","start","--","-H","127.0.0.1","-p",String(port)],{stdio:["ignore","pipe","pipe"],detached:process.platform!=="win32"});
 let logs="";
 server.stdout.on("data",chunk=>{logs+=String(chunk).slice(0,2000)});
 server.stderr.on("data",chunk=>{logs+=String(chunk).slice(0,2000)});
@@ -36,6 +36,8 @@ try{
   assert.ok(ready,"Server did not start:\n"+logs);
   await verify("/",307,"/painel");
   await verify("/login",200);
+  await verify("/recuperar-senha",200);
+  await verify("/redefinir-senha",200);
   await verify("/painel",200);
   const eventId="00000000-0000-4000-8000-000000000001";
   await verify("/evento/"+eventId,307,"/eventos/"+eventId);

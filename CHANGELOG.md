@@ -1,5 +1,14 @@
 # Histórico de versões — Mesa Marcada
 
+## v5.2.0 — Confiabilidade e desempenho (26/10/2026)
+- Resultados em reais conciliados alimentam rankings, medalhas, molduras e o relatório final da liga. Endpoints anteriores e relatórios arquivados preservam suas unidades.
+- Compras de fichas, despesas e enquetes usam comandos idempotentes; pergunta e opções da enquete são gravadas na mesma transação. Falhas na atualização da tela não são apresentadas como falhas de gravação.
+- Agenda paginada e consulta por evento substituem a carga financeira global. Participantes, cadeiras e financeiro chegam em uma visão consistente; falhas de sincronização têm indicação e nova tentativa automática.
+- Fotos privadas são renovadas antes do vencimento. Início e encerramento do evento acionam o push existente.
+- Recuperação de senha pelo login, com retorno seguro e confirmação da nova senha.
+- Dependências fixadas, lockfile e Node.js 24 em desenvolvimento/CI/produção. Histórico de migrações alinhado ao Supabase, com limpeza e presentes históricos fora da execução automática.
+- Testes executáveis cobrem replay após resposta perdida, permissões, gravações atômicas, fechamento em reais, progressão e paginação com datas iguais.
+
 ## v1.7.1 — Tela estável no smartphone
 - Criar evento mantém a página de fundo imóvel.
 - Formulário rola somente internamente; cabeçalho e ações fixos durante rolagem.

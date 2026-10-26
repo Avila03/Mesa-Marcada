@@ -1,5 +1,5 @@
 "use client";
-import {useCallback,useEffect,useRef,useState} from "react";
+import {useCallback,useEffect,useMemo,useRef,useState} from "react";
 import {getSupabase} from "@/lib/supabase/browser";
 import type {Attendance} from "@/lib/mesa-types";
 import LeagueFinalizationControls from "@/app/(app)/ligas/[id]/league-finalization-controls";
@@ -18,6 +18,7 @@ type Member={league_id:string;user_id:string;role:"owner"|"organizer"|"member";j
 type Request={league_id:string;user_id:string;status:string;created_at:string};
 type LeagueRank={user_id:string;game:Game;played:number;net_chips:number};
 const errorText=(error:unknown)=>error instanceof Error?error.message:String(error);
+const cash=(n:number)=>(Number(n)/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const format=(n:number)=>new Intl.NumberFormat("pt-BR",{maximumFractionDigits:0}).format(Number(n)||0);
 const leagueName=(id:string,profiles:Profile[])=>profiles.find(p=>p.id===id)?.display_name||"Jogador";
 const crestFinishLabel=(value:unknown)=>{const id=normalizeCrest(value).finish;return id==="minimal"?"Minimalista":id==="classic"?"Clássico":"Premium"};
@@ -77,7 +78,7 @@ type Props={
  onBack:()=>void;onOpenEvent:(id:string)=>void;onCreateEvent:(id:string)=>void;
  onMembershipChanged?:()=>void;
 };
-export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles,rooms,attendances,
+export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles:catalogProfiles,rooms,attendances,
  onOpenLeague,onBack,onOpenEvent,onCreateEvent,onMembershipChanged}:Props){
  const changed=useRef(onMembershipChanged);
  useEffect(()=>{changed.current=onMembershipChanged},[onMembershipChanged]);
@@ -96,6 +97,8 @@ export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles,
  const [visibility,setVisibility]=useState<"public"|"private">("public");
  const [members,setMembers]=useState<Member[]>([]);
  const [requests,setRequests]=useState<Request[]>([]);
+ const [detailProfiles,setDetailProfiles]=useState<Profile[]>([]);
+ const profiles=useMemo(()=>[...new Map([...catalogProfiles,...detailProfiles].map(p=>[p.id,p])).values()],[catalogProfiles,detailProfiles]);
  const [rank,setRank]=useState<LeagueRank[]>([]);
  const [invite,setInvite]=useState("");
  const [game,setGame]=useState<Game>("poker");
@@ -109,6 +112,12 @@ export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles,
   const db=getSupabase();if(!db)return;
   const {data,error:readError}=await db.rpc("get_league_catalog_final");
   if(readError)throw readError;
+  const ownerIds=[...new Set((data||[]).map((l:League)=>l.owner_id))] as string[];
+  if(ownerIds.length){
+   const {data:owners,error}=await db.from("profiles").select("id,display_name,avatar_symbol,favorite_game,bio,avatar_path").in("id",ownerIds);
+   if(error)throw error;
+   setDetailProfiles(prev=>[...new Map([...prev,...(owners||[]) as Profile[]].map(p=>[p.id,p])).values()]);
+  }
   setLeagues((data||[]) as League[]);
  },[]);
  const refreshDetails=useCallback(async()=>{
@@ -116,11 +125,17 @@ export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles,
   const [roster,pending,ranking]=await Promise.all([
    db.from("league_members").select("league_id,user_id,role,joined_at").eq("league_id",leagueId),
    db.from("league_requests").select("league_id,user_id,status,created_at").eq("league_id",leagueId).eq("status","pending"),
-   db.rpc("get_league_ranking",{p_league_id:leagueId})
+   db.rpc("get_league_ranking_v2",{p_league_id:leagueId})
   ]);
   if(roster.error)throw roster.error;
   if(pending.error)throw pending.error;
   if(ranking.error)throw ranking.error;
+  const ids=[...new Set([...(roster.data||[]),...(pending.data||[]),...(ranking.data||[])].map(row=>row.user_id))];
+  if(ids.length){
+   const {data,error}=await db.from("profiles").select("id,display_name,avatar_symbol,favorite_game,bio,avatar_path").in("id",ids);
+   if(error)throw error;
+   setDetailProfiles(prev=>[...new Map([...prev,...(data||[]) as Profile[]].map(p=>[p.id,p])).values()]);
+  }
   setMembers((roster.data||[]) as Member[]);
   setRequests((pending.data||[]) as Request[]);
   setRank((ranking.data||[]) as LeagueRank[]);
@@ -354,7 +369,7 @@ export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles,
       </div>
       <div>{leaders.map((player,i)=><div key={player.user_id}>
        <b>{i+1}º</b><strong>{leagueName(player.user_id,profiles)}</strong>
-       <span>{Number(player.net_chips)>0?"+":""}{format(player.net_chips)} pts</span>
+       <span>{cash(player.net_chips)}</span>
       </div>)}</div>
      </div>}
     </section>
@@ -381,7 +396,7 @@ export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles,
      {rankings.length?<div className="mm-league-ranks">{rankings.map((r,i)=>
        <div key={r.user_id} className="mm-league-rank"><span>{i+1}º</span>
         <strong>{leagueName(r.user_id,profiles)}</strong><small>{r.played} noites</small>
-        <b className={Number(r.net_chips)>=0?"positive":"negative"}>{Number(r.net_chips)>0?"+":""}{format(r.net_chips)} pts</b>
+        <b className={Number(r.net_chips)>=0?"positive":"negative"}>{cash(r.net_chips)}</b>
        </div>)}</div>:<p className="mm-league-empty">O ranking começa quando os primeiros eventos da liga forem concluídos.</p>}
     </section>
     <section className="panel">

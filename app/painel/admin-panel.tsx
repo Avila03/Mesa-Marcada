@@ -1,24 +1,25 @@
 "use client";
 
 import {useMemo,useState} from "react";
-import type {Event,Profile,Attendance,Buy} from "@/lib/mesa-types";
+import type {Event,Profile,Attendance} from "@/lib/mesa-types";
 import {fullDate,money} from "@/lib/mesa-types";
 import UiIcon from "./ui-icon";
 import FounderAdminControls from "./founder-admin-controls";
 
 export type HiddenEvent={session_id:string;previous_status:string;hidden_at:string;hidden_by:string};
 export type AdminAudit={id:number;session_id:string|null;action:string;performed_by:string;occurred_at:string;description:string};
+export type AdminFinance={session_id:string;pending:number;total_brl:number};
 
 const statusLabel:Record<string,string>={scheduled:"Agendado",finished:"Encerrado",cancelled:"Cancelado"};
 const actionLabel:Record<string,string>={hide:"Excluído da agenda",restore:"Restaurado",cancel:"Cancelado",finish:"Encerrado"};
 
 export default function AdminPanel({
-  events,profiles,attendances,buys,hidden,audits,busy,nameFor,onAction,onOpen
+  events,profiles,attendances,finance,hidden,audits,busy,nameFor,onAction,onOpen
 }:{
   events:Event[];
   profiles:Profile[];
   attendances:Attendance[];
-  buys:Buy[];
+  finance:AdminFinance[];
   hidden:HiddenEvent[];
   audits:AdminAudit[];
   busy:boolean;
@@ -36,7 +37,7 @@ export default function AdminPanel({
       ||nameFor(e.organizer_id).toLowerCase().includes(term.trim().toLowerCase());
   }).sort((a,b)=>new Date(b.starts_at).getTime()-new Date(a.starts_at).getTime()),[events,filter,hiddenSet,term,nameFor]);
   const scheduled=events.filter(e=>e.status==="scheduled"&&!hiddenSet.has(e.id)).length;
-  const allPending=buys.filter(b=>b.payment_status!=="paid"&&!hiddenSet.has(b.session_id)).length;
+  const allPending=finance.filter(f=>!hiddenSet.has(f.session_id)).reduce((n,f)=>n+Number(f.pending),0);
   return <div className="mm-admin">
     <div className="heading">
       <div><div className="eyebrow">MESA MARCADA · CONTROLE GERAL</div><h1>Administração</h1>
@@ -66,8 +67,9 @@ export default function AdminPanel({
         {rows.map(e=>{
           const deleted=hiddenSet.has(e.id);
           const people=attendances.filter(a=>a.session_id===e.id).length;
-          const pending=buys.filter(b=>b.session_id===e.id&&b.payment_status!=="paid").length;
-          const amount=buys.filter(b=>b.session_id===e.id).reduce((s,b)=>s+Number(b.amount_brl),0);
+          const summary=finance.find(f=>f.session_id===e.id);
+          const pending=Number(summary?.pending||0);
+          const amount=Number(summary?.total_brl||0);
           return <article className={"mm-admin-event "+(deleted?"mm-admin-event-hidden":"")} key={e.id}>
             <div className="mm-admin-event-head">
               <div><span className="mm-admin-event-type">{deleted?"Excluído da agenda":statusLabel[e.status]||e.status}</span>

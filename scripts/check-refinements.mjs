@@ -1,8 +1,8 @@
 import {strict as assert} from "node:assert";
 import {readFileSync} from "node:fs";
 const read=(p)=>readFileSync(new URL("../"+p,import.meta.url),"utf8");
-const db=read("supabase/migrations/20261022221000_reschedule_reconfirmation.sql");
-const realtime=read("supabase/migrations/20261022222000_reconfirm_notifications_realtime.sql");
+const db=read("supabase/migrations/20261022174400_reschedule_reconfirmation.sql");
+const realtime=read("supabase/migrations/20261022174829_reconfirm_notifications_realtime.sql");
 const app=read("app/painel/mobile-first.tsx");
 const home=read("app/painel/dashboard-v16.tsx");
 const leagues=read("app/painel/league-hub.tsx");

@@ -7,9 +7,9 @@ const qr=qrcode(0,"M");qr.addData("https://mesa-marcada.vercel.app/convite/"+tok
 assert.ok(qr.getModuleCount()>21&&qr.getModuleCount()<=177);
 assert.ok(qr.createDataURL(4,5).startsWith("data:image/gif;base64,"));
 
-const privacy=read("supabase/migrations/20261022080000_private_event_invites.sql");
-const protection=read("supabase/migrations/20261022082000_push_server_auth.sql");
-const pushes=read("supabase/migrations/20261022081000_web_push_subscriptions.sql");
+const privacy=read("supabase/migrations/20261022013216_private_event_invites.sql");
+const protection=read("supabase/migrations/20261022013600_push_server_auth.sql");
+const pushes=read("supabase/migrations/20261022013220_web_push_subscriptions.sql");
 for(const frag of [
  "visibility IN ('public','private')","ALTER TABLE public.event_invite_members ENABLE ROW LEVEL SECURITY",
  "app_private.may_view_event","CREATE POLICY sessions_select_authorized",

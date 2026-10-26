@@ -19,7 +19,7 @@ export const MEDALS:Medal[]=[
  {id:"shark",symbol:"🦈",title:"Tubarão",summary:"Alto aproveitamento",
   description:"Bronze: pelo menos 60% de vitórias em 10 eventos. Prata: 70% em 20. Ouro: 75% em 40, sempre na mesma modalidade.",group:"Desempenho",levels:bronze(10,20,40),color:"#78bce8",unit:"eventos qualificados"},
  {id:"positive",symbol:"💰",title:"Saldo Positivo",summary:"Mais noites no positivo",
-  description:"Encerre 10, 25, 50 ou 100 eventos com saldo positivo em fichas.",group:"Desempenho",levels:bronze(10,25,50,100),color:"#77c89f",unit:"noites positivas"},
+  description:"Encerre 10, 25, 50 ou 100 eventos com saldo positivo no jogo.",group:"Desempenho",levels:bronze(10,25,50,100),color:"#77c89f",unit:"noites positivas"},
  {id:"record",symbol:"💎",title:"Recordista Pessoal",summary:"Superou a própria marca",
   description:"A partir da terceira participação, supere seu recorde pessoal positivo de saldo líquido em uma noite.",group:"Desempenho",levels:[{name:"Especial",threshold:1}],color:"#9badff",unit:"recordes"},
  {id:"veteran",symbol:"🎲",title:"Veterano",summary:"Muitas noites na história",

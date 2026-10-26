@@ -1,22 +1,19 @@
--- Confirmação presencial dos pagamentos, sem processar transferências.
--- Nenhuma compra antiga é marcada automaticamente como recebida.
 ALTER TABLE public.session_chip_purchases
  ADD COLUMN payment_status text NOT NULL DEFAULT 'pending'
-  CHECK(payment_status IN ('pending','paid')),
+   CHECK(payment_status IN ('pending','paid')),
  ADD COLUMN payment_confirmed_by uuid REFERENCES public.profiles(id),
  ADD COLUMN payment_confirmed_at timestamptz;
+
 ALTER TABLE public.session_chip_purchases
- ADD CONSTRAINT payment_receipt_consistent CHECK (
+ ADD CONSTRAINT payment_receipt_consistent CHECK(
   (payment_status='pending' AND payment_confirmed_by IS NULL AND payment_confirmed_at IS NULL)
   OR
   (payment_status='paid' AND payment_confirmed_by IS NOT NULL AND payment_confirmed_at IS NOT NULL)
  );
 
 CREATE OR REPLACE FUNCTION app_private.prevent_purchase_update()
- RETURNS trigger
- LANGUAGE plpgsql
- SET search_path TO ''
-AS $function$
+RETURNS trigger LANGUAGE plpgsql SET search_path=''
+AS $$
 BEGIN
  IF (to_jsonb(NEW)-ARRAY['payment_status','payment_confirmed_by','payment_confirmed_at'])
   IS DISTINCT FROM
@@ -29,14 +26,11 @@ BEGIN
  ) THEN RAISE EXCEPTION 'Somente o anfitrião pode confirmar recebimento'; END IF;
  RETURN NEW;
 END;
-$function$;
+$$;
 
-CREATE OR REPLACE FUNCTION app_private.confirm_chip_payment(p_purchase_id uuid, p_paid boolean)
- RETURNS boolean
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO ''
-AS $function$
+CREATE FUNCTION app_private.confirm_chip_payment(p_purchase_id uuid,p_paid boolean)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
+AS $$
 DECLARE v_session uuid;
 BEGIN
  IF (SELECT auth.uid()) IS NULL THEN RAISE EXCEPTION 'Login necessário'; END IF;
@@ -52,24 +46,19 @@ BEGIN
  WHERE id=p_purchase_id;
  RETURN true;
 END;
-$function$;
+$$;
 REVOKE ALL ON FUNCTION app_private.confirm_chip_payment(uuid,boolean) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION app_private.confirm_chip_payment(uuid,boolean) TO authenticated;
 
-CREATE OR REPLACE FUNCTION public.confirm_chip_payment(p_purchase_id uuid, p_paid boolean)
- RETURNS boolean
- LANGUAGE sql
- SET search_path TO ''
-AS $function$ SELECT app_private.confirm_chip_payment(p_purchase_id,p_paid); $function$;
+CREATE FUNCTION public.confirm_chip_payment(p_purchase_id uuid,p_paid boolean)
+RETURNS boolean LANGUAGE sql SECURITY INVOKER SET search_path=''
+AS $$ SELECT app_private.confirm_chip_payment(p_purchase_id,p_paid); $$;
 REVOKE ALL ON FUNCTION public.confirm_chip_payment(uuid,boolean) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.confirm_chip_payment(uuid,boolean) TO authenticated;
 
 CREATE OR REPLACE FUNCTION app_private.check_finance_approval()
- RETURNS trigger
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO ''
-AS $function$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
+AS $$
 BEGIN
  IF NEW.reviewed_by IS DISTINCT FROM (SELECT auth.uid())
   OR NOT EXISTS(SELECT 1 FROM public.sessions s WHERE s.id=NEW.session_id
@@ -85,14 +74,11 @@ BEGIN
  THEN RAISE EXCEPTION 'Confirme o pagamento das compras antes de aprovar'; END IF;
  RETURN NEW;
 END;
-$function$;
+$$;
 
 CREATE OR REPLACE FUNCTION app_private.ensure_finance_before_finish()
- RETURNS trigger
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO ''
-AS $function$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
+AS $$
 BEGIN
  IF OLD.status='scheduled' AND NEW.status='finished' THEN
   IF NOT EXISTS(SELECT 1 FROM public.session_attendance a WHERE a.session_id=NEW.id)
@@ -113,4 +99,4 @@ BEGIN
  END IF;
  RETURN NEW;
 END;
-$function$;
+$$;

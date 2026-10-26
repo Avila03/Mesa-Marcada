@@ -100,13 +100,5 @@ REVOKE ALL ON FUNCTION public.admin_list_founder_frames() FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.admin_list_founder_frames() TO authenticated;
 
 -- Treat the owner as founding member, without equipping/changing their current frame.
-DO $seed$
-DECLARE original_admin uuid;
-BEGIN
- SELECT a.user_id INTO STRICT original_admin
- FROM public.app_admins a JOIN public.profiles p ON p.id=a.user_id
- WHERE p.display_name='Bruno Avila';
- INSERT INTO public.player_frame_grants(user_id,frame_id,granted_by,reason)
- VALUES(original_admin,'fundador',original_admin,'Fundador original e administrador geral')
- ON CONFLICT(user_id,frame_id) DO NOTHING;
-END; $seed$;
+-- Historical owner grants are preserved in production and not replayed.
+

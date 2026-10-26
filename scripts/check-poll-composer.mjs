@@ -16,9 +16,9 @@ for(const obsolete of ['Opções, uma por linha','showCreatePoll','setShowCreate
 }
 assert.ok(page.includes('Ver enquetes abertas →')&&page.includes('pollVotes.length'),
  "Existing poll voting and navigation must remain untouched.");
-assert.ok(page.includes('await refreshScope("polls")'),
+assert.ok(page.includes('afterSaved("polls"'),
  "New poll must refresh existing voting list after creation.");
-assert.ok(page.includes('session_poll_options')&&page.includes('session_polls'),
+assert.ok(page.includes('create_poll_once')&&page.includes('p_options:labels'),
  "Keep existing Supabase poll persistence.");
 for(const behavior of [
  'aria-expanded={open}', 'setOpen(value=>!value)', 'setOpen(false)',

@@ -1,7 +1,7 @@
 import {strict as assert} from "node:assert";
 import {readFileSync} from "node:fs";
 const read=(name)=>readFileSync(new URL("../"+name,import.meta.url),"utf8");
-const sql=read("supabase/migrations/20261022120000_leagues_v5.sql");
+const sql=read("supabase/migrations/20261022104547_leagues_v5.sql");
 for(const name of ["leagues","league_members","league_requests","league_invites"]){
  assert.ok(sql.includes("CREATE TABLE public."+name),"Missing league table "+name);
  assert.ok(sql.includes("ALTER TABLE public."+name+" ENABLE ROW LEVEL SECURITY"),"Missing RLS "+name);
@@ -39,6 +39,6 @@ for(const token of ["Aprovar","Recusar","Gerenciar membros","get_league_ranking"
 const invite=read("app/ligas/convite/[token]/page.tsx");
 assert.ok(invite.includes("/login?next="),"League invitation login handoff required");
 assert.ok(invite.includes("request_league_join"),"League invite must not auto-admit");
-const upcoming=read("supabase/migrations/20261022121000_leagues_realtime.sql");
+const upcoming=read("supabase/migrations/20261022104809_leagues_realtime.sql");
 assert.ok(upcoming.includes("league_requests"),"Realtime approvals publication missing");
 console.log("✓ Ligas v5: permissions, join approvals, isolated events, rankings and navigation");

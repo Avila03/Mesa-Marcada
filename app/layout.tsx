@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://mesa-marcada.vercel.app"),
   title: "Mesa Marcada | Suas noites de jogo",
   description: "Organize eventos, mesas, enquetes e resultados com seus amigos.",
   applicationName: "Mesa Marcada",

@@ -11,3 +11,5 @@
 @keyframes mm-sync-pulse{50%{opacity:.3}}
 @media(max-width:650px){.mm-connection-group .pill{display:none}.mm-sync-pill{font-size:9px;padding:5px 8px}}
 @media(prefers-reduced-motion:reduce){.mm-sync-pill .mm-sync-dot{animation:none!important}}
+
+.mm-sync-pill.stale{color:#e7bd70;border-color:#755c31;background:#322817}

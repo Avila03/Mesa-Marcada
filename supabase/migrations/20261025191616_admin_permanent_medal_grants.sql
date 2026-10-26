@@ -34,32 +34,5 @@ CREATE POLICY player_medal_grants_read ON public.player_medal_grants
  );
 -- Não conceder INSERT/UPDATE/DELETE ao cliente. A concessão só ocorre em operação administrativa auditável.
 
-DO $grant$
-DECLARE
- main_account uuid;
-BEGIN
- IF (SELECT count(*) FROM public.app_admins) <> 1 THEN
-   RAISE EXCEPTION 'Concessão suspensa: número de administradores inesperado';
- END IF;
- SELECT a.user_id INTO STRICT main_account
- FROM public.app_admins a
- JOIN public.profiles p ON p.id=a.user_id
- WHERE p.display_name='Bruno Avila';
+-- Historical owner grants are preserved in production and not replayed.
 
- INSERT INTO public.player_medal_grants(user_id,medal_id,level_index,granted_by,reason)
- SELECT main_account,m.medal_id,m.level_index,main_account,
-        'Concessão permanente autorizada pelo proprietário para visualizar e usar todas as medalhas'
- FROM (VALUES
-   ('first',0),('collector',3),('podium',3),('shark',2),
-   ('positive',3),('record',0),('veteran',3),('loyal',2),
-   ('poker',3),('blackjack',3),('versatile',2),('champ',0),
-   ('multi',2),('pioneer',0),('host',3)
- ) AS m(medal_id,level_index)
- ON CONFLICT(user_id,medal_id) DO UPDATE SET
-   level_index=GREATEST(public.player_medal_grants.level_index,EXCLUDED.level_index);
-
- -- Pré-seleção visual, sem sobrescrever escolhas já realizadas pelo titular.
- INSERT INTO public.profile_medal_showcase(user_id,featured_id,pinned_ids,visible)
- VALUES(main_account,'collector',ARRAY['champ','shark','veteran']::text[],true)
- ON CONFLICT(user_id) DO NOTHING;
-END $grant$;
