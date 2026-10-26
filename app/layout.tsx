@@ -8,14 +8,14 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {capable:true,title:"Mesa Marcada",statusBarStyle:"black-translucent"},
   icons: {
-    icon: [{url:"/mesa-marcada-logo.webp",type:"image/webp",sizes:"96x96"}],
-    shortcut:"/mesa-marcada-logo.webp",
-    apple:"/mesa-marcada-logo.webp"
+    icon: [{url:"/icon",type:"image/png",sizes:"512x512"}],
+    shortcut:"/icon",
+    apple: [{url:"/apple-icon",type:"image/png",sizes:"180x180"}]
   },
   openGraph:{
     title:"Mesa Marcada",
     description:"Poker, Blackjack e encontros entre amigos.",
-    images:[{url:"/mesa-marcada-logo.webp",width:96,height:96}]
+    images:[{url:"/icon",width:512,height:512}]
   },
 };
 export const viewport: Viewport = {
