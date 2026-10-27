@@ -1,5 +1,12 @@
 # Histórico de versões — Mesa Marcada
 
+## v6.0.0 — Novas modalidades (27/10/2026)
+- Sete mesas permanentes; Truco Gaudério, Paulista e Mineiro compartilham a mesma mesa. Canastra e Buraco aberto/fechado também compartilham sua mesa.
+- Pontinho, UNO clássico e Pife com placares próprios e tutoriais. Metas e regras ficam definidas na criação do evento.
+- Início com participantes conferidos e duplas/equipes equilibradas. Resultados transacionais, controle de revisão, confirmação idempotente após perda de conexão e desfazer auditado antes de encerrar.
+- Rankings anuais e de ligas por modalidade e variante; perfis e relatório final das ligas incluem vitórias e partidas.
+- Testes isolados de banco cobrem todas as modalidades, permissões, replay, conflitos, encerramento e arquivo da liga, incluindo regressão do financeiro existente.
+
 ## v5.2.0 — Confiabilidade e desempenho (26/10/2026)
 - Resultados em reais conciliados alimentam rankings, medalhas, molduras e o relatório final da liga. Endpoints anteriores e relatórios arquivados preservam suas unidades.
 - Compras de fichas, despesas e enquetes usam comandos idempotentes; pergunta e opções da enquete são gravadas na mesma transação. Falhas na atualização da tela não são apresentadas como falhas de gravação.

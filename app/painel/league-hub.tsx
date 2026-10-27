@@ -1,5 +1,8 @@
 "use client";
 import {useCallback,useEffect,useMemo,useRef,useState} from "react";
+import {ALL_GAMES,isChipGame} from "@/lib/games";
+import {gameName} from "@/lib/mesa-types";
+import ScoreRanking from "./score-ranking";
 import {getSupabase} from "@/lib/supabase/browser";
 import type {Attendance} from "@/lib/mesa-types";
 import LeagueFinalizationControls from "@/app/(app)/ligas/[id]/league-finalization-controls";
@@ -390,10 +393,10 @@ export default function LeagueHub({leagueId,mode,userId,isAdmin,events,profiles:
     </section>
     <section className="panel">
      <div className="panelhead"><h2>Ranking da liga</h2><span className="tag">Eventos encerrados</span></div>
-     <div className="mm-filter-bar">{(["poker","blackjack"] as Game[]).map(g=>
+     <div className="mm-filter-bar">{ALL_GAMES.map(g=>
        <button key={g} className={"filter "+(game===g?"active":"")} onClick={()=>setGame(g)}>
-       {g==="poker"?"♠ Poker":"♦ Blackjack"}</button>)}</div>
-     {rankings.length?<div className="mm-league-ranks">{rankings.map((r,i)=>
+       {gameName(g)}</button>)}</div>
+     {!isChipGame(game)?<ScoreRanking key={game} game={game} leagueId={leagueId}/>:rankings.length?<div className="mm-league-ranks">{rankings.map((r,i)=>
        <div key={r.user_id} className="mm-league-rank"><span>{i+1}º</span>
         <strong>{leagueName(r.user_id,profiles)}</strong><small>{r.played} noites</small>
         <b className={Number(r.net_chips)>=0?"positive":"negative"}>{cash(r.net_chips)}</b>

@@ -1,3 +1,4 @@
+import {ALL_GAMES} from "./games";
 import type {DetailTab,Game,View} from "./mesa-types";
 type GameTab="eventos"|"tutorial";
 export type ClubLocation={page:View;selectedId:string;detailTab:DetailTab;gameView:Game;gameTab:GameTab;leagueId:string};
@@ -21,7 +22,7 @@ export function readClubRoute(pathname:string,search=""):ClubLocation{
  else if(parts[0]==="ligas"&&parts[1]&&isUuid(parts[1])){
    result.page=parts[2]==="gerenciar"?"liga-admin":"liga";result.leagueId=parts[1];
  }else if(path==="/ligas")result.page="ligas";
- else if(parts[0]==="mesas"&&["poker","blackjack"].includes(parts[1]||"")){
+ else if(parts[0]==="mesas"&&ALL_GAMES.includes(parts[1] as Game)){
    result.page="mesa";result.gameView=parts[1] as Game;
    result.gameTab=query.get("aba")==="tutorial"?"tutorial":"eventos";
  }else if(path==="/mesas")result.page="mesas";
@@ -42,6 +43,6 @@ export function clubHref(page:View,selectedId:string,tab:DetailTab,game:Game,gam
 }
 export function validPostLoginRoute(value:string){
  if(value.startsWith("/")&&!value.startsWith("//")&&
- /^(?:\/ligas(?:\/[0-9a-f-]{36}(?:\/gerenciar)?|\/convite\/[0-9a-f]{64})?|\/convite\/[0-9a-f]{64}|\/painel(?:\?evento=[0-9a-f-]{36})?|\/eventos(?:\/[0-9a-f-]{36}(?:\/(?:ao-vivo|resumo))?)?|\/mesas(?:\/(?:poker|blackjack)(?:\?aba=tutorial)?)?|\/ranking|\/perfil|\/administracao)$/i.test(value))return value;
+ /^(?:\/ligas(?:\/[0-9a-f-]{36}(?:\/gerenciar)?|\/convite\/[0-9a-f]{64})?|\/convite\/[0-9a-f]{64}|\/painel(?:\?evento=[0-9a-f-]{36})?|\/eventos(?:\/[0-9a-f-]{36}(?:\/(?:ao-vivo|resumo))?)?|\/mesas(?:\/(?:poker|blackjack|truco|canastra|pontinho|uno|pife)(?:\?aba=tutorial)?)?|\/ranking|\/perfil|\/administracao)$/i.test(value))return value;
  return "/painel";
 }

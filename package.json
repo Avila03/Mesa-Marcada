@@ -1,6 +1,6 @@
 {
   "name": "mesa-marcada",
-  "version": "5.2.0",
+  "version": "6.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -28,7 +28,8 @@
     "check:brand": "node scripts/check-brand-monogram.mjs",
     "check:reliability": "node scripts/check-reliability.mjs",
     "check:migrations": "node scripts/check-migrations.mjs",
-    "test:database": "node scripts/test-database.mjs"
+    "test:database": "node scripts/test-database.mjs",
+    "check:games": "node scripts/check-new-games.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.6.1",
