@@ -1,5 +1,7 @@
 "use client";
 
+import {isChipGame} from "@/lib/games";
+import {GameTutorial} from "./score-games";
 import {useMemo,useState} from "react";
 import type {Game} from "@/lib/mesa-types";
 
@@ -189,6 +191,7 @@ function PokerTutorial(){
 }
 
 export default function TableTutorial({game}:{game:Game}){
+  if(!isChipGame(game))return <GameTutorial game={game}/>;
   return <div className="mm-table-guide">
     <div className={"tutorial-lead "+(game==="blackjack"?"mm-tutorial-blackjack":"")}>
       <div><div className="tut-label">GUIA COMPLETO</div>

@@ -45,7 +45,8 @@ try{
   for(const path of [
     "/eventos","/eventos/"+eventId,"/eventos/"+eventId+"/ao-vivo",
     "/eventos/"+eventId+"/resumo","/mesas","/mesas/poker","/mesas/blackjack",
-    "/ranking","/perfil","/administracao"
+    "/ranking","/perfil","/administracao",
+    "/mesas/truco","/mesas/canastra","/mesas/pontinho","/mesas/uno","/mesas/pife"
   ])await verify(path,200);
   for(const path of ["/ligas","/ligas/"+eventId,"/ligas/"+eventId+"/gerenciar",
     "/ligas/convite/"+"a".repeat(64)])await verify(path,200);

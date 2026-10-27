@@ -1,5 +1,6 @@
 "use client";
 
+import {ALL_GAMES,GAME_META} from "@/lib/games";
 import type {Attendance,Event,Game,Room} from "@/lib/mesa-types";
 import {date,eventTime,gameName,money} from "@/lib/mesa-types";
 import type {ExpenseSettlement,MyExpenseSplitRow} from "./expense-splits";
@@ -158,13 +159,13 @@ export default function DashboardV16({
         <button type="button" className="mm-home-textlink" onClick={onTables}>Mesas e tutoriais <UiIcon name="arrow-right" size={16}/></button>
       </header>
       <div className="mm-home-tablegrid">
-        {(["poker","blackjack"] as Game[]).map(game=><button type="button"
+        {ALL_GAMES.map(game=><button type="button"
           key={game} onClick={()=>onGame(game)}
           className={"mm-home-table "+game}>
-          <span className="mm-home-table-icon"><UiIcon name={game==="poker"?"spade":"diamond"} size={32}/></span>
+          <span className="mm-home-table-icon"><UiIcon name={game==="poker"?"spade":game==="blackjack"?"diamond":"cards"} size={32}/></span>
           <span className="mm-home-table-description">
-            <strong>{game==="poker"?"Poker":"Blackjack"}</strong>
-            <small>{game==="poker"?"Texas Hold’em · Eventos e regras":"Jogo 21 · Eventos e regras"}</small>
+            <strong>{gameName(game)}</strong>
+            <small>{GAME_META[game].variants.length>1?"Variantes, eventos e placar":"Eventos, regras e resultados"}</small>
           </span>
           <UiIcon name="arrow-right" size={18}/>
         </button>)}

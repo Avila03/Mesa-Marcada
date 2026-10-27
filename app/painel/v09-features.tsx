@@ -4,10 +4,11 @@ import {useEffect,useMemo,useState} from "react";
 import type {FormEvent, ReactNode} from "react";
 import type {Game,Profile,Rank,Attendance,Event} from "@/lib/mesa-types";
 import {fullDate} from "@/lib/mesa-types";
+import {ALL_GAMES,GAME_META} from "@/lib/games";
 import UiIcon from "./ui-icon";
 import FrameAvatar from "./frame-avatar";
 
-const favoriteOptions:Game[]=["poker","blackjack"];
+const favoriteOptions:readonly Game[]=ALL_GAMES;
 const cash=(n:unknown)=>(Number(n)/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const number=(n:unknown)=>new Intl.NumberFormat("pt-BR",{maximumFractionDigits:1}).format(Number(n)||0);
 
@@ -125,7 +126,7 @@ export function ProfilePanel({
     <div className="heading"><div><div className="eyebrow">JOGADORES DA MESA</div><h1>{own?"Meu perfil":"Perfil do jogador"}</h1><p>Apelido, avatar e histórico das suas noites.</p></div></div>
     <section className="mm-v09-profile-hero">
       <FrameAvatar playerId={profile?.id||userId} photoUrl={photoUrl} name={nameShown} large/>
-      <div className="mm-v09-profile-name"><h2>{nameShown}</h2><span className={"tag "+(profile?.favorite_game||"poker")}>Jogo favorito: {profile?.favorite_game==="blackjack"?"Blackjack":"Poker"}</span>
+      <div className="mm-v09-profile-name"><h2>{nameShown}</h2><span className={"tag "+(profile?.favorite_game||"poker")}>Jogo favorito: {GAME_META[profile?.favorite_game||"poker"].name}</span>
       {profile?.bio&&<p>{profile.bio}</p>}</div>
       {own&&<button type="button" className="btn" onClick={()=>setEdit(v=>!v)}>{edit?"Cancelar":"✎ Editar perfil"}</button>}
     </section>
@@ -154,7 +155,7 @@ export function ProfilePanel({
           </div>
         </div>
         <label className="mm-field">Jogo favorito<select value={favorite} onChange={e=>setFavorite(e.target.value as Game)}>
-          {favoriteOptions.map(g=><option value={g} key={g}>{g==="poker"?"♠ Poker":"♦ Blackjack"}</option>)}
+          {favoriteOptions.map(g=><option value={g} key={g}>{GAME_META[g].name}</option>)}
         </select></label>
         <label className="mm-field">Sobre mim (opcional)<textarea rows={3} maxLength={240} placeholder="Uma frase sobre você" value={bio} onChange={e=>setBio(e.target.value)}/></label>
         {error&&<p className="mm-message error" role="alert">{error}</p>}

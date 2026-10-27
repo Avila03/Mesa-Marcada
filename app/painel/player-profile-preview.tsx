@@ -1,4 +1,5 @@
 "use client";
+import {GAME_META} from "@/lib/games";
 
 import {createPortal} from "react-dom";
 import {useCallback,useEffect,useRef,useState} from "react";
@@ -90,7 +91,7 @@ function PreviewContent({playerId,profile,photoUrl,fallbackName,onOpenProfile}:{
    <FrameAvatar playerId={playerId} name={name} photoUrl={photoUrl} large/>
    <div className="mm-player-preview-identity">
     <strong>{name}</strong>
-    <small>{profile?.favorite_game==="blackjack"?"♦ Blackjack":"♠ Poker"} · Jogador</small>
+    <small>{GAME_META[profile?.favorite_game||"poker"].name} · Jogador</small>
    </div>
   </div>
   {profile?.bio&&<p className="mm-player-preview-bio">{profile.bio}</p>}

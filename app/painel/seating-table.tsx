@@ -1,5 +1,7 @@
 "use client";
 
+import {gameName} from "@/lib/mesa-types";
+import {GAME_META} from "@/lib/games";
 import type {Game,Profile} from "@/lib/mesa-types";
 import FrameAvatar from "./frame-avatar";
 import PlayerProfileTrigger from "./player-profile-preview";
@@ -61,10 +63,10 @@ export default function SeatingTable({game,capacity,seats,myId,confirmed,canChan
      disabled={!canChange||busy} aria-label={isDealer?"Ocupar a cadeira do crupiê":"Ocupar cadeira "+n}
      onClick={()=>select(n)}>{content}</button>;
  };
- return <section className={"mm-seat-shell "+(blackjack?"is-blackjack":"is-poker")} aria-label={"Assentos da mesa de "+(blackjack?"Blackjack":"Poker")}>
+ return <section className={"mm-seat-shell "+(blackjack?"is-blackjack":"is-poker")} aria-label={"Assentos da mesa de "+gameName(game)}>
    <div className="mm-seat-topline">
      <div>
-       <span className="mm-seat-eyebrow">{blackjack?"♦ BLACKJACK · 21":"♠ POKER · TEXAS HOLD’EM"}</span>
+       <span className="mm-seat-eyebrow">{blackjack?"♦ BLACKJACK · 21":game==="poker"?"♠ POKER · TEXAS HOLD’EM":gameName(game).toUpperCase()}</span>
        <h2>Escolha seu lugar à mesa</h2>
        <p>{canChange?"Clique numa cadeira livre para participar do evento. Também é possível trocar de lugar.":"Posições da mesa. As cadeiras ficam bloqueadas depois que a partida começa."}</p>
      </div>
@@ -74,8 +76,8 @@ export default function SeatingTable({game,capacity,seats,myId,confirmed,canChan
      <div className="mm-seat-stage">
        <div className="mm-seat-table" aria-hidden="true">
          <div className="mm-seat-table-surface">
-           <span className="mm-seat-table-glyph">{blackjack?"♦":"♠"}</span>
-           <strong>{blackjack?"BLACKJACK":"POKER"}</strong>
+           <span className="mm-seat-table-glyph">{GAME_META[game].symbol}</span>
+           <strong>{gameName(game).toUpperCase()}</strong>
            <small>{blackjack?"CRUPIÊ · 21":"MESA MARCADA"}</small>
          </div>
        </div>
@@ -89,7 +91,7 @@ export default function SeatingTable({game,capacity,seats,myId,confirmed,canChan
      </div>
      <aside className="mm-seat-detail">
        <span className="mm-seat-eyebrow">ORGANIZAÇÃO DA MESA</span>
-       <h3>{blackjack?"Mesa de Blackjack":"Mesa de Poker"}</h3>
+       <h3>{"Mesa de "+gameName(game)}</h3>
        <div className="mm-seat-fact"><span>Assentos ocupados</span><strong>{occupied} de {maxPlayers+(blackjack?1:0)}</strong></div>
        <div className="mm-seat-fact"><span>Seu lugar</span><strong>{mine?(mine.seat_no===0?"Crupiê":"Cadeira "+mine.seat_no):"Não selecionado"}</strong></div>
        {blackjack&&<div className="mm-seat-fact"><span>Crupiê</span><strong>{dealer?nameFor(dealer.user_id):"Não definido"}</strong></div>}

@@ -254,5 +254,21 @@
   {
     "version": "20261026233050",
     "name": "reliability_admin_catalog"
+  },
+  {
+    "version": "20261027013633",
+    "name": "new_game_tables"
+  },
+  {
+    "version": "20261027013641",
+    "name": "score_games_lifecycle"
+  },
+  {
+    "version": "20261027013642",
+    "name": "score_games_commands"
+  },
+  {
+    "version": "20261027013650",
+    "name": "score_games_rankings"
   }
 ]

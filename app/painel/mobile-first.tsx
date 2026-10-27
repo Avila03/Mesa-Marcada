@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import {ALL_GAMES,GAME_META,VARIANT_NAMES,defaultVariant,defaultTarget,targetLabel,isChipGame} from "@/lib/games";
 import {runMutation} from "@/lib/mutations";
 import type {Catalog,EventSnapshot} from "@/lib/club-data";
 import {useProfilePhotos} from "./use-profile-photos";
@@ -48,6 +49,9 @@ const EventLivePanel=dynamic(()=>import("./event-live-panel"),{loading:()=>null}
 const LiveMovements=dynamic(()=>import("./event-live-panel").then(module=>module.LiveMovements),{loading:()=>null});
 const NightSummary=dynamic(()=>import("./night-summary"),{loading:()=>null});
 const SeatingTable=dynamic(()=>import("./seating-table"),{loading:()=>null});
+const ScoreGamePanel=dynamic(()=>import("./score-games"),{loading:()=> <p role="status">Carregando placar…</p>});
+const ScoreRanking=dynamic(()=>import("./score-ranking"),{loading:()=> <p role="status">Carregando ranking…</p>});
+const PlayerScoreResults=dynamic(()=>import("./score-ranking").then(m=>m.PlayerScoreResults));
 const AdvancedRankingPanel=dynamic(()=>import("./advanced-ranking"),{loading:()=>null});
 const PlayerAchievements=dynamic(()=>import("./advanced-ranking").then(module=>module.PlayerAchievements),{loading:()=>null});
 const PlayerMedals=dynamic(()=>import("./player-medals"),{loading:()=>null});
@@ -63,8 +67,8 @@ const chipPriceFields:{value:number;key:ChipPriceKey}[]=[
   {value:25,key:"chip_price_25_brl"},
   {value:50,key:"chip_price_50_brl"}
 ];
-type CreateEvent = {room_id:string;name:string;starts_at:string;location:string;min_entry_brl:string;max_participants:string;league_id:string;visibility:"public"|"private";chip_pricing_special:boolean}&Record<ChipPriceKey,string>;
-const defaultEvent:CreateEvent={room_id:"",name:"",starts_at:"",location:"",min_entry_brl:"0",max_participants:"10",league_id:"",visibility:"public",chip_pricing_special:false,chip_price_1_brl:"1.00",chip_price_5_brl:"5.00",chip_price_10_brl:"0.10",chip_price_25_brl:"0.25",chip_price_50_brl:"0.50"};
+type CreateEvent = {game_variant:string;score_target:string;room_id:string;name:string;starts_at:string;location:string;min_entry_brl:string;max_participants:string;league_id:string;visibility:"public"|"private";chip_pricing_special:boolean}&Record<ChipPriceKey,string>;
+const defaultEvent:CreateEvent={game_variant:"",score_target:"0",room_id:"",name:"",starts_at:"",location:"",min_entry_brl:"0",max_participants:"10",league_id:"",visibility:"public",chip_pricing_special:false,chip_price_1_brl:"1.00",chip_price_5_brl:"5.00",chip_price_10_brl:"0.10",chip_price_25_brl:"0.25",chip_price_50_brl:"0.50"};
 type Modal = "evento" | "editar-evento" | null;
 const MONTHS=["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 const localDateTimeInput=(iso:string)=>{
@@ -82,7 +86,7 @@ function DateTile({value}:{value:string}){
 function GameBanner({game,name,large=false}:{game:Game;name?:string;large?:boolean}){
   return <div className={"mm-event-banner "+(game==="blackjack"?"blackjack":"")} style={large?{height:142}:undefined}>
     <span className={"tag "+game}>{gameName(game)}</span>
-    <span className="mm-symbol" aria-hidden="true">{game==="poker"?"♠":"♦"}</span>
+    <span className="mm-symbol" aria-hidden="true">{GAME_META[game].symbol}</span>
     {name&&<span className="tag" style={{position:"absolute",bottom:12,left:18}}>{name}</span>}
   </div>;
 }
@@ -90,7 +94,7 @@ function GameBanner({game,name,large=false}:{game:Game;name?:string;large?:boole
 function EventTile({value,room,count,confirmed,live,open}:{value:Event;room?:Room;count:number;confirmed:boolean;live:boolean;open:()=>void}){
   const game=room?.game||"poker";
   return <article className="mm-event-card">
-    <GameBanner game={game}/>
+    <GameBanner game={game} name={value.game_variant?VARIANT_NAMES[value.game_variant]:undefined}/>
     <div className="mm-event-content">
       <div className="mm-title-actions"><h3>{value.title}</h3><span className={"tag "+(value.status==="scheduled"?game:"archive")}>{value.status==="scheduled"?(live?"Ao vivo":"Agendado"):value.status==="finished"?"Encerrado":"Cancelado"}</span></div>
       <div className="mm-event-info">{value.league_id&&<span>♠ Evento de liga</span>}<span>◷ {fullDate(value.starts_at)}</span><span>⌖ {value.location}</span></div>
@@ -317,7 +321,7 @@ export default function PainelPage(){
   },[reload]);
 
   useEffect(()=>{
-    if(!user||!["ranking","perfil"].includes(page))return;
+    if(!user||!["ranking","perfil"].includes(page)||!isChipGame(rankGame))return;
     const db=getSupabase();
     if(!db)return;
     let active=true;
@@ -451,7 +455,7 @@ export default function PainelPage(){
   const nickname=user?nameFor(user.id):"Jogador";
   const ownProfile=profiles.find(p=>p.id===user?.id);
   const firstName=nickname.split(" ")[0];
-  const activeRooms=(["poker","blackjack"] as Game[]).map(g=>rooms.find(r=>r.game===g&&r.status==="active")).filter((r):r is Room=>Boolean(r));
+  const activeRooms=ALL_GAMES.map(g=>rooms.find(r=>r.game===g&&r.status==="active")).filter((r):r is Room=>Boolean(r));
   // A RLS oculta eventos excluídos dos usuários comuns, mas Admin os recebe
   // para restauração. Apenas a Administração utiliza a lista completa.
   const hiddenEventIds=new Set(hiddenEvents.map(h=>h.session_id));
@@ -477,11 +481,13 @@ export default function PainelPage(){
     const timer=window.setInterval(focus,45000);
     return()=>{alive=false;clearInterval(timer);document.removeEventListener("visibilitychange",focus)};
   },[user?.id,upcoming.map(e=>e.id+e.starts_at).join(",")]);
+  const formGame:Game=activeRooms.find(r=>r.id===form.room_id)?.game||"poker";
   const selected=events.find(e=>e.id===selectedId);
   const selectedLive=liveStates.find(l=>l.session_id===selectedId);
   const eventLiveActivities=liveActivities.filter(a=>a.session_id===selectedId);
   const guests=selected?attendances.filter(a=>a.session_id===selected.id):[];
   const selectedGame:Game=selected?(roomFor(selected.room_id)?.game||"poker"):"poker";
+  const selectedPoints=!isChipGame(selectedGame);
   const seatedGuests=selected?tableSeats.filter(st=>st.session_id===selected.id):[];
   const blackjackDealerReady=selectedGame!=="blackjack"||seatedGuests.some(st=>st.seat_no===0);
   const meConfirmed=Boolean(user&&guests.some(a=>a.user_id===user.id));
@@ -620,7 +626,7 @@ export default function PainelPage(){
   }
   function openEditor(event:Event){
     setForm({
-      room_id:event.room_id,name:event.title,starts_at:localDateTimeInput(event.starts_at),
+      game_variant:event.game_variant||"",score_target:String(event.score_target||0),room_id:event.room_id,name:event.title,starts_at:localDateTimeInput(event.starts_at),
       location:event.location,min_entry_brl:String(event.min_entry_brl),
       max_participants:String(event.max_participants),league_id:event.league_id||"",
       visibility:event.visibility,chip_pricing_special:event.chip_pricing_special,
@@ -632,7 +638,7 @@ export default function PainelPage(){
   }
   function openCreator(roomId?:string,leagueId=""){
     const room=(roomId?activeRooms.find(r=>r.id===roomId):undefined)||activeRooms.find(r=>r.game==="poker")||activeRooms[0];
-    setForm({...defaultEvent,room_id:room?.id||"",max_participants:room?.game==="blackjack"?"6":"8",league_id:leagueId,visibility:leagueId?"private":"public"});
+    setForm({...defaultEvent,game_variant:defaultVariant(room?.game||"poker")||"",score_target:String(defaultTarget(room?.game||"poker",defaultVariant(room?.game||"poker"))),room_id:room?.id||"",max_participants:String(GAME_META[room?.game||"poker"].capacity),league_id:leagueId,visibility:leagueId?"private":"public"});
     setModal("evento");setError("");setMessage("");
   }
   useEffect(()=>{
@@ -646,16 +652,16 @@ export default function PainelPage(){
     e.preventDefault();
     await act(async(db,id)=>{
       const room=activeRooms.find(r=>r.id===form.room_id);
-      if(!room)throw new Error("Selecione Poker ou Blackjack para criar o evento.");
+      if(!room)throw new Error("Selecione uma modalidade para criar o evento.");
       if(!form.starts_at)throw new Error("Informe data e horário.");
       if(Number(form.max_participants)>10||Number(form.max_participants)<2)throw new Error("A mesa admite de 2 a 10 participantes.");
        const {data,error:eventError}=await db.from("sessions").insert({
         room_id:room.id,organizer_id:id,title:form.name.trim(),
         starts_at:new Date(form.starts_at).toISOString(),location:form.location.trim(),
-        min_entry_brl:Number(form.min_entry_brl),max_participants:Number(form.max_participants),
+        min_entry_brl:isChipGame(room.game)?Number(form.min_entry_brl):0,max_participants:Number(form.max_participants),
          visibility:form.league_id?"private":form.visibility,
-        league_id:form.league_id||null,
-        chip_pricing_special:form.chip_pricing_special,
+        league_id:form.league_id||null,game_variant:isChipGame(room.game)?null:form.game_variant,score_target:isChipGame(room.game)?null:Number(form.score_target),
+        chip_pricing_special:isChipGame(room.game)&&form.chip_pricing_special,
         chip_price_1_brl:form.chip_pricing_special?Number(form.chip_price_1_brl):1,
         chip_price_5_brl:form.chip_pricing_special?Number(form.chip_price_5_brl):5,
         chip_price_10_brl:form.chip_pricing_special?Number(form.chip_price_10_brl):0.10,
@@ -854,20 +860,20 @@ export default function PainelPage(){
 
       {page==="mesas"&&<>
         <div className="heading">
-          <div><div className="eyebrow">ESCOLHA SEU JOGO</div><h1>Mesas</h1><p>Dois jogos, um lugar para organizar cada rodada. Escolha uma mesa para ver os eventos e aprender as regras.</p></div>
+          <div><div className="eyebrow">ESCOLHA SEU JOGO</div><h1>Mesas</h1><p>Sete modalidades, um lugar para organizar cada rodada. Escolha uma mesa para ver os eventos e aprender as regras.</p></div>
         </div>
         <div className="mm-rooms mm-permanent-tables">
-          {(["poker","blackjack"] as Game[]).map(game=>{
+          {ALL_GAMES.map(game=>{
             const room=activeRooms.find(r=>r.game===game);
             const count=agendaEvents.filter(e=>room&&e.room_id===room.id).length;
             return <article className="roomcard mm-fixed-roomcard" key={game}>
               <div className={"roombanner mm-room-banner "+(game==="blackjack"?"blackjack":"")}>
                 <span className={"tag "+game}>{gameName(game)}</span>
-                <span className="mm-room-suit" aria-hidden="true">{game==="poker"?"♠":"♦"}</span>
+                <span className="mm-room-suit" aria-hidden="true">{GAME_META[game].symbol}</span>
               </div>
               <div className="mm-room-card-content">
-                <h2>{game==="poker"?"Poker · Texas Hold’em":"Blackjack · 21"}</h2>
-                <p>{game==="poker"?"Combine suas cartas, domine as mãos e organize uma noite de Poker.":"Aprenda a chegar perto de 21 sem estourar e desafie o dealer."}</p>
+                <h2>{GAME_META[game].name}</h2>
+                <p>{GAME_META[game].description}</p>
                 <div className="mm-room-facts"><span><UiIcon name="calendar" size={15}/> {count} {count===1?"evento":"eventos"}</span><span><UiIcon name="book-open" size={15}/> Tutorial completo</span></div>
                 <div className="mm-room-actions">
                   <button type="button" className="btn gold" onClick={()=>openGame(game)}>Abrir mesa →</button>
@@ -884,9 +890,9 @@ export default function PainelPage(){
         <div className="mm-table-hero">
           <GameBanner game={gameView} large/>
           <div className="mm-table-hero-content">
-            <div className="eyebrow">MESA FIXA · {gameView==="poker"?"TEXAS HOLD’EM":"JOGO DO 21"}</div>
+            <div className="eyebrow">MESA FIXA · {gameName(gameView).toUpperCase()}</div>
             <h1>{gameName(gameView)}</h1>
-            <p>{gameView==="poker"?"Escolha as melhores cartas, organize eventos e consulte o ranking das mãos.":"Organize um encontro, consulte as regras e calcule o valor das suas cartas."}</p>
+            <p>{GAME_META[gameView].description}</p>
             <button type="button" className="btn gold" onClick={()=>openCreator(activeRooms.find(r=>r.game===gameView)?.id)} disabled={!activeRooms.some(r=>r.game===gameView)}>
               ＋ Criar evento de {gameName(gameView)}
             </button>
@@ -904,7 +910,7 @@ export default function PainelPage(){
               .map(ev=><EventTile key={ev.id} value={ev} room={roomFor(ev.room_id)} count={attendances.filter(a=>a.session_id===ev.id).length} confirmed={attendances.some(a=>a.session_id===ev.id&&a.user_id===user.id)} live={ev.status==="scheduled"&&liveStates.some(l=>l.session_id===ev.id)} open={()=>openEvent(ev.id)}/>)}
           </div>
           {agendaEvents.filter(e=>roomFor(e.room_id)?.game===gameView).length===0&&<div className="panel mm-empty">
-            <span className="mm-empty-symbol">{gameView==="poker"?"♠":"♦"}</span>
+            <span className="mm-empty-symbol">{GAME_META[gameView].symbol}</span>
             <h2>Nenhum evento de {gameName(gameView)} ainda</h2>
             <p>Crie um evento nesta mesa e convide seus amigos.</p>
             <button type="button" className="btn gold" onClick={()=>openCreator(activeRooms.find(r=>r.game===gameView)?.id)}><UiIcon name="plus" size={18}/> Criar evento</button>
@@ -913,7 +919,9 @@ export default function PainelPage(){
         {gameTab==="tutorial"&&<TableTutorial game={gameView}/>}
       </>}
 
-      {page==="ranking"&&<AdvancedRankingPanel
+      {page==="ranking"&&<div className="mm-game-selectors" aria-label="Modalidade do ranking">{ALL_GAMES.map(g=><button type="button" key={g} className={"filter "+(rankGame===g?"active":"")} aria-pressed={rankGame===g} onClick={()=>setRankGame(g)}>{gameName(g)}</button>)}</div>}
+      {page==="ranking"&&!isChipGame(rankGame)&&<ScoreRanking key={rankGame} game={rankGame}/>}
+      {page==="ranking"&&isChipGame(rankGame)&&<AdvancedRankingPanel
         game={rankGame} onGameChange={setRankGame}
         ranking={periodRanking} busy={rankingLoading} photoUrls={photoUrls}
         onPlayer={id=>{setProfileReturn("ranking");setProfileId(id);go("perfil")}}
@@ -957,6 +965,7 @@ export default function PainelPage(){
       <PlayerFrames key={"frames-"+(profileId||user.id)} playerId={profileId||user.id}
         userId={user.id} name={nameFor(profileId||user.id)}
         photoUrl={photoUrls[profileId||user.id]}/>
+      <PlayerScoreResults userId={profileId||user.id}/>
       <PlayerAchievements stats={annualStats} userId={profileId||user.id}/>
       {(profileId||user.id)===user.id&&<MySplitsSummary
         splits={mySplits} settlements={settlements} userId={user.id} nameFor={nameFor}
@@ -1006,7 +1015,7 @@ export default function PainelPage(){
             </div>
             {(organizer||isAdmin)&&selected.status==="scheduled"&&!canFinish&&
               <p className="mm-formfoot">{selected.live_start_required&&!selectedLive
-                ?"Inicie a partida na aba Ao vivo para liberar o encerramento.":"Para encerrar, confira compras, resultados e repasses no Ao vivo."}
+                ?"Inicie a partida na aba Ao vivo para liberar o encerramento.":selectedPoints?"Confira o placar da modalidade na aba Ao vivo.":"Para encerrar, confira compras, resultados e repasses no Ao vivo."}
               </p>}
             {selected.league_id?<div className="mm-league-event-share">
                <p className="mm-formfoot">♠ Este evento pertence a uma liga. Apenas membros aprovados podem abrir o convite e participar.</p>
@@ -1024,8 +1033,8 @@ export default function PainelPage(){
     ...(selected.status==="finished"?[["resumo-evento","Resumo do evento"] as const]:[])] as const).map(([id,title])=><button type="button" key={id} className={detailTab===id?"active":""} role="tab" aria-selected={detailTab===id} onClick={()=>{setDetailTab(id);if(id==="ao-vivo")setLiveSubtab("compra")}}>{title}</button>)}
         </div>
 
-        {detailTab==="ao-vivo"&&privateVisible&&selectedLive&&selected.status==="scheduled"&&<div className="mm-live-subnav" role="tablist" aria-label="Áreas do Ao vivo">{([["compra","Compra"],["resumo","Resumo"],["encerrar","Encerrar"]] as const).map(([id,title])=><button type="button" role="tab" aria-selected={liveSubtab===id} className={liveSubtab===id?"active":""} key={id} onClick={()=>setLiveSubtab(id)}>{title}</button>)}</div>}
-        {detailTab==="ao-vivo"&&(!selectedLive||liveSubtab==="resumo")&&selected.status==="scheduled"&&<EventLivePanel
+        {!selectedPoints&&detailTab==="ao-vivo"&&privateVisible&&selectedLive&&selected.status==="scheduled"&&<div className="mm-live-subnav" role="tablist" aria-label="Áreas do Ao vivo">{([["compra","Compra"],["resumo","Resumo"],["encerrar","Encerrar"]] as const).map(([id,title])=><button type="button" role="tab" aria-selected={liveSubtab===id} className={liveSubtab===id?"active":""} key={id} onClick={()=>setLiveSubtab(id)}>{title}</button>)}</div>}
+        {!selectedPoints&&detailTab==="ao-vivo"&&(!selectedLive||liveSubtab==="resumo")&&selected.status==="scheduled"&&<EventLivePanel
           title={selected.title}
           status={selected.status}
           startedAt={selectedLive?.started_at||null}
@@ -1050,6 +1059,10 @@ export default function PainelPage(){
           onFichas={()=>setLiveSubtab("encerrar")}
           showTimeline={false}
         />}
+
+        {selectedPoints&&(detailTab==="ao-vivo"||detailTab==="resumo-evento")&&(privateVisible?
+          <ScoreGamePanel key={selected.id} event={selected} game={selectedGame} guests={guests} seats={seatedGuests} userId={user.id} canManage={organizer||isAdmin} nameFor={nameFor} onChanged={()=>reload()}/>:
+          <section className="panel"><h2>Placar restrito</h2><p>Escolha um assento e confirme sua presença para acompanhar o placar.</p></section>)}
 
         {detailTab==="visao"&&<>
         <SeatingTable game={selectedGame}
@@ -1166,7 +1179,7 @@ export default function PainelPage(){
         </section>
 
         </>}
-        {detailTab==="ao-vivo"&&selectedLive&&selected.status==="scheduled"&&privateVisible&&(liveSubtab==="compra"||liveSubtab==="encerrar")&&<>
+        {!selectedPoints&&detailTab==="ao-vivo"&&selectedLive&&selected.status==="scheduled"&&privateVisible&&(liveSubtab==="compra"||liveSubtab==="encerrar")&&<>
           {!privateVisible?<div className="panel"><h2>Informações restritas</h2><p>Confirme presença neste evento para consultar ou registrar informações financeiras.</p></div>:<>
             {liveSubtab==="compra"&&<><div className="metrics" style={{gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))"}}>
               <div className="metric"><div className="mhead">Fichas distribuídas <span className="micon"><UiIcon name="check" size={22}/></span></div><strong>{eventBuys.reduce((n,b)=>n+Number(b.chips_received),0).toLocaleString("pt-BR")}</strong><small>Compras e recompras</small></div>
@@ -1277,11 +1290,11 @@ export default function PainelPage(){
           </>}
         </>}
 
-        {selected.status==="finished"&&detailTab==="ao-vivo"&&<section className="panel mm-night-redirect">
+        {!selectedPoints&&selected.status==="finished"&&detailTab==="ao-vivo"&&<section className="panel mm-night-redirect">
           <h2>Partida encerrada</h2><p>O Ao vivo terminou. Consulte os resultados no Resumo do evento.</p>
           <button className="btn gold" type="button" onClick={()=>setDetailTab("resumo-evento")}>Ver Resumo da noite →</button>
         </section>}
-        {detailTab==="resumo-evento"&&selected.status==="finished"&&
+        {!selectedPoints&&detailTab==="resumo-evento"&&selected.status==="finished"&&
           (privateVisible?<NightSummary guests={guests} buys={eventBuys} cashouts={eventCashouts}
             expenses={eventExpenses} shares={eventExpenseShares} hostId={selected.organizer_id}
             currentUserId={user.id} nameFor={nameFor} eventFinished title={selected.title}
@@ -1302,15 +1315,17 @@ export default function PainelPage(){
           <label className="mm-field">Escolha a mesa
             <select value={form.room_id} onChange={e=>{
               const newRoom=activeRooms.find(room=>room.id===e.target.value);
-              setForm({...form,room_id:e.target.value,max_participants:newRoom?.game==="blackjack"?"6":"8"});
+              const g=newRoom?.game||"poker";setForm({...form,room_id:e.target.value,max_participants:String(GAME_META[g].capacity),game_variant:defaultVariant(g)||"",score_target:String(defaultTarget(g,defaultVariant(g))),min_entry_brl:"0",chip_pricing_special:false});
             }} disabled={modal==="editar-evento"} required>
-              <option value="" disabled>Selecione Poker ou Blackjack</option>
-              {(["poker","blackjack"] as Game[]).map(g=>{
+              <option value="" disabled>Selecione uma modalidade</option>
+              {ALL_GAMES.map(g=>{
                 const table=activeRooms.find(r=>r.game===g);
-                return <option key={g} value={table?.id||""} disabled={!table}>{g==="poker"?"♠ Poker":"♦ Blackjack"}</option>;
+                return <option key={g} value={table?.id||""} disabled={!table}>{gameName(g)}</option>;
               })}
             </select>
           </label>
+          {!isChipGame(formGame)&&<div className="mm-form-grid"><label className="mm-field">Variante<select value={form.game_variant} disabled={modal==="editar-evento"} onChange={e=>setForm({...form,game_variant:e.target.value,score_target:String(defaultTarget(formGame,e.target.value)),max_participants:String(GAME_META[formGame].capacity)})}>{GAME_META[formGame].variants.map(v=><option key={v} value={v}>{VARIANT_NAMES[v]}</option>)}</select></label><label className="mm-field">{targetLabel(formGame)}<input type="number" required min={formGame==="pontinho"?50:formGame==="canastra"||formGame==="uno"?100:1} max={formGame==="pontinho"?500:formGame==="canastra"?10000:formGame==="uno"?2000:100} step={1} value={form.score_target} disabled={modal==="editar-evento"||formGame==="truco"} onChange={e=>setForm({...form,score_target:e.target.value})}/></label></div>}
+          {!isChipGame(formGame)&&<p className="mm-game-rules-summary">{GAME_META[formGame].description} Variante e meta são definidas na criação. {formGame==="pontinho"?"Sem reentrada e sem curinga nesta base.":formGame==="pife"?"Sem curinga; a meta de vitórias é um acordo da mesa.":formGame==="uno"?"Clássico, sem acumular cartas +2/+4.":"Confira o tutorial da variante antes de iniciar."}</p>}
           <label className="mm-field">Nome do evento<input required minLength={2} maxLength={100} placeholder="Ex.: Poker de Sexta" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label>
           <label className="mm-field">Liga (opcional)
              <select value={form.league_id} disabled={modal==="editar-evento"} onChange={e=>setForm({...form,league_id:e.target.value,visibility:e.target.value?"private":"public"})}>
@@ -1333,10 +1348,10 @@ export default function PainelPage(){
             <label className="mm-field">Local<input minLength={2} maxLength={200} required placeholder="Ex.: Casa do Bruno" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></label>
           </div>
           <div className="mm-form-grid">
-            <label className="mm-field">Entrada mínima (R$)<input type="number" min={0} step="0.01" disabled={modal==="editar-evento"&&Boolean(selected&&buys.some(b=>b.session_id===selected.id))} required value={form.min_entry_brl} onChange={e=>setForm({...form,min_entry_brl:e.target.value})}/></label>
-            <label className="mm-field">Vagas (cadeiras)<input type="number" min={2} max={10} step={1} required value={form.max_participants} onChange={e=>setForm({...form,max_participants:e.target.value})}/></label>
+            {isChipGame(formGame)&&<label className="mm-field">Entrada mínima (R$)<input type="number" min={0} step="0.01" disabled={modal==="editar-evento"&&Boolean(selected&&buys.some(b=>b.session_id===selected.id))} required value={form.min_entry_brl} onChange={e=>setForm({...form,min_entry_brl:e.target.value})}/></label>}
+            <label className="mm-field">Vagas (cadeiras)<input type="number" min={formGame==="pontinho"?3:2} max={formGame==="blackjack"?6:formGame==="canastra"?4:formGame==="truco"?(form.game_variant==="gauderio"?6:4):formGame==="pontinho"||formGame==="pife"?8:10} step={formGame==="truco"||formGame==="canastra"?2:1} required value={form.max_participants} onChange={e=>setForm({...form,max_participants:e.target.value})}/></label>
           </div>
-          <div className="mm-denom-event-setting">
+          {isChipGame(formGame)&&<div className="mm-denom-event-setting">
             <label className="mm-denom-special-switch">
               <input type="checkbox" checked={form.chip_pricing_special} disabled={modal==="editar-evento"&&Boolean(selected&&(selected.chip_pricing_locked||buys.some(b=>b.session_id===selected.id)))}
                 onChange={e=>setForm({...form,chip_pricing_special:e.target.checked})}/>
@@ -1351,6 +1366,7 @@ export default function PainelPage(){
               <p className="mm-formfoot">Os preços personalizados ficam bloqueados após a primeira compra deste evento.</p>
             </div>:<p className="mm-formfoot">Padrão: ficha 1 = R$ 1,00 · ficha 5 = R$ 5,00 · ficha 10 = R$ 0,10 · ficha 25 = R$ 0,25 · ficha 50 = R$ 0,50.</p>}
           </div>
+          }
           <div className="mm-create-seat-preview"><strong>♠ ♦ Assentos interativos</strong>
             <span>{modal==="editar-evento"?"Os participantes e assentos já confirmados serão preservados.":"Após criar o evento, você irá diretamente para a mesa."} Os convidados confirmados poderão escolher seus lugares{activeRooms.find(r=>r.id===form.room_id)?.game==="blackjack"?", inclusive a cadeira exclusiva do crupiê":""}.</span>
           </div>

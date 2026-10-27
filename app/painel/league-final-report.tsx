@@ -1,20 +1,22 @@
 "use client";
+import {GAME_META,VARIANT_NAMES,type Game} from "@/lib/games";
 import {useState} from "react";
 import type {CrestConfig} from "@/app/brasoes/demo/crest-editor";
 import {CrestMark} from "@/app/brasoes/demo/crest-editor";
 import "./league-final-report.css";
 
 export type LeagueFinalPlayer={user_id:string;name:string;played:number;net_chips:number};
-export type LeagueFinalEvent={title:string;starts_at:string;status:string;game:"poker"|"blackjack"};
+export type LeagueFinalEvent={title:string;starts_at:string;status:string;game:Game};
 export type LeagueFinalSummary={
  version:number;score_unit?:"brl_cents";league_name:string;started_at:string;finished_at:string;
+ score_games?:{game:Game;variant:string;ranking:{user_id:string;name:string;played:number;wins:number}[]}[];
  members:number;events_total:number;events_finished:number;events_cancelled:number;
  events:LeagueFinalEvent[];
  games:Record<"poker"|"blackjack",{events:number;ranking:LeagueFinalPlayer[]}>;
 };
 const points=(n:number)=>new Intl.NumberFormat("pt-BR",{maximumFractionDigits:0}).format(Number(n)||0);
 const date=(v:string)=>new Date(v).toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"});
-const gameLabel=(game:"poker"|"blackjack")=>game==="poker"?"Poker":"Blackjack";
+const gameLabel=(game:Game)=>GAME_META[game]?.name||game;
 
 export default function LeagueFinalReport({summary,emblem}:{
  summary:LeagueFinalSummary;emblem:CrestConfig;
@@ -38,6 +40,10 @@ export default function LeagueFinalReport({summary,emblem}:{
    if(!rows.length)parts.push("Sem partidas com resultados registrados");
    rows.forEach((p,i)=>parts.push((i+1)+"º "+p.name+" · "+result(p.net_chips)+" de saldo · "+p.played+" rodadas"));
   }
+  for(const mode of summary.score_games||[]){
+   parts.push("",gameLabel(mode.game)+" · "+VARIANT_NAMES[mode.variant]);
+   mode.ranking.forEach((p,i)=>parts.push((i+1)+"º "+p.name+" · "+p.wins+" vitórias em "+p.played+" partidas"));
+  }
   try{await navigator.clipboard.writeText(parts.join("\n"));setCopied(true);}
   catch{setCopied(false);}
  }
@@ -58,6 +64,7 @@ export default function LeagueFinalReport({summary,emblem}:{
    <div><small>Cancelados</small><strong>{points(summary.events_cancelled)}</strong></div>
    <div><small>Total de eventos</small><strong>{points(summary.events_total)}</strong></div>
   </div>
+  {Boolean(!summary.score_games?.length||summary.games?.poker?.ranking.length||summary.games?.blackjack?.ranking.length)&&<>
   <div className="mm-final-ranking-head">
    <div><small>RESULTADOS CONSOLIDADOS</small><h3>Classificação final</h3></div>
    <div className="mm-final-tabs">
@@ -76,6 +83,12 @@ export default function LeagueFinalReport({summary,emblem}:{
      {player.net_chips>0?"+":""}{result(player.net_chips)}</div>
    </div>)}
   </div>:<p className="mm-league-empty">Nenhuma pontuação registrada em {gameLabel(game)}. Não há campeão desta modalidade.</p>}
+  </>}
+  {(summary.score_games||[]).map(mode=><section className="mm-score-archive" key={mode.game+":"+mode.variant}>
+   <h3>{gameLabel(mode.game)} · {VARIANT_NAMES[mode.variant]}</h3>
+   <p className="mm-formfoot">Vitórias em partidas concluídas. Cada integrante da equipe vencedora recebe uma vitória.</p>
+   <div className="mm-final-ranking">{mode.ranking.map((p,i)=><div className={"mm-final-player "+(i===0?"champion":"")} key={p.user_id}><div className="mm-final-place">{i+1}º</div><div className="mm-final-player-name"><strong>{p.name}</strong><small>{p.played} partidas</small></div><div className="mm-final-net positive">{p.wins} vitórias</div></div>)}</div>
+  </section>)}
   <div className="mm-final-events">
    <h3>Histórico de eventos</h3>
    {events.length?<div>{events.map((event,i)=><div className="mm-final-event" key={i}>
