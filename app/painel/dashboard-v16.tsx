@@ -1,6 +1,6 @@
 "use client";
 
-import {ALL_GAMES,GAME_META} from "@/lib/games";
+import GameChoices from "./game-choices";
 import type {Attendance,Event,Game,Room} from "@/lib/mesa-types";
 import {date,eventTime,gameName,money} from "@/lib/mesa-types";
 import type {ExpenseSettlement,MyExpenseSplitRow} from "./expense-splits";
@@ -85,7 +85,7 @@ export default function DashboardV16({
     </section>:<section className="mm-home-featured mm-home-no-event">
       <span className="mm-home-label"><UiIcon name="calendar" size={15}/> AGENDA LIVRE</span>
       <h2>Nenhuma noite marcada por enquanto.</h2>
-      <p>Escolha Poker ou Blackjack, marque o encontro e convide a galera.</p>
+      <p>Escolha seu jogo, marque o encontro e convide a galera.</p>
       <button type="button" className="mm-home-primary" onClick={onCreate}>
         <UiIcon name="plus" size={18}/> Marcar uma noite
       </button>
@@ -153,24 +153,7 @@ export default function DashboardV16({
       </section>
     </div>
 
-    <section className="mm-home-tables">
-      <header>
-        <div><span className="mm-home-kicker">MESAS FIXAS</span><h2>Escolha seu jogo</h2></div>
-        <button type="button" className="mm-home-textlink" onClick={onTables}>Mesas e tutoriais <UiIcon name="arrow-right" size={16}/></button>
-      </header>
-      <div className="mm-home-tablegrid">
-        {ALL_GAMES.map(game=><button type="button"
-          key={game} onClick={()=>onGame(game)}
-          className={"mm-home-table "+game}>
-          <span className="mm-home-table-icon"><UiIcon name={game==="poker"?"spade":game==="blackjack"?"diamond":"cards"} size={32}/></span>
-          <span className="mm-home-table-description">
-            <strong>{gameName(game)}</strong>
-            <small>{GAME_META[game].variants.length>1?"Variantes, eventos e placar":"Eventos, regras e resultados"}</small>
-          </span>
-          <UiIcon name="arrow-right" size={18}/>
-        </button>)}
-      </div>
-    </section>
+    <GameChoices onGame={onGame} onTables={onTables}/>
 
     <section className="mm-home-shortcuts" aria-label="Outros acessos">
       <button type="button" onClick={onRanking}><UiIcon name="trophy" size={19}/> Ranking <UiIcon name="arrow-right" size={15}/></button>

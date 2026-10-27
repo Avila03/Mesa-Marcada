@@ -1,9 +1,10 @@
 "use client";
 
 import {isChipGame} from "@/lib/games";
-import {GameTutorial} from "./score-games";
+import dynamic from "next/dynamic";
 import {useMemo,useState} from "react";
 import type {Game} from "@/lib/mesa-types";
+const GameTutorial=dynamic(()=>import('./game-tutorial'),{loading:()=> <p role="status">Preparando as cartas do tutorial…</p>});
 
 /** Tutoriais migrados do HTML original v0.5 para React, sem iframe ou dados fictícios. */
 type Card = readonly [string,string];
