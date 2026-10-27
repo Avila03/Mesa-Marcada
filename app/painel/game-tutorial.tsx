@@ -1,6 +1,6 @@
 "use client";
 
-import {useState,type ReactNode} from 'react';
+import {useRef,useState,type ReactNode} from 'react';
 import {GAME_META,GAME_RULES,VARIANT_NAMES,TRUCO_STAKES,defaultVariant,type Game} from '@/lib/games';
 import {GAME_IDENTITY} from '@/lib/game-identity';
 import {TRUCO_ORDER,rankName,cardName,compareTruco,envido,canFinishCanastra,canastraScore,pontinhoBalance,pontinhoValue,canPlayUno,unoName,unoValue,pifeGroups,SUIT_NAMES,type LearnCard,type Suit,type UnoCard} from '@/lib/tutorial-games';
@@ -23,16 +23,16 @@ export default function GameTutorial({game,variant:initial}:{game:Game;variant?:
  const [choice,setChoice]=useState(initial||defaultVariant(game)||'');
  const [section,setSection]=useState<'practice'|'basics'|'rules'>('practice');
  const variant=GAME_META[game].variants.includes(choice)?choice:defaultVariant(game)||'';
- const identity=GAME_IDENTITY[game];
+ const identity=GAME_IDENTITY[game];const lead=useRef<HTMLElement>(null);
  return <div className={'mm-learn mm-identity-'+game} data-tutorial={game}>
-  <header className="learn-hero"><div><span className="learn-eyebrow">ESCOLA DA MESA · {GAME_META[game].name}</span><h2>{identity.lesson}</h2><p>{game==='truco'?'Do Espadão à vira: aprenda jogando os exemplos, na variante que a sua turma escolheu.':game==='canastra'?'Monte uma canastra, descubra se pode bater e veja a conta da rodada acontecer.':game==='pontinho'?'Veja quanto cada carta custa e descubra como continuar na mesa.':game==='uno'?'Toque nas cartas para testar jogadas e descobrir o valor de uma rodada.':'Compre, escolha o descarte e veja as nove cartas se encaixarem.'}</p></div><GameArtwork game={game}/></header>
+  <header className="learn-hero" ref={lead}><div><span className="learn-eyebrow">ESCOLA DA MESA · {GAME_META[game].name}</span><h2>{identity.lesson}</h2><p>{game==='truco'?'Do Espadão à vira: aprenda jogando os exemplos, na variante que a sua turma escolheu.':game==='canastra'?'Monte uma canastra, descubra se pode bater e veja a conta da rodada acontecer.':game==='pontinho'?'Veja quanto cada carta custa e descubra como continuar na mesa.':game==='uno'?'Toque nas cartas para testar jogadas e descobrir o valor de uma rodada.':'Compre, escolha o descarte e veja as nove cartas se encaixarem.'}</p></div><GameArtwork game={game}/></header>
   <div className="learn-toolbar">{GAME_META[game].variants.length>1?<label className="learn-variant">Aprendendo a jogar<select aria-label="Variante do tutorial" value={variant} onChange={e=>setChoice(e.target.value)}>{GAME_META[game].variants.map(v=><option key={v} value={v}>{VARIANT_NAMES[v]}</option>)}</select></label>:<span className="learn-edition">{VARIANT_NAMES[variant]}</span>}<span className="learn-local"><span aria-hidden="true">◌</span> Exemplos livres · sem alterar seu placar</span></div>
   <nav className="learn-nav" aria-label="Conteúdo do tutorial">{([['practice','Na prática'],['basics','Passo a passo'],['rules','Regras e dúvidas']] as const).map(([id,label],i)=><button type="button" key={id} aria-pressed={section===id} onClick={()=>setSection(id)}><span aria-hidden="true">0{i+1}</span>{label}</button>)}</nav>
   <div key={variant} className="learn-content">
    {section==='practice'?<>
     <div className="learn-start"><span className="learn-live-dot" aria-hidden="true"/><p>{game==='truco'?'Escolha quem ganha a vaza. Depois experimente os tentos.':game==='canastra'?'Uma sequência na mesa. O que muda quando entra um curinga?':game==='pontinho'?'Toque nas cartas que sobraram para montar a sua conta.':game==='uno'?'O descarte está aberto. Qual carta da sua mão pode entrar?':'Você já tem dois jogos prontos. Falta completar o terceiro.'}</p></div>
     {game==='truco'?<TrucoPractice variant={variant}/>:game==='canastra'?<CanastraPractice variant={variant}/>:game==='pontinho'?<PontinhoPractice/>:game==='uno'?<UnoPractice/>:<PifePractice/>}
-    <div className="learn-next"><div><strong>Quer ver a rodada desde o início?</strong><p>Preparação, compra, descarte e encerramento, em ordem.</p></div><button type="button" className="btn" onClick={()=>setSection('basics')}>Ver passo a passo <span aria-hidden="true">→</span></button></div>
+    <div className="learn-next"><div><strong>Quer ver a rodada desde o início?</strong><p>Preparação, compra, descarte e encerramento, em ordem.</p></div><button type="button" className="btn" onClick={()=>{setSection('basics');lead.current?.scrollIntoView?.({block:'start',behavior:'auto'})}}>Ver passo a passo <span aria-hidden="true">→</span></button></div>
    </>:section==='basics'?<Basics game={game} variant={variant}/>:<Rules game={game} variant={variant}/>}
   </div>
   <footer className="learn-footer">Os exercícios são locais. Na partida presencial, o anfitrião registra os resultados conferidos na mesa.</footer>
@@ -85,6 +85,7 @@ function CanastraPractice({variant}:{variant:string}){
   <button type="button" className="btn gold" onClick={()=>setChecked(true)}>Conferir se posso bater</button>
   {checked&&<Feedback good={valid}><strong>{valid?'Pode bater nesta variante.':'Ainda não pode bater.'}</strong><p>{!morto?'O morto precisa ter sido pego antes da batida final.':!valid?'Canastra e Buraco aberto exigem pelo menos uma canastra limpa.':variant==='buraco_fechado'&&dirty?'O Buraco fechado desta mesa aceita uma canastra suja na batida final.':'Morto pego e canastra limpa: os requisitos deste exemplo foram atendidos.'}</p></Feedback>}
  </Exercise><Exercise number="02" title="Feche a conta da rodada" hint="Mude os valores. A fórmula acompanha as cartas e as decisões do exemplo ao lado.">
+  <details className="learn-count-help"><summary>Como somar o valor das cartas?</summary><p>3 a 7 valem 5 cada. O 2 e as cartas de 8 a K valem 10 cada. Ás vale 15. Curinga impresso, quando usado na variante, vale 20.</p><p>Some as cartas de todos os jogos da equipe; depois acrescente os bônus abaixo.</p></details>
   <div className="learn-number-fields"><label>Pontos das cartas baixadas<input type="number" min={0} max={10000} step={5} value={cards} onChange={e=>setCards(Math.max(0,Math.min(10000,Number(e.target.value))))}/></label><label>Pontos nas mãos da equipe<input type="number" min={0} max={10000} step={5} value={hands} onChange={e=>setHands(Math.max(0,Math.min(10000,Number(e.target.value))))}/></label></div>
   <dl className="learn-equation"><div><dt>Cartas baixadas</dt><dd>+{format(cards)}</dd></div><div><dt>Canastra {dirty?'suja':'limpa'}</dt><dd>+{dirty?100:200}</dd></div><div><dt>Batida {checked&&valid?'conferida':'ainda não confirmada'}</dt><dd>+{checked&&valid?100:0}</dd></div><div><dt>Cartas nas mãos</dt><dd>−{format(hands)}</dd></div><div><dt>Morto {morto?'pego':'não pego'}</dt><dd>{morto?'0':'−100'}</dd></div></dl>
   <div className="learn-result" aria-live="polite"><div><small>Total da equipe nesta rodada</small><strong>{format(total)}</strong></div><p>O placar acumula rodadas até a meta do evento. As duas equipes fazem sua contagem.</p></div>
