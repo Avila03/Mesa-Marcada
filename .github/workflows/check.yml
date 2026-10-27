@@ -18,6 +18,7 @@ jobs:
       - run: npm run check:migrations
       - run: npm run check:reliability
       - run: npm run check:games
+      - run: npm run test:tutorials
       - run: npm run test:database
       - run: npm run typecheck
       - run: npm run check:ui

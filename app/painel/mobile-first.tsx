@@ -3,6 +3,8 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {ALL_GAMES,GAME_META,VARIANT_NAMES,defaultVariant,defaultTarget,targetLabel,isChipGame} from "@/lib/games";
+import {GAME_IDENTITY} from "@/lib/game-identity";
+import GameArtwork from "./game-artwork";
 import {runMutation} from "@/lib/mutations";
 import type {Catalog,EventSnapshot} from "@/lib/club-data";
 import {useProfilePhotos} from "./use-profile-photos";
@@ -84,9 +86,9 @@ function DateTile({value}:{value:string}){
 }
 
 function GameBanner({game,name,large=false}:{game:Game;name?:string;large?:boolean}){
-  return <div className={"mm-event-banner "+(game==="blackjack"?"blackjack":"")} style={large?{height:142}:undefined}>
+  return <div className={"mm-event-banner "+game+(!isChipGame(game)?" mm-illustrated":"")} style={large?{height:142}:undefined}>
     <span className={"tag "+game}>{gameName(game)}</span>
-    <span className="mm-symbol" aria-hidden="true">{GAME_META[game].symbol}</span>
+    {isChipGame(game)?<span className="mm-symbol" aria-hidden="true">{GAME_META[game].symbol}</span>:<><GameArtwork game={game}/>{!name&&<span className="mm-art-caption">{GAME_IDENTITY[game].signature}</span>}</>}
     {name&&<span className="tag" style={{position:"absolute",bottom:12,left:18}}>{name}</span>}
   </div>;
 }
@@ -867,9 +869,9 @@ export default function PainelPage(){
             const room=activeRooms.find(r=>r.game===game);
             const count=agendaEvents.filter(e=>room&&e.room_id===room.id).length;
             return <article className="roomcard mm-fixed-roomcard" key={game}>
-              <div className={"roombanner mm-room-banner "+(game==="blackjack"?"blackjack":"")}>
+              <div className={"roombanner mm-room-banner "+game+(!isChipGame(game)?" mm-illustrated":"")}>
                 <span className={"tag "+game}>{gameName(game)}</span>
-                <span className="mm-room-suit" aria-hidden="true">{GAME_META[game].symbol}</span>
+                {isChipGame(game)?<span className="mm-room-suit" aria-hidden="true">{GAME_META[game].symbol}</span>:<><GameArtwork game={game}/><span className="mm-art-caption">{GAME_IDENTITY[game].signature}</span></>}
               </div>
               <div className="mm-room-card-content">
                 <h2>{GAME_META[game].name}</h2>

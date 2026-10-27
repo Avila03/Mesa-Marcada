@@ -1,6 +1,6 @@
 {
   "name": "mesa-marcada",
-  "version": "6.0.0",
+  "version": "6.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -29,7 +29,8 @@
     "check:reliability": "node scripts/check-reliability.mjs",
     "check:migrations": "node scripts/check-migrations.mjs",
     "test:database": "node scripts/test-database.mjs",
-    "check:games": "node scripts/check-new-games.mjs"
+    "check:games": "node scripts/check-new-games.mjs",
+    "test:tutorials": "node scripts/test-tutorial-games.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.6.1",

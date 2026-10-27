@@ -1,11 +1,13 @@
 "use client";
+import dynamic from 'next/dynamic';
 import {useCallback,useEffect,useRef,useState,type FormEvent} from 'react';
 import {getSupabase} from '@/lib/supabase/browser';
 import {runMutation} from '@/lib/mutations';
 import {scoreRequest,submitScoreRequest,type ScoreRequest} from '@/lib/score-command';
-import {GAME_META,GAME_RULES,VARIANT_NAMES,TRUCO_STAKES,defaultVariant,pairedGame,type Game} from '@/lib/games';
+import {GAME_META,VARIANT_NAMES,TRUCO_STAKES,defaultVariant,pairedGame,type Game} from '@/lib/games';
 import type {Attendance,Event,TableSeat} from '@/lib/mesa-types';
 import './score-games.css';
+const GameTutorial=dynamic(()=>import('./game-tutorial'),{loading:()=> <p role="status">Preparando as cartas do tutorial…</p>});
 export type ScoreMatch={session_id:string;game:Game;variant:string;target:number;players:string[];teams:number[];state:{scores:number[];round:number;envite_recorded:boolean};revision:number;status:'live'|'complete';winner_ids:string[]};
 type ScoreAction={id:string;actor_id:string;action:string;payload:Record<string,unknown>;revision:number;undone_at:string|null;created_at:string};
 type ScoreSnapshot={match:ScoreMatch|null;actions:ScoreAction[]};
@@ -13,12 +15,6 @@ const errorText=(e:unknown)=>e instanceof Error?e.message:'Não foi possível at
 const number=(n:number)=>new Intl.NumberFormat('pt-BR').format(n);
 const actionName:Record<string,string>={truco_hand:'Mão de truco',truco_envite:'Envite',canastra_round:'Rodada de Canastra/Buraco',pontinho_round:'Rodada de Pontinho',uno_round:'Rodada de UNO',pife_round:'Batida de Pife',undo:'Último lançamento desfeito',finish:'Evento encerrado'};
 const enviteName:Record<string,string>={envido_recusado:'Envido / real isolado recusado · 1',envido_envido:'Envido + envido · 4',envido_envido_real:'Envido + envido + real · 7',envite_conferido:'Outro envite · valor conferido na mesa',envido:'Envido simples · 2',real:'Real envido isolado · 3',envido_real:'Envido + real envido · 5',flor:'Flor simples · 3',contra_flor:'Contra-flor · 6',falta:'Falta envido · diferença para a meta',contra_flor_resto:'Contra-flor e o resto · diferença para a meta'};
-export function GameTutorial({game,variant:initial}:{game:Game;variant?:string|null}){
- const [chosen,setChosen]=useState(initial||defaultVariant(game)||'');
- const variant=GAME_META[game].variants.includes(chosen)?chosen:defaultVariant(game)||'';const rule=GAME_RULES[variant];
- if(!rule)return null;
- return <section className="panel mm-score-guide"><div className="panelhead"><h2>Como jogar {GAME_META[game].name}</h2></div>{GAME_META[game].variants.length>1&&<label className="mm-field">Variante do tutorial<select value={variant} onChange={e=>setChosen(e.target.value)}>{GAME_META[game].variants.map(v=><option key={v} value={v}>{VARIANT_NAMES[v]}</option>)}</select></label>}<p>{rule.intro}</p><ol>{rule.steps.map(s=><li key={s}>{s}</li>)}</ol><p className="mm-formfoot">O aplicativo registra partidas presenciais; os jogadores conferem as cartas e os resultados na mesa. <a href={rule.source} target="_blank" rel="noopener noreferrer">Consultar referência de regras</a>.</p></section>;
-}
 export default function ScoreGamePanel({event,game,guests,seats,userId,canManage,nameFor,onChanged}:{event:Event;game:Game;guests:Attendance[];seats:TableSeat[];userId:string;canManage:boolean;nameFor:(id:string)=>string;onChanged:()=>Promise<void>}){
  const [snapshot,setSnapshot]=useState<ScoreSnapshot>({match:null,actions:[]});const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [teams,setTeams]=useState<Record<string,number>>({});const [enviteKind,setEnviteKind]=useState('envido');

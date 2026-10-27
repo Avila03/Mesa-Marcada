@@ -8,7 +8,7 @@ const companion=read("app/painel/mobile-app-companion.tsx");
 const styles=read("app/v05-theme.css");
 const features=read("app/painel/v09-features.tsx");
 const icons=read("app/painel/ui-icon.tsx");
-const dashboard=read("app/painel/dashboard-v16.tsx");
+const dashboard=read("app/painel/dashboard-v16.tsx")+read("app/painel/game-choices.tsx");
 
 for(const section of ["home","calendar","cards","trophy","user","settings","log-out","plus","book-open"]){
   assert.ok(icons.includes(section+":")||icons.includes('"'+section+'":'), "Missing SVG icon "+section);
@@ -51,7 +51,7 @@ assert.ok(panel.includes("<DashboardV16"),"Action-oriented dashboard missing");
 assert.ok(!panel.includes("A próxima rodada<br/>começa aqui"),"Old oversized homepage hero still present");
 for(const anchor of [
   "PRÓXIMO EVENTO","Escolher assento","Próximas noites","Meus rachas",
-  "Poker","Blackjack","onGame(game)","onAdmin","onProfile"
+  "ALL_GAMES.map","gameName(game)","onGame(game)","onAdmin","onProfile"
 ])assert.ok(dashboard.includes(anchor),"Dashboard action or information missing: "+anchor);
 assert.ok(panel.includes("mm-profile-admin-link"),
   "Admin must remain accessible from profile");
