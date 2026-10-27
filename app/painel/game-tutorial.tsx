@@ -1,10 +1,10 @@
 "use client";
 
-import {useRef,useState,type ReactNode} from 'react';
+import {useState} from 'react';
 import {GAME_META,GAME_RULES,VARIANT_NAMES,TRUCO_STAKES,defaultVariant,type Game} from '@/lib/games';
 import {GAME_IDENTITY} from '@/lib/game-identity';
 import {TRUCO_ORDER,rankName,cardName,compareTruco,envido,canFinishCanastra,canastraScore,pontinhoBalance,pontinhoValue,canPlayUno,unoName,unoValue,pifeGroups,SUIT_NAMES,type LearnCard,type Suit,type UnoCard} from '@/lib/tutorial-games';
-import GameArtwork from './game-artwork';
+import {TutorialShell,Exercise,Feedback,Reset,type TutorialSection} from './learning-ui';
 import {LearnPlayingCard,LearnHand,LearnUnoCard} from './tutorial-cards';
 import './game-tutorial.css';
 
@@ -13,30 +13,19 @@ const HEART_RUN=[3,4,5,6,7,8,9].map(rank=>c(rank,'hearts'));
 const PIFE_HAND=[c(7,'hearts'),c(8,'hearts'),c(9,'hearts'),c(13,'clubs'),c(13,'diamonds'),c(13,'spades'),c(4,'spades'),c(5,'spades'),c(12,'diamonds')];
 const format=(value:number)=>value.toLocaleString('pt-BR');
 
-function Exercise({number,title,hint,children}:{number:string;title:string;hint:string;children:ReactNode}){
- return <section className="learn-exercise"><div className="learn-exercise-heading"><span className="learn-index">{number}</span><div><h3>{title}</h3><p>{hint}</p></div></div>{children}</section>;
-}
-function Feedback({good,children}:{good:boolean|null;children:ReactNode}){return <div className={'learn-feedback '+(good===null?'neutral':good?'good':'retry')} role="status" aria-live="polite"><span aria-hidden="true">{good===null?'→':good?'✓':'↺'}</span><div>{children}</div></div>}
-function Reset({onClick,label='Recomeçar exemplo'}:{onClick:()=>void;label?:string}){return <button type="button" className="learn-reset" onClick={onClick}>{label} <span aria-hidden="true">↻</span></button>}
-
 export default function GameTutorial({game,variant:initial}:{game:Game;variant?:string|null}){
  const [choice,setChoice]=useState(initial||defaultVariant(game)||'');
- const [section,setSection]=useState<'practice'|'basics'|'rules'>('practice');
+ const [section,setSection]=useState<TutorialSection>('practice');
  const variant=GAME_META[game].variants.includes(choice)?choice:defaultVariant(game)||'';
- const identity=GAME_IDENTITY[game];const lead=useRef<HTMLElement>(null);
- return <div className={'mm-learn mm-identity-'+game} data-tutorial={game}>
-  <header className="learn-hero" ref={lead}><div><span className="learn-eyebrow">ESCOLA DA MESA · {GAME_META[game].name}</span><h2>{identity.lesson}</h2><p>{game==='truco'?'Do Espadão à vira: aprenda jogando os exemplos, na variante que a sua turma escolheu.':game==='canastra'?'Monte uma canastra, descubra se pode bater e veja a conta da rodada acontecer.':game==='pontinho'?'Veja quanto cada carta custa e descubra como continuar na mesa.':game==='uno'?'Toque nas cartas para testar jogadas e descobrir o valor de uma rodada.':'Compre, escolha o descarte e veja as nove cartas se encaixarem.'}</p></div><GameArtwork game={game}/></header>
-  <div className="learn-toolbar">{GAME_META[game].variants.length>1?<label className="learn-variant">Aprendendo a jogar<select aria-label="Variante do tutorial" value={variant} onChange={e=>setChoice(e.target.value)}>{GAME_META[game].variants.map(v=><option key={v} value={v}>{VARIANT_NAMES[v]}</option>)}</select></label>:<span className="learn-edition">{VARIANT_NAMES[variant]}</span>}<span className="learn-local"><span aria-hidden="true">◌</span> Exemplos livres · sem alterar seu placar</span></div>
-  <nav className="learn-nav" aria-label="Conteúdo do tutorial">{([['practice','Na prática'],['basics','Passo a passo'],['rules','Regras e dúvidas']] as const).map(([id,label],i)=><button type="button" key={id} aria-pressed={section===id} onClick={()=>setSection(id)}><span aria-hidden="true">0{i+1}</span>{label}</button>)}</nav>
+ const intro=game==='truco'?'Do Espadão à vira: aprenda jogando os exemplos, na variante que a sua turma escolheu.':game==='canastra'?'Monte uma canastra, descubra se pode bater e veja a conta da rodada acontecer.':game==='pontinho'?'Veja quanto cada carta custa e descubra como continuar na mesa.':game==='uno'?'Toque nas cartas para testar jogadas e descobrir o valor de uma rodada.':'Compre, escolha o descarte e veja as nove cartas se encaixarem.';
+ return <TutorialShell game={game} intro={intro} edition={VARIANT_NAMES[variant]} section={section} onSectionChange={setSection} variantControl={GAME_META[game].variants.length>1?<label className="learn-variant">Aprendendo a jogar<select aria-label="Variante do tutorial" value={variant} onChange={e=>setChoice(e.target.value)}>{GAME_META[game].variants.map(v=><option key={v} value={v}>{VARIANT_NAMES[v]}</option>)}</select></label>:undefined}>
   <div key={variant} className="learn-content">
    {section==='practice'?<>
     <div className="learn-start"><span className="learn-live-dot" aria-hidden="true"/><p>{game==='truco'?'Escolha quem ganha a vaza. Depois experimente os tentos.':game==='canastra'?'Uma sequência na mesa. O que muda quando entra um curinga?':game==='pontinho'?'Toque nas cartas que sobraram para montar a sua conta.':game==='uno'?'O descarte está aberto. Qual carta da sua mão pode entrar?':'Você já tem dois jogos prontos. Falta completar o terceiro.'}</p></div>
     {game==='truco'?<TrucoPractice variant={variant}/>:game==='canastra'?<CanastraPractice variant={variant}/>:game==='pontinho'?<PontinhoPractice/>:game==='uno'?<UnoPractice/>:<PifePractice/>}
-    <div className="learn-next"><div><strong>Quer ver a rodada desde o início?</strong><p>Preparação, compra, descarte e encerramento, em ordem.</p></div><button type="button" className="btn" onClick={()=>{setSection('basics');lead.current?.scrollIntoView?.({block:'start',behavior:'auto'})}}>Ver passo a passo <span aria-hidden="true">→</span></button></div>
    </>:section==='basics'?<Basics game={game} variant={variant}/>:<Rules game={game} variant={variant}/>}
   </div>
-  <footer className="learn-footer">Os exercícios são locais. Na partida presencial, o anfitrião registra os resultados conferidos na mesa.</footer>
- </div>;
+ </TutorialShell>;
 }
 
 const DUELS:Record<string,readonly [LearnCard,LearnCard][]>={

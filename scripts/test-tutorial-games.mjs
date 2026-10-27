@@ -46,3 +46,46 @@ assert.equal(rules.isMeld([c(12,'hearts'),c(13,'hearts'),c(1,'hearts')]),true);
 assert.equal(rules.isMeld([c(13,'hearts'),c(1,'hearts'),c(2,'hearts')]),false);
 assert.equal(rules.isMeld([c(7,'spades'),c(7,'spades'),c(7,'hearts')]),false);
 console.log('✓ Tutorial rules: vira and fixed manilhas, envido/flor, clean/dirty closing, elimination, UNO +4 and exact Pife combinations');
+
+const importTs=async path=>{
+ const source=readFileSync(new URL('../'+path,import.meta.url),'utf8');
+ const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
+ return import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'));
+};
+const classic=await importTs('lib/classic-tutorial-games.ts');
+const examples=await importTs('lib/classic-tutorial-examples.ts');
+const categories=[8,8,7,6,5,4,3,2,1,0];
+const hands=examples.POKER_RANKS.map((r,i)=>{const h=classic.bestPokerHand(r.cards);assert.equal(h.category,categories[i]);assert.equal(h.label,r.name);return h});
+for(let i=0;i<hands.length-1;i++)assert.equal(classic.comparePoker(hands[i],hands[i+1]),1);
+assert.equal(classic.bestPokerHand([c(1,'spades'),c(2,'hearts'),c(3,'diamonds'),c(4,'clubs'),c(5,'hearts')]).tiebreak[0],5);
+assert.equal(classic.bestPokerHand([c(13,'spades'),c(1,'hearts'),c(2,'diamonds'),c(3,'clubs'),c(4,'hearts')]).category,0);
+const twoTrips=classic.bestPokerHand([c(1,'spades'),c(1,'hearts'),c(1,'diamonds'),c(13,'spades'),c(13,'hearts'),c(13,'diamonds'),c(2,'clubs')]);assert.equal(twoTrips.category,6);assert.deepEqual(twoTrips.tiebreak,[14,13]);
+const threePairs=classic.bestPokerHand([c(1,'spades'),c(1,'hearts'),c(13,'spades'),c(13,'hearts'),c(12,'spades'),c(12,'hearts'),c(2,'clubs')]);assert.deepEqual(threePairs.tiebreak,[14,13,12]);
+const sixFlush=classic.bestPokerHand([c(1,'hearts'),c(13,'hearts'),c(9,'hearts'),c(5,'hearts'),c(4,'hearts'),c(2,'hearts'),c(3,'clubs')]);assert.equal(sixFlush.category,5);assert.deepEqual(sixFlush.tiebreak,[14,13,9,5,4]);
+for(const [i,example] of examples.POKER_EXAMPLES.entries()){
+ const best=classic.bestPokerHand([...example.hole,...example.board]);assert.equal(best.indices.filter(n=>n<2).length,[2,1,0][i]);assert.equal(new Set(best.indices).size,5);
+}
+for(const [i,duel] of examples.POKER_DUELS.entries())assert.equal(classic.comparePoker(classic.bestPokerHand([...duel.a,...duel.board]),classic.bestPokerHand([...duel.b,...duel.board])),[1,0,-1,1][i]);
+assert.throws(()=>classic.bestPokerHand([c(1,'spades')]));assert.throws(()=>classic.bestPokerHand(Array(5).fill(c(1,'spades'))));
+assert.throws(()=>classic.bestPokerHand([c(1,'swords'),c(2,'hearts'),c(3,'diamonds'),c(4,'clubs'),c(5,'hearts')]));
+// Adding cards cannot weaken the best five; order cannot change hand strength.
+const deck=['spades','hearts','diamonds','clubs'].flatMap(suit=>Array.from({length:13},(_,i)=>c(i+1,suit)));let seed=19;
+for(let run=0;run<75;run++){
+ const indices=new Set();while(indices.size<7){seed=(seed*1664525+1013904223)>>>0;indices.add(seed%52)}
+ const seven=[...indices].map(i=>deck[i]),best=classic.bestPokerHand(seven);
+ assert.ok(classic.comparePoker(best,classic.bestPokerHand(seven.slice(0,5)))>=0);assert.equal(classic.comparePoker(best,classic.bestPokerHand(seven.slice().reverse())),0);
+}
+assert.equal(classic.blackjackTotal([1,6]).total,17);assert.equal(classic.blackjackTotal([1,6]).soft,true);
+assert.equal(classic.blackjackTotal([1,6,9]).total,16);assert.equal(classic.blackjackTotal([1,6,9]).soft,false);
+assert.equal(classic.blackjackTotal([1,1,8]).total,20);assert.equal(classic.blackjackTotal([1,1,10]).total,12);
+assert.equal(classic.blackjackTotal([1,13]).natural,true);assert.equal(classic.blackjackTotal([7,7,7]).natural,false);
+assert.equal(classic.blackjackTotal(Array(12).fill(1)).total,12);assert.equal(classic.blackjackTotal([13,12,2]).bust,true);
+assert.throws(()=>classic.blackjackTotal([0]));assert.throws(()=>classic.blackjackTotal([14]));
+assert.equal(classic.blackjackOutcome([10,10,2],[10,10,5]),'lose');assert.equal(classic.blackjackOutcome([1,13],[7,7,7]),'win');
+assert.equal(classic.blackjackOutcome([7,7,7],[1,13]),'lose');assert.equal(classic.blackjackOutcome([1,13],[1,12]),'push');
+assert.equal(classic.blackjackOutcome([10,8],[10,8]),'push');assert.equal(classic.blackjackOutcome([10,8],[10,6,8]),'win');
+assert.equal(classic.playDealer([1,6],[4],false).hand.total,17);assert.equal(classic.playDealer([1,6],[4],true).hand.total,21);
+assert.equal(classic.playDealer([1,6],[10,5],true).drawn,1);assert.equal(classic.playDealer([10,6],[],false).complete,false);
+for(const example of examples.BLACKJACK_ROUNDS)for(const soft of [true,false])assert.ok(classic.playDealer(example.dealer.map(c=>c.rank),example.dealerDraws.map(c=>c.rank),soft).complete,'Every guided dealer has enough cards');
+console.log('✓ Poker: ten categories, best five, zero/one/two hole cards, kickers, split pots and order invariance');
+console.log('✓ Blackjack: multiple aces, naturals, bust priority and dealer S17/H17');
