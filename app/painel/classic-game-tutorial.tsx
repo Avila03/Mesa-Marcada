@@ -3,7 +3,7 @@
 import {useState} from 'react';
 import {GAME_IDENTITY} from '@/lib/game-identity';
 import {rankName,cardName,type LearnCard} from '@/lib/tutorial-games';
-import {bestPokerHand,comparePoker,blackjackTotal,playDealer,blackjackOutcome} from '@/lib/classic-tutorial-games';
+import {bestPokerHand,comparePoker,blackjackTotal,playDealer,blackjackOutcome,drawFiveCards} from '@/lib/classic-tutorial-games';
 import {POKER_EXAMPLES,POKER_DUELS,POKER_RANKS,BLACKJACK_ROUNDS} from '@/lib/classic-tutorial-examples';
 import {TutorialShell,Exercise,Feedback,Reset,type TutorialSection} from './learning-ui';
 import {LearnPlayingCard,LearnHand} from './tutorial-cards';
@@ -16,8 +16,9 @@ function CardBack({label}:{label:string}){return <span className="learn-card-bac
 
 export default function ClassicGameTutorial({game}:{game:ClassicGame}){
  const [section,setSection]=useState<TutorialSection>('practice');
- return <TutorialShell game={game} section={section} onSectionChange={setSection} edition={game==='poker'?'Texas Hold’em · baralho de 52 cartas':'Blackjack · exemplos com regras indicadas'} intro={game==='poker'?'Abra as cartas comunitárias, monte a melhor mão e descubra o que realmente decide um showdown.':'Veja o Ás mudar de valor, experimente comprar ou parar e acompanhe a vez do dealer.'}>
-  <div className="learn-content">{section==='practice'?<><div className="learn-start"><span className="learn-live-dot" aria-hidden="true"/><p>{game==='poker'?'Duas cartas são suas. Cinco são da mesa. A melhor combinação usa exatamente cinco.':'Você joga contra o dealer. Os baralhos dos exemplos são preparados para ensinar as regras.'}</p></div>{game==='poker'?<PokerPractice/>:<BlackjackPractice/>}</>:section==='basics'?<ClassicBasics game={game}/>:<ClassicRules game={game}/>}</div>
+ const [variant,setVariant]=useState('texas_holdem');const draw=game==='poker'&&variant==='five_card_draw';
+ return <TutorialShell game={game} section={section} onSectionChange={setSection} edition={game==='poker'?(draw?'Five Card Draw · cinco cartas fechadas':'Texas Hold’em · baralho de 52 cartas'):'Blackjack · exemplos com regras indicadas'} variantControl={game==='poker'?<label className="learn-variant">Aprendendo a jogar<select aria-label="Variante do tutorial" value={variant} onChange={e=>setVariant(e.target.value)}><option value="texas_holdem">Texas Hold’em</option><option value="five_card_draw">Five Card Draw · Poker fechado</option></select></label>:undefined} intro={draw?'Cinco cartas só suas. Escolha o que trocar, confira a nova combinação e compare as mãos.':game==='poker'?'Abra as cartas comunitárias, monte a melhor mão e descubra o que realmente decide um showdown.':'Veja o Ás mudar de valor, experimente comprar ou parar e acompanhe a vez do dealer.'}>
+  <div className="learn-content" key={variant}>{section==='practice'?<><div className="learn-start"><span className="learn-live-dot" aria-hidden="true"/><p>{draw?'Sem cartas comunitárias: são cinco fechadas e uma oportunidade de troca.':game==='poker'?'Duas cartas são suas. Cinco são da mesa. A melhor combinação usa exatamente cinco.':'Você joga contra o dealer. Os baralhos dos exemplos são preparados para ensinar as regras.'}</p></div>{draw?<DrawPractice/>:game==='poker'?<PokerPractice/>:<BlackjackPractice/>}</>:section==='basics'?draw?<DrawBasics/>:<ClassicBasics game={game}/>:<ClassicRules game={game} draw={draw}/>}</div>
  </TutorialShell>;
 }
 
@@ -152,8 +153,36 @@ const BLACKJACK_FAQ=[
  ['O que significa push?','Empate. Totais iguais normalmente empatam; dois naturais também. Natural e 21 comum não têm a mesma força.'],
  ['Quais regras preciso combinar?','17 suave, pagamentos do natural, limites de double e split, seguro e desistência. O guia simula apenas a comparação das mãos.']
 ];
-function ClassicRules({game}:{game:ClassicGame}){
+function ClassicRules({game,draw=false}:{game:ClassicGame;draw?:boolean}){
  const poker=game==='poker';
  return <div className="learn-classic-rules"><div className="learn-rules-grid">{poker?<PokerRanking/>:<section className="learn-exercise"><span className="learn-eyebrow">CONSULTA RÁPIDA</span><h3>Valor das cartas</h3><div className="learn-point-chart"><span>2 a 10 <b>Face</b></span><span>J / Q / K <b>10</b></span><span>Ás <b>1 / 11</b></span></div><div className="learn-bj-examples">{[{cards:[c(1,'spades'),c(13,'hearts')],text:'21 · natural nas duas primeiras'},{cards:[c(1,'clubs'),c(6,'diamonds')],text:'17 suave · Ás vale 11'},{cards:[c(1,'clubs'),c(6,'diamonds'),c(9,'spades')],text:'16 duro · Ás passou a 1'},{cards:[c(10,'spades'),c(8,'clubs'),c(5,'hearts')],text:'23 · estourou'}].map(ex=><div key={ex.text}><LearnHand cards={ex.cards}/><span>{ex.text}</span></div>)}</div></section>}
-  <section className="learn-exercise"><span className="learn-eyebrow">DÚVIDAS NA MESA</span><h3>O detalhe que muda a mão</h3>{(poker?POKER_FAQ:BLACKJACK_FAQ).map(([q,a])=><details key={q} className="learn-faq"><summary>{q}</summary><p>{a}</p></details>)}<a className="learn-source" href={poker?'https://www.pokerstars.com/poker/games/texas-holdem/':'https://bicyclecards.com/how-to-play/blackjack'} target="_blank" rel="noopener noreferrer">{poker?'Referência · Texas Hold’em':'Referência · Bicycle Cards'} <span aria-hidden="true">↗</span></a></section></div><Actions game={game}/></div>;
+  <section className="learn-exercise"><span className="learn-eyebrow">DÚVIDAS NA MESA</span><h3>O detalhe que muda a mão</h3>{(draw?DRAW_FAQ:poker?POKER_FAQ:BLACKJACK_FAQ).map(([q,a])=><details key={q} className="learn-faq"><summary>{q}</summary><p>{a}</p></details>)}<a className="learn-source" href={draw?'https://www.pokerstars.com/poker/games/draw/':poker?'https://www.pokerstars.com/poker/games/texas-holdem/':'https://bicyclecards.com/how-to-play/blackjack'} target="_blank" rel="noopener noreferrer">{draw?'Referência · Five Card Draw':poker?'Referência · Texas Hold’em':'Referência · Bicycle Cards'} <span aria-hidden="true">↗</span></a></section></div><Actions game={game}/></div>;
+}
+
+const DRAW_FAQ=[['Posso manter todas as cartas?','Sim. Você pode trocar de zero a cinco cartas nesta base. A troca acontece uma vez.'],['Existe flop, turn ou river?','Não. Cada jogador tem suas cinco cartas, sem cartas comunitárias.'],['A hierarquia das mãos muda?','Não nesta base de baralho completo: vale a hierarquia tradicional, do royal flush à carta alta.'],['Preciso mostrar o que descartei?','Os descartes ficam fechados. O exemplo mostra apenas a sua própria decisão.'],['E se as cartas do monte acabarem?','Pode ser necessário reembaralhar descartes conforme o procedimento combinado, sem devolver imediatamente as próprias cartas descartadas.'],['Quem vence em caso de empate?','Compare as cinco cartas e os kickers. Se as mãos tiverem a mesma força, divide-se o pote correspondente.']];
+const DRAW_DEALS=[
+ {hand:[c(13,'spades'),c(13,'hearts'),c(9,'diamonds'),c(5,'clubs'),c(2,'hearts')],replacement:[c(13,'diamonds'),c(4,'clubs'),c(1,'spades'),c(7,'diamonds'),c(11,'spades')],opponent:[c(12,'spades'),c(12,'hearts'),c(6,'clubs'),c(6,'diamonds'),c(9,'clubs')],hint:'Você tem um par de Reis. Observe quais cartas já combinam entre si.'},
+ {hand:[c(1,'spades'),c(11,'spades'),c(8,'spades'),c(4,'spades'),c(9,'diamonds')],replacement:[c(2,'spades'),c(6,'diamonds'),c(10,'clubs'),c(3,'hearts'),c(7,'diamonds')],opponent:[c(13,'spades'),c(13,'hearts'),c(13,'diamonds'),c(5,'hearts'),c(2,'clubs')],hint:'Quatro cartas são de espadas. Uma troca pode completar o flush, mas isso não é garantido em uma partida real.'}
+];
+function DrawPractice(){
+ const [example,setExample]=useState(0),[selected,setSelected]=useState<number[]>([]),[exchanged,setExchanged]=useState(false),[reveal,setReveal]=useState(false);
+ const deal=DRAW_DEALS[example],cards=exchanged?drawFiveCards(deal.hand,selected,deal.replacement):deal.hand;
+ const hand=bestPokerHand(cards),other=bestPokerHand(deal.opponent),result=comparePoker(hand,other);
+ const reset=()=>{setSelected([]);setExchanged(false);setReveal(false)};
+ return <div className="learn-practice-grid"><Exercise number="01" title="Quais cartas você vai trocar?" hint="Toque nas cartas que sairão. Os exemplos usam reposição preparada para ensinar a troca.">
+  <p className="learn-table-note">{deal.hint}</p><span className="learn-table-label">SUAS CINCO CARTAS FECHADAS PARA OS OUTROS</span><div className="learn-poker-board">{cards.map((card,i)=><LearnPlayingCard key={i} card={card} selected={!exchanged&&selected.includes(i)} onClick={!exchanged?()=>setSelected(old=>old.includes(i)?old.filter(n=>n!==i):[...old,i]):undefined} label={'Trocar '+cardName(card)}/>)}</div>
+  <div className="learn-selection-count" role="status">{exchanged?'Troca concluída · não há segunda troca':selected.length+' carta(s) marcada(s) para trocar'}</div>
+  <button type="button" className="btn gold" disabled={exchanged} onClick={()=>setExchanged(true)}>{exchanged?'Troca confirmada':selected.length?'Trocar '+selected.length+' carta(s)':'Manter as cinco cartas'}</button>
+  <div className="learn-made-hand" aria-live="polite"><small>{exchanged?'Depois da troca':'Antes da troca'}</small><strong>{hand.label}</strong><p>{exchanged?'Sua mão final tem cinco cartas. Depois da última rodada de decisões, os jogadores ainda na disputa comparam as mãos.':'Escolha o que manter. Em uma partida real, as cartas de reposição são desconhecidas.'}</p></div>
+  <div className="learn-inline-actions"><Reset onClick={reset}/><Reset label="Outra mão inicial" onClick={()=>{setExample(n=>(n+1)%DRAW_DEALS.length);reset()}}/></div>
+ </Exercise><Exercise number="02" title="A hora de abrir as mãos" hint="Depois da troca, confira a combinação do adversário. A melhor mão vence.">
+  <span className="learn-table-label">MÃO DO ADVERSÁRIO</span><div className="learn-poker-board">{deal.opponent.map((card,i)=>reveal?<LearnPlayingCard key={i} card={card}/>:<CardBack key={i} label="Carta fechada do adversário"/>)}</div>
+  <button type="button" className="btn" disabled={!exchanged||reveal} onClick={()=>setReveal(true)}>Revelar mão adversária</button>
+  <Feedback good={!reveal?null:result>0?true:result<0?false:null}>{!exchanged?'Conclua sua troca ou mantenha as cinco para avançar.':!reveal?'A troca terminou. Neste exemplo, avance para o showdown após as decisões finais.':<><strong>{result>0?'Sua mão venceu.':result<0?'O adversário tem a melhor combinação.':'As mãos empatam.'}</strong><p>Você: {hand.label}. Adversário: {other.label}. A hierarquia é a mesma do Texas Hold’em.</p></>}</Feedback>
+  <p className="learn-table-note">O Five Card Draw é o nome internacional do Poker fechado com cinco cartas e uma troca. As decisões e apostas reais são combinadas e realizadas presencialmente.</p>
+ </Exercise></div>;
+}
+function DrawBasics(){
+ const steps=[['Distribua cinco cartas','Use o baralho completo de 52 cartas, sem curingas. Cada jogador recebe cinco cartas fechadas. Não há cartas na mesa para compartilhar.'],['Primeira rodada de decisões','Os participantes decidem pagar, aumentar ou desistir, seguindo os blinds ou a entrada combinada.'],['Uma oportunidade de troca','Quem continua pode manter todas ou descartar e receber outras cartas. Nesta base, trocam-se de zero a cinco, uma única vez.'],['Últimas decisões e showdown','Após a troca, acontece outra rodada de decisões. Se houver mais de um jogador, compare as cinco cartas de cada mão.']];
+ return <div className="learn-basics"><div className="learn-fact-grid"><span>5 cartas privadas</span><span>Sem comunitárias</span><span>Uma troca</span></div><ol>{steps.map(([title,text],i)=><li key={title}><div className="learn-step-number">0{i+1}</div><div><h3>{title}</h3><p>{text}</p>{i===0&&<LearnHand cards={DRAW_DEALS[0].hand}/>}</div></li>)}</ol><div className="learn-classic-actions"><Actions game="poker"/></div></div>;
 }

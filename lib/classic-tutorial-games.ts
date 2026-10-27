@@ -65,3 +65,14 @@ export function blackjackOutcome(player:readonly number[],dealer:readonly number
  if(d.bust)return 'win';
  return p.total===d.total?'push':p.total>d.total?'win':'lose';
 }
+
+/** One exchange in Five Card Draw. Discarded cards cannot immediately return. */
+export function drawFiveCards(hand:readonly LearnCard[],discard:readonly number[],replacement:readonly LearnCard[]){
+ if(hand.length!==5)throw new Error('A mão precisa ter cinco cartas.');
+ validatePoker(hand);
+ if(new Set(discard).size!==discard.length||discard.some(i=>!Number.isInteger(i)||i<0||i>4))throw new Error('Seleção de troca inválida.');
+ if(replacement.length<discard.length)throw new Error('Cartas de reposição insuficientes.');
+ const incoming=replacement.slice(0,discard.length),all=[...hand,...incoming];
+ if(all.some(c=>!Number.isInteger(c.rank)||c.rank<1||c.rank>13||!frenchSuits.has(c.suit))||new Set(all.map(c=>c.rank+c.suit)).size!==all.length)throw new Error('A reposição deve usar outras cartas do baralho.');
+ const result=hand.slice();discard.slice().sort((a,b)=>a-b).forEach((index,i)=>{result[index]=incoming[i]});return result;
+}

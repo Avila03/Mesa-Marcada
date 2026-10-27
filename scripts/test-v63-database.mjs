@@ -1,0 +1,31 @@
+import {strict as assert} from 'node:assert';
+export async function runV63Tests({db,as,scalar,A,B,C}){
+ await as(A);
+ const stats=await scalar('SELECT public.get_player_medal_progress($1)',[A]);
+ assert.equal(stats.truco,3);assert.equal(stats.truco_wins,3);assert.equal(stats.truco_routes,3);
+ assert.equal(stats.canastra,3);assert.equal(stats.canastra_routes,3);assert.equal(stats.duo_wins,1);
+ assert.equal(stats.pontinho_wins,1);assert.equal(stats.pife_wins,1);assert.equal(stats.uno_wins,0);
+ assert.equal(stats.explorer,6);assert.equal(stats.league_cards,1);assert.ok(stats.veteran>=10);
+ assert.equal(stats.draw_poker,0);
+ const event=await scalar("INSERT INTO public.sessions(room_id,organizer_id,title,starts_at,location,max_participants,game_variant) SELECT id,$1,'Draw QA',now(),'Local QA',4,'five_card_draw' FROM public.rooms WHERE game='poker' RETURNING id",[A]);
+ assert.equal(await scalar('SELECT game_variant FROM public.sessions WHERE id=$1',[event]),'five_card_draw');
+ await assert.rejects(db.query("UPDATE public.sessions SET game_variant='texas_holdem' WHERE id=$1",[event]),/variante/);
+ await assert.rejects(db.query('SELECT public.get_post_game_card($1)',[event]),/encerrado/);
+ await db.query('SELECT public.choose_table_seat($1,1)',[event]);await as(B);await db.query('SELECT public.choose_table_seat($1,2)',[event]);
+ await as(A);await db.query('SELECT public.start_live_event($1)',[event]);
+ await db.query("SELECT public.record_chip_purchase_once($1,$2,'[20,0,0,0,0]',$3)",[crypto.randomUUID(),event,A]);
+ await as(B);await db.query("SELECT public.record_chip_purchase_once($1,$2,'[20,0,0,0,0]',$3)",[crypto.randomUUID(),event,B]);
+ await as(A);await db.query('SELECT public.record_chip_cashout($1,$2,30)',[event,A]);await db.query('SELECT public.record_chip_cashout($1,$2,10)',[event,B]);
+ await db.query("UPDATE public.sessions SET status='finished' WHERE id=$1",[event]);
+ assert.equal((await scalar('SELECT public.get_player_medal_progress($1)',[A])).draw_poker,1);
+ const card=await scalar('SELECT public.get_post_game_card($1)',[event]);assert.equal(card.variant,'five_card_draw');assert.equal(card.confirmed,true);assert.equal(card.winner_names.length,1);assert.equal(card.lines.length,0);
+ for(const forbidden of ['amount','net','location','cashout','expense','user_id'])assert.ok(!JSON.stringify(card).includes('"'+forbidden+'"'));
+ await as(C);await assert.rejects(db.query('SELECT public.get_post_game_card($1)',[event]),/acesso/);
+ await as(A);const scoreEvent=await scalar("SELECT s.id FROM public.sessions s JOIN public.rooms r ON r.id=s.room_id WHERE r.game='canastra' AND s.status='finished' ORDER BY s.id LIMIT 1");
+ const paired=await scalar('SELECT public.get_post_game_card($1)',[scoreEvent]);assert.equal(paired.lines.length,2);assert.ok(paired.winner_names.length);
+ const individualId=await scalar("SELECT s.id FROM public.sessions s JOIN public.rooms r ON r.id=s.room_id WHERE r.game='pife' AND s.status='finished' LIMIT 1");
+ const individual=await scalar('SELECT public.get_post_game_card($1)',[individualId]);assert.ok(individual.lines.length>=2);assert.ok(individual.winner_names.length);
+ await db.query("INSERT INTO public.profile_medal_showcase(user_id,featured_id,pinned_ids) VALUES($1,'truco_wins',ARRAY['explorer','draw_poker']) ON CONFLICT(user_id) DO UPDATE SET featured_id=excluded.featured_id,pinned_ids=excluded.pinned_ids",[A]);
+ await assert.rejects(db.query("INSERT INTO public.sessions(room_id,organizer_id,title,starts_at,location,max_participants,game_variant) SELECT id,$1,'Invalid QA',now(),'Local QA',4,'omaha' FROM public.rooms WHERE game='poker'",[A]),/Variante/);
+ console.log('✓ Five Card Draw creation/locking/financial closing, 16 new achievement progress keys, authorized cards without financial details and new showcase medals');
+}

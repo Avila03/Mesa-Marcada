@@ -89,3 +89,9 @@ assert.equal(classic.playDealer([1,6],[10,5],true).drawn,1);assert.equal(classic
 for(const example of examples.BLACKJACK_ROUNDS)for(const soft of [true,false])assert.ok(classic.playDealer(example.dealer.map(c=>c.rank),example.dealerDraws.map(c=>c.rank),soft).complete,'Every guided dealer has enough cards');
 console.log('✓ Poker: ten categories, best five, zero/one/two hole cards, kickers, split pots and order invariance');
 console.log('✓ Blackjack: multiple aces, naturals, bust priority and dealer S17/H17');
+const drawHand=[c(13,'spades'),c(13,'hearts'),c(9,'diamonds'),c(5,'clubs'),c(2,'hearts')],drawDeck=[c(13,'diamonds'),c(4,'clubs'),c(1,'spades')];
+assert.deepEqual(classic.drawFiveCards(drawHand,[],[]),drawHand);
+const exchanged=classic.drawFiveCards(drawHand,[4,2,3],drawDeck);assert.equal(exchanged.length,5);assert.equal(classic.bestPokerHand(exchanged).label,'Trinca');assert.equal(drawHand[2].rank,9);
+assert.throws(()=>classic.drawFiveCards(drawHand,[1,1],drawDeck));assert.throws(()=>classic.drawFiveCards(drawHand,[5],drawDeck));assert.throws(()=>classic.drawFiveCards(drawHand,[0],[]));assert.throws(()=>classic.drawFiveCards(drawHand,[0],[drawHand[0]]));
+const catalog=await importTs('app/painel/medal-catalog.ts');assert.equal(catalog.MEDALS.length,31);assert.equal(new Set(catalog.MEDALS.map(m=>m.id)).size,31);for(const m of catalog.MEDALS)assert.ok(m.levels.every((l,i)=>l.threshold>0&&(!i||l.threshold>m.levels[i-1].threshold)));
+console.log('✓ Five Card Draw: one exchange model, physical-card uniqueness, five-card hand evaluation and 31 unique achievement definitions');

@@ -270,5 +270,17 @@
   {
     "version": "20261027013650",
     "name": "score_games_rankings"
+  },
+  {
+    "version": "20261027032012",
+    "name": "poker_draw_variant"
+  },
+  {
+    "version": "20261027032019",
+    "name": "expanded_game_achievements"
+  },
+  {
+    "version": "20261027032026",
+    "name": "post_game_card_snapshot"
   }
 ]
