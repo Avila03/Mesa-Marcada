@@ -1,5 +1,11 @@
 # Histórico de versões — Mesa Marcada
 
+## v6.1.0 — Personalidade nas mesas e aprender com cartas (26/10/2026)
+- Marcas vetoriais e cenas próprias para Truco, Canastra/Buraco, Pontinho, UNO e Pife no início, nas mesas e nos eventos. Identidade Dark Cards e monograma preservados.
+- Tutoriais com três áreas: prática, passo a passo ilustrado e regras/dúvidas por variante. Poker e Blackjack preservam seus guias.
+- Exercícios locais: força das cartas e vira, aumentos e envido/flor, canastra limpa/suja e morto, contagem/eliminações, jogadas e pontos do UNO, compra e descarte para a batida no Pife.
+- Testes executam as regras dos exercícios, incluindo uso do +4, partição de nove cartas sem reutilização, mudança de manilha e fechamento por variante. Exercícios não gravam resultados de partidas.
+
 ## v6.0.0 — Novas modalidades (27/10/2026)
 - Sete mesas permanentes; Truco Gaudério, Paulista e Mineiro compartilham a mesma mesa. Canastra e Buraco aberto/fechado também compartilham sua mesa.
 - Pontinho, UNO clássico e Pife com placares próprios e tutoriais. Metas e regras ficam definidas na criação do evento.

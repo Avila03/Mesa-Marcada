@@ -1,4 +1,4 @@
-# Mesa Marcada — v6.0.0
+# Mesa Marcada — v6.1.0
 
 Aplicação web para organizar encontros presenciais de **Poker, Blackjack, Truco, Canastra/Buraco, Pontinho, UNO e Pife** entre amigos. Construída com **Next.js 16, React 19 e Supabase Auth/PostgreSQL**, publicada na Vercel. Visual **Dark Cards** inspirado no protótipo HTML v0.5, com prioridade para smartphones.
 
@@ -24,6 +24,12 @@ lateral mantém todos os destinos.
 - **Fichas e financeiro:** Fichas e Gastos em abas separadas. Compras/recompras por denominações 1/5/10/25/50; Anfitrião confirma os recebimentos. Em **Gastos**, cada participante confirmado escolhe entrar ou sair do racha individual de cada despesa; o perfil mostra valores a pagar e a receber, divididos exatamente em centavos.
 - **Ranking anual:** Poker e Blackjack com classificações separadas, sem visão mensal. Cada jogador tem um saldo acumulado em reais e rendimento total do ano em uma única linha. Conquistas anuais nos perfis; só entram eventos encerrados, completos, revisados e não excluídos.
 - **Segurança:** RLS em todas as tabelas públicas, validação de capacidade e autorizações no Supabase. Não são realizadas apostas, cobranças nem pagamentos pelo aplicativo.
+
+## Aprender com as cartas
+
+Em cada mesa, a aba **Tutorial e regras** abre exercícios próprios do jogo, um passo a passo ilustrado e perguntas frequentes. As variantes de Truco e Canastra/Buraco mudam os exemplos e as validações. Os exercícios são locais e não alteram placares. Os tutoriais de Poker e Blackjack permanecem disponíveis.
+
+Valide os exercícios com `npm run test:tutorials`. O módulo é carregado sob demanda, sem chamadas ao banco para praticar.
 
 ## Executar localmente
 
