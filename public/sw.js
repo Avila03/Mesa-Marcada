@@ -1,5 +1,5 @@
 /* Mesa Marcada PWA: sem cache de informações privadas ou financeiras. */
-const VERSION="mm-pwa-6.2";
+const VERSION="mm-pwa-6.3";
 self.addEventListener("install",e=>{
  e.waitUntil(caches.open(VERSION).then(cache=>cache.add("/offline.html")));
  self.skipWaiting();

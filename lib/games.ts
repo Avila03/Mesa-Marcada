@@ -2,7 +2,7 @@ export const ALL_GAMES=["poker","blackjack","truco","canastra","pontinho","uno",
 export type Game=typeof ALL_GAMES[number];
 export const isChipGame=(game:Game)=>game==="poker"||game==="blackjack";
 export const GAME_META:Record<Game,{name:string;symbol:string;description:string;capacity:number;variants:readonly string[]}>={
- poker:{name:"Poker",symbol:"♠",description:"Texas Hold’em, compras de fichas e acerto em reais.",capacity:8,variants:[]},
+ poker:{name:"Poker",symbol:"♠",description:"Texas Hold’em e Five Card Draw: uma mesa, duas maneiras de jogar Poker.",capacity:8,variants:["texas_holdem","five_card_draw"]},
  blackjack:{name:"Blackjack",symbol:"♦",description:"O jogo do 21, com crupiê, fichas e acerto em reais.",capacity:6,variants:[]},
  truco:{name:"Truco",symbol:"♣",description:"Uma mesa para o Gaudério, Paulista e Mineiro. Parcerias e tentos por variante.",capacity:4,variants:["gauderio","paulista","mineiro"]},
  canastra:{name:"Canastra / Buraco",symbol:"♦",description:"Duplas, canastras e fechamento de rodadas com pontos conferidos.",capacity:4,variants:["canastra","buraco_aberto","buraco_fechado"]},
@@ -10,7 +10,7 @@ export const GAME_META:Record<Game,{name:string;symbol:string;description:string
  uno:{name:"UNO",symbol:"↻",description:"Rodadas entre amigos e pontuação das cartas restantes até a meta.",capacity:6,variants:["uno_classico"]},
  pife:{name:"Pife",symbol:"♥",description:"Pif-paf sem curinga. Registre as batidas e as vitórias por jogador.",capacity:4,variants:["pife"]}
 };
-export const VARIANT_NAMES:Record<string,string>={gauderio:"Gaudério",paulista:"Paulista",mineiro:"Mineiro",canastra:"Canastra · sequências / limpa",buraco_aberto:"Buraco aberto · limpa",buraco_fechado:"Buraco fechado · limpa ou suja",pontinho:"Pontinho · sem reentrada",uno_classico:"UNO clássico",pife:"Pife · sem curinga"};
+export const VARIANT_NAMES:Record<string,string>={texas_holdem:"Texas Hold’em",five_card_draw:"Five Card Draw · Poker fechado",gauderio:"Gaudério",paulista:"Paulista",mineiro:"Mineiro",canastra:"Canastra · sequências / limpa",buraco_aberto:"Buraco aberto · limpa",buraco_fechado:"Buraco fechado · limpa ou suja",pontinho:"Pontinho · sem reentrada",uno_classico:"UNO clássico",pife:"Pife · sem curinga"};
 export const defaultVariant=(g:Game)=>GAME_META[g].variants[0]||null;
 export const defaultTarget=(g:Game,v:string|null)=>g==="truco"?(v==="gauderio"?24:12):g==="canastra"?3000:g==="pontinho"?100:g==="uno"?500:g==="pife"?5:0;
 export const pairedGame=(g:Game)=>g==="truco"||g==="canastra";

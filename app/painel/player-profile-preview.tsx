@@ -1,4 +1,5 @@
 "use client";
+import MedalMark from './medal-mark';
 import {GAME_META} from "@/lib/games";
 
 import {createPortal} from "react-dom";
@@ -99,11 +100,11 @@ function PreviewContent({playerId,profile,photoUrl,fallbackName,onOpenProfile}:{
    summary?.private?<p className="mm-player-preview-note">Conquistas privadas.</p>:
    summary?.featured?<div className="mm-player-preview-medals">
     <div className="mm-player-preview-featured" style={{"--preview-color":summary.featured.color} as CSSProperties}>
-     <span aria-hidden="true">{summary.featured.symbol}</span>
-     <div><strong>{summary.featured.title}</strong><small>{summary.featuredLevel} · {summary.count}/15 conquistadas</small></div>
+     <span aria-hidden="true"><MedalMark medal={summary.featured}/></span>
+     <div><strong>{summary.featured.title}</strong><small>{summary.featuredLevel} · {summary.count}/{MEDALS.length} conquistadas</small></div>
     </div>
     {summary.highlights.length>0&&<div className="mm-player-preview-highlights" aria-label="Três conquistas em destaque">
-     {summary.highlights.map(m=><span key={m.id} title={m.title} aria-label={m.title}>{m.symbol}</span>)}
+     {summary.highlights.map(m=><span key={m.id} title={m.title} aria-label={m.title}><MedalMark medal={m}/></span>)}
     </div>}
    </div>:
    <p className="mm-player-preview-note">Nenhuma conquista desbloqueada ainda.</p>}

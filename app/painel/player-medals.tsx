@@ -4,6 +4,7 @@ import type {CSSProperties} from "react";
 import {getSupabase} from "@/lib/supabase/browser";
 import FrameAvatar from "./frame-avatar";
 import UiIcon from "./ui-icon";
+import MedalMark from "./medal-mark";
 import {MEDALS} from "./medal-catalog";
 import type {Medal} from "./medal-catalog";
 import "./player-medals.css";
@@ -106,12 +107,12 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
   <div className="mm-medals-heading">
    <div><span className="mm-medals-eyebrow">MESA MARCADA · MEDALHAS</span>
     <h2>Conquistas</h2><p>Medalhas permanentes por desempenho, participação e Ligas.</p></div>
-   <span className="mm-medals-total">{unlocked.length} / 15</span>
+   <span className="mm-medals-total">{unlocked.length} / {MEDALS.length}</span>
   </div>
   <div className="mm-medals-preview">
    <div className={"mm-medals-avatar "+(primary?"earned":"")} style={primary?{"--medal-color":primary.color} as CSSProperties:undefined}>
     <FrameAvatar playerId={playerId} photoUrl={photoUrl} name={name} large/>
-    {primary&&<span className="mm-medals-avatar-icon" aria-hidden="true">{primary.symbol}</span>}
+    {primary&&<span className="mm-medals-avatar-icon" aria-hidden="true"><MedalMark medal={primary}/></span>}
    </div>
    <div className="mm-medals-preview-info">
     <strong>{name}</strong>
@@ -121,7 +122,7 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
   </div>
   {highlights.length>0&&<div className="mm-medals-highlights" aria-label="Medalhas em destaque">
    {highlights.map(m=><button type="button" key={m.id} onClick={()=>{setSelected(m.id);setExpanded(true);}}>
-    <span>{m.symbol}</span><small>{m.title}</small></button>)}
+    <span><MedalMark medal={m}/></span><small>{m.title}</small></button>)}
   </div>}
   {own&&<div className="mm-medals-pin-section">
    <div className="mm-medals-pin-head">
@@ -153,7 +154,7 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
        className={"mm-medals-picker-choice "+(active?"chosen":"")}
        aria-pressed={active} onClick={()=>setDraftPins(previous=>previous.includes(m.id)
         ?previous.filter(id=>id!==m.id):previous.length<3?[...previous,m.id]:previous)}>
-       <span aria-hidden="true">{m.symbol}</span><small>{m.title}</small>
+       <span aria-hidden="true"><MedalMark medal={m}/></span><small>{m.title}</small>
        <span className="mm-medals-picker-check">{active?"✓":""}</span>
       </button>;
      })}
@@ -174,7 +175,7 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
   <button type="button" className="btn mm-medals-expand" aria-expanded={expanded}
    onClick={()=>setExpanded(value=>!value)}>
    <UiIcon name="arrow-right" size={16}/>
-   {expanded?"Recolher coleção":own?"Ver minhas 15 conquistas":"Ver coleção de conquistas"}
+   {expanded?"Recolher coleção":own?`Ver minhas ${MEDALS.length} conquistas`:"Ver coleção de conquistas"}
   </button>
   {expanded&&<>
    <div className="mm-medals-filters" aria-label="Filtrar conquistas">
@@ -188,13 +189,13 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
      return <button type="button" key={m.id} onClick={()=>setSelected(m.id)}
       className={"mm-medals-card "+(level<0?"locked ":"")+(selected===m.id?"selected":"")}
       aria-pressed={selected===m.id} style={{"--medal-color":m.color} as CSSProperties}>
-      <span className="mm-medals-symbol" aria-hidden="true">{m.symbol}</span>
+      <span className="mm-medals-symbol" aria-hidden="true"><MedalMark medal={m}/></span>
       <strong>{m.title}</strong><small>{level<0?"Bloqueada":m.levels[level].name}</small>
      </button>;
     })}
    </div>
    <div className="mm-medals-details">
-    <div className="mm-medals-details-title"><span aria-hidden="true">{inspect.symbol}</span>
+    <div className="mm-medals-details-title"><span aria-hidden="true"><MedalMark medal={inspect}/></span>
      <div><strong>{inspect.title}</strong><small>{inspect.description}</small></div></div>
     <div className="mm-medals-meter-head"><span>Progresso</span>
      <strong>{inspectValue} {inspect.unit}</strong></div>

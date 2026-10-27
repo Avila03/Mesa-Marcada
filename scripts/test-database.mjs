@@ -85,4 +85,5 @@ try{
  const snapshot=await scalar("SELECT public.get_club_catalog()",[]);assert.ok(snapshot.events.length);
  console.log("✓ Reconciled BRL closing → annual ranking → medals → frames → final league archive");
  await (await import("./test-new-games.mjs")).runNewGameTests({db,as,scalar,A,B,C});
+ await (await import("./test-v63-database.mjs")).runV63Tests({db,as,scalar,A,B,C});
 }catch(e){console.error(e.message,e.where||"",e.query||"");process.exitCode=1}finally{await db.close()}

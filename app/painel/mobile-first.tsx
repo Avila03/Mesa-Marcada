@@ -51,6 +51,7 @@ const EventLivePanel=dynamic(()=>import("./event-live-panel"),{loading:()=>null}
 const LiveMovements=dynamic(()=>import("./event-live-panel").then(module=>module.LiveMovements),{loading:()=>null});
 const NightSummary=dynamic(()=>import("./night-summary"),{loading:()=>null});
 const SeatingTable=dynamic(()=>import("./seating-table"),{loading:()=>null});
+const PostGameShare=dynamic(()=>import("./post-game-share"),{loading:()=>null});
 const ScoreGamePanel=dynamic(()=>import("./score-games"),{loading:()=> <p role="status">Carregando placar…</p>});
 const ScoreRanking=dynamic(()=>import("./score-ranking"),{loading:()=> <p role="status">Carregando ranking…</p>});
 const PlayerScoreResults=dynamic(()=>import("./score-ranking").then(m=>m.PlayerScoreResults));
@@ -96,7 +97,7 @@ function GameBanner({game,name,large=false}:{game:Game;name?:string;large?:boole
 function EventTile({value,room,count,confirmed,live,open}:{value:Event;room?:Room;count:number;confirmed:boolean;live:boolean;open:()=>void}){
   const game=room?.game||"poker";
   return <article className="mm-event-card">
-    <GameBanner game={game} name={value.game_variant?VARIANT_NAMES[value.game_variant]:undefined}/>
+    <GameBanner game={game} name={value.game_variant?VARIANT_NAMES[value.game_variant]:game==="poker"?VARIANT_NAMES.texas_holdem:undefined}/>
     <div className="mm-event-content">
       <div className="mm-title-actions"><h3>{value.title}</h3><span className={"tag "+(value.status==="scheduled"?game:"archive")}>{value.status==="scheduled"?(live?"Ao vivo":"Agendado"):value.status==="finished"?"Encerrado":"Cancelado"}</span></div>
       <div className="mm-event-info">{value.league_id&&<span>♠ Evento de liga</span>}<span>◷ {fullDate(value.starts_at)}</span><span>⌖ {value.location}</span></div>
@@ -628,7 +629,7 @@ export default function PainelPage(){
   }
   function openEditor(event:Event){
     setForm({
-      game_variant:event.game_variant||"",score_target:String(event.score_target||0),room_id:event.room_id,name:event.title,starts_at:localDateTimeInput(event.starts_at),
+      game_variant:event.game_variant||(roomFor(event.room_id)?.game==="poker"?"texas_holdem":""),score_target:String(event.score_target||0),room_id:event.room_id,name:event.title,starts_at:localDateTimeInput(event.starts_at),
       location:event.location,min_entry_brl:String(event.min_entry_brl),
       max_participants:String(event.max_participants),league_id:event.league_id||"",
       visibility:event.visibility,chip_pricing_special:event.chip_pricing_special,
@@ -662,7 +663,7 @@ export default function PainelPage(){
         starts_at:new Date(form.starts_at).toISOString(),location:form.location.trim(),
         min_entry_brl:isChipGame(room.game)?Number(form.min_entry_brl):0,max_participants:Number(form.max_participants),
          visibility:form.league_id?"private":form.visibility,
-        league_id:form.league_id||null,game_variant:isChipGame(room.game)?null:form.game_variant,score_target:isChipGame(room.game)?null:Number(form.score_target),
+        league_id:form.league_id||null,game_variant:room.game==="blackjack"?null:form.game_variant,score_target:isChipGame(room.game)?null:Number(form.score_target),
         chip_pricing_special:isChipGame(room.game)&&form.chip_pricing_special,
         chip_price_1_brl:form.chip_pricing_special?Number(form.chip_price_1_brl):1,
         chip_price_5_brl:form.chip_pricing_special?Number(form.chip_price_5_brl):5,
@@ -980,7 +981,7 @@ export default function PainelPage(){
         {selected.status==="scheduled"&&<EventReconfirmation eventId={selected.id} startsAt={selected.starts_at} userId={user.id} attending={meConfirmed} host={organizer}/>}
         <button type="button" className="back" onClick={()=>selected.league_id?openLeague(selected.league_id):go("eventos")}>← {selected.league_id?"Voltar à liga":"Voltar aos eventos"}</button>
         <section className="detailblock" style={{padding:0,overflow:"hidden"}}>
-          <GameBanner game={roomFor(selected.room_id)?.game||"poker"} large/>
+          <GameBanner game={roomFor(selected.room_id)?.game||"poker"} name={selected.game_variant?VARIANT_NAMES[selected.game_variant]:selectedGame==="poker"?VARIANT_NAMES.texas_holdem:undefined} large/>
           <div style={{padding:"20px 22px 21px"}}>
             <div className="mm-event-head">
               <div><div className="eyebrow">{roomTitle(selected.room_id)}　·　{gameName(roomFor(selected.room_id)?.game||"poker")}</div><h1 style={{marginBottom:6}}>{selected.title}</h1>
@@ -1304,6 +1305,8 @@ export default function PainelPage(){
           <section className="panel"><p>Confirme sua presença para consultar o resumo financeiro do evento.</p></section>)}
       </>}
 
+      {page==="detalhe"&&selected?.status==="finished"&&privateVisible&&(detailTab==="resumo-evento"||selectedPoints&&detailTab==="ao-vivo")&&<PostGameShare key={selected.id} eventId={selected.id}/>}
+
       <MobileAppCompanion onUpdate={()=>refreshScope("catalog")} visible={page==="inicio"}/>
       <footer className="mm-formfoot" style={{marginTop:35}}>Mesa Marcada · Organize seus encontros. Valores em reais são apenas registros informativos.</footer>
     </main>
@@ -1326,6 +1329,7 @@ export default function PainelPage(){
               })}
             </select>
           </label>
+          {formGame==="poker"&&<label className="mm-field">Variante do Poker<select value={form.game_variant||"texas_holdem"} disabled={modal==="editar-evento"} onChange={e=>setForm({...form,game_variant:e.target.value})}>{GAME_META.poker.variants.map(v=><option key={v} value={v}>{VARIANT_NAMES[v]}</option>)}</select></label>}
           {!isChipGame(formGame)&&<div className="mm-form-grid"><label className="mm-field">Variante<select value={form.game_variant} disabled={modal==="editar-evento"} onChange={e=>setForm({...form,game_variant:e.target.value,score_target:String(defaultTarget(formGame,e.target.value)),max_participants:String(GAME_META[formGame].capacity)})}>{GAME_META[formGame].variants.map(v=><option key={v} value={v}>{VARIANT_NAMES[v]}</option>)}</select></label><label className="mm-field">{targetLabel(formGame)}<input type="number" required min={formGame==="pontinho"?50:formGame==="canastra"||formGame==="uno"?100:1} max={formGame==="pontinho"?500:formGame==="canastra"?10000:formGame==="uno"?2000:100} step={1} value={form.score_target} disabled={modal==="editar-evento"||formGame==="truco"} onChange={e=>setForm({...form,score_target:e.target.value})}/></label></div>}
           {!isChipGame(formGame)&&<p className="mm-game-rules-summary">{GAME_META[formGame].description} Variante e meta são definidas na criação. {formGame==="pontinho"?"Sem reentrada e sem curinga nesta base.":formGame==="pife"?"Sem curinga; a meta de vitórias é um acordo da mesa.":formGame==="uno"?"Clássico, sem acumular cartas +2/+4.":"Confira o tutorial da variante antes de iniciar."}</p>}
           <label className="mm-field">Nome do evento<input required minLength={2} maxLength={100} placeholder="Ex.: Poker de Sexta" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label>

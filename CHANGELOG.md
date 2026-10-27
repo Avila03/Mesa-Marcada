@@ -1,5 +1,11 @@
 # Histórico de versões — Mesa Marcada
 
+## v6.3.0 — Poker fechado, conquistas e pós-jogo (26/10/2026)
+- Five Card Draw (Poker fechado) e Texas Hold’em compartilham a mesa Poker. Variante definida ao criar o evento; eventos antigos mantêm sua interpretação Texas Hold’em. Tutorial interativo com seleção, troca única e confronto.
+- 16 novas conquistas, totalizando 31, com progressão por resultados encerrados, vitórias, duplas, variedade e ligas. Conquistas e presentes históricos preservados.
+- Card pós-jogo com monograma, prévia, PNG e compartilhamento nativo: consulta autorizada ao resultado sem expor financeiro ou endereço.
+- Testes isolados cobrem encerramento do Draw, permissões, progresso das conquistas e geração do card.
+
 ## v6.2.0 — Poker e Blackjack no novo padrão (26/10/2026)
 - Tutoriais de Poker e Blackjack usam a mesma escola da mesa: prática com cartas, passo a passo e regras/dúvidas, com identidade própria.
 - Poker: abertura de flop/turn/river, seleção das cinco melhores dentre sete, exemplos com zero/uma/duas cartas privadas, confronto com kickers e empates, ranking visual das dez combinações e comandos da mesa.
