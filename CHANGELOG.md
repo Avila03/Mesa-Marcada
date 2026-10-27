@@ -1,5 +1,12 @@
 # Histórico de versões — Mesa Marcada
 
+## v6.2.0 — Poker e Blackjack no novo padrão (26/10/2026)
+- Tutoriais de Poker e Blackjack usam a mesma escola da mesa: prática com cartas, passo a passo e regras/dúvidas, com identidade própria.
+- Poker: abertura de flop/turn/river, seleção das cinco melhores dentre sete, exemplos com zero/uma/duas cartas privadas, confronto com kickers e empates, ranking visual das dez combinações e comandos da mesa.
+- Blackjack: calculadora visual com múltiplos ases, rodadas guiadas de comprar/parar, dealer com regra S17/H17, naturais, estouros, empates e explicação de ações especiais.
+- Emblemas e banners próprios: ficha/espadas e royal flush no Poker; cartas, Ás e 21 no Blackjack.
+- Estrutura visual compartilhada pelos sete guias, com módulos carregados sob demanda. Testes validam categorias/desempates, seleção das melhores cinco, valores de ases, naturais e regras do dealer.
+
 ## v6.1.0 — Personalidade nas mesas e aprender com cartas (26/10/2026)
 - Marcas vetoriais e cenas próprias para Truco, Canastra/Buraco, Pontinho, UNO e Pife no início, nas mesas e nos eventos. Identidade Dark Cards e monograma preservados.
 - Tutoriais com três áreas: prática, passo a passo ilustrado e regras/dúvidas por variante. Poker e Blackjack preservam seus guias.
