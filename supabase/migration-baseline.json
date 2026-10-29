@@ -282,5 +282,9 @@
   {
     "version": "20261027032026",
     "name": "post_game_card_snapshot"
+  },
+  {
+    "version": "20261029161035",
+    "name": "post_game_designed_cards"
   }
 ]

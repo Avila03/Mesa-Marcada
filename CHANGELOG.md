@@ -1,5 +1,12 @@
 # Histórico de versões — Mesa Marcada
 
+## v6.4.0 — Cards com a identidade de cada mesa (29/10/2026)
+- Sete modelos próprios com placar em destaque, nomes das equipes ou vencedor individual e ilustrações vetoriais de cada modalidade. Poker inclui Texas Hold’em e Five Card Draw; financeiro permanece fora da imagem.
+- Nome e brasão reais da liga, reutilizando o mesmo desenho e acabamento do Estúdio de Brasões.
+- Formatos compacto 1080 × 1350 e stories 1080 × 1920, com prévia, PNG e compartilhamento nativo da mesma imagem preparada.
+- Conquistas novas registradas atomicamente ao encerrar o evento, considerando histórico completo e presentes já recebidos. Sem inventar desbloqueios para eventos antigos ou repetir medalhas já conquistadas.
+- Consultas continuam exigindo acesso aos resultados; histórico, concessões existentes e dados financeiros preservados.
+
 ## v6.3.0 — Poker fechado, conquistas e pós-jogo (26/10/2026)
 - Five Card Draw (Poker fechado) e Texas Hold’em compartilham a mesa Poker. Variante definida ao criar o evento; eventos antigos mantêm sua interpretação Texas Hold’em. Tutorial interativo com seleção, troca única e confronto.
 - 16 novas conquistas, totalizando 31, com progressão por resultados encerrados, vitórias, duplas, variedade e ligas. Conquistas e presentes históricos preservados.

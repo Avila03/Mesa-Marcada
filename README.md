@@ -1,4 +1,4 @@
-# Mesa Marcada — v6.3.0
+# Mesa Marcada — v6.4.0
 
 Aplicação web para organizar encontros presenciais de **Poker, Blackjack, Truco, Canastra/Buraco, Pontinho, UNO e Pife** entre amigos. Construída com **Next.js 16, React 19 e Supabase Auth/PostgreSQL**, publicada na Vercel. Visual **Dark Cards** inspirado no protótipo HTML v0.5, com prioridade para smartphones.
 
@@ -17,7 +17,7 @@ lateral mantém todos os destinos.
 
 - **Poker com duas variantes:** Texas Hold’em e Five Card Draw (Poker fechado), na mesma mesa, com tutorial interativo de troca de cartas.
 - **31 conquistas:** 16 novas para participações, vitórias, duplas, variantes e ligas das novas modalidades.
-- **Card de pós-jogo:** prévia da imagem no resumo do evento encerrado, download PNG e compartilhamento nativo quando disponível. Sem valores financeiros ou endereço cadastrado.
+- **Card de pós-jogo:** sete modelos, placar e equipes reais, nome/brasão da liga e conquistas registradas no encerramento. Compacto 4:5 ou stories 9:16, prévia, PNG e compartilhamento nativo quando disponível. Sem valores financeiros ou endereço cadastrado. Eventos encerrados antes desta versão não recebem conquistas retroativas no card.
 
 - **Sete mesas fixas:** Poker, Blackjack, Truco, Canastra/Buraco, Pontinho, UNO e Pife. Truco reúne Gaudério, Paulista e Mineiro na mesma mesa; Canastra/Buraco reúne Canastra, Buraco aberto e fechado. Cada evento define sua variante antes de começar.
 - **Placar presencial:** equipes equilibradas, pontos por rodada, envites do Truco Gaudério, canastras, eliminação no Pontinho, cartas restantes no UNO e vitórias no Pife. Histórico, desfazer antes do encerramento e rankings por modalidade/variante no perfil e nas ligas. O aplicativo registra resultados conferidos pelos jogadores; não distribui cartas virtualmente.
