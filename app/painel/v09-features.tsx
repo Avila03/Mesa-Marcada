@@ -122,7 +122,7 @@ export function ProfilePanel({
   }
 
   return <div className="mm-v09-profile">
-    {onBack&&<button className="back" type="button" onClick={onBack}>← Voltar ao ranking</button>}
+    {onBack&&<button className="back" type="button" onClick={onBack}>← Voltar</button>}
     <div className="heading"><div><div className="eyebrow">JOGADORES DA MESA</div><h1>{own?"Meu perfil":"Perfil do jogador"}</h1><p>Apelido, avatar e histórico das suas noites.</p></div></div>
     <section className="mm-v09-profile-hero">
       <FrameAvatar playerId={profile?.id||userId} photoUrl={photoUrl} name={nameShown} large/>

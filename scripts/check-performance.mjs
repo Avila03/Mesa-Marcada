@@ -12,7 +12,7 @@ for(const token of ['p.session_id=p_event_id','x.session_id=p_event_id','LIMIT 5
 for(const rpc of ['get_event_snapshot','get_club_catalog','get_my_splits_snapshot'])assert.ok(panel.includes(rpc),"Snapshot missing: "+rpc);
 assert.ok(!panel.includes('db.from("session_chip_purchases").select("*"),'),"Unbounded global finance load");
 for(const token of ['import dynamic from "next/dynamic"','const LeagueHub=dynamic','const AdminPanel=dynamic',
- 'const TableTutorial=dynamic','const NightSummary=dynamic','const AdvancedRankingPanel=dynamic',
+ 'const TableTutorial=dynamic','const NightSummary=dynamic','const PlayerAchievements=dynamic',
  'const SeatingTable=dynamic'])assert.ok(panel.includes(token),"Code splitting missing: "+token);
 for(const token of ['lastReconcile','connected','180000','45000','if(table==="session_attendance"&&!eventId)'])
  assert.ok(realtime.includes(token),"Realtime fallback deduplication missing: "+token);

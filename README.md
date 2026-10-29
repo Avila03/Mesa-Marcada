@@ -1,4 +1,4 @@
-# Mesa Marcada — v6.4.0
+# Mesa Marcada — v6.4.1
 
 Aplicação web para organizar encontros presenciais de **Poker, Blackjack, Truco, Canastra/Buraco, Pontinho, UNO e Pife** entre amigos. Construída com **Next.js 16, React 19 e Supabase Auth/PostgreSQL**, publicada na Vercel. Visual **Dark Cards** inspirado no protótipo HTML v0.5, com prioridade para smartphones.
 
@@ -8,7 +8,7 @@ Aplicação web para organizar encontros presenciais de **Poker, Blackjack, Truc
 
 Na tela inicial, o jogador encontra seu **próximo evento**, confirmação de presença,
 próximas noites, valores de rachas pendentes e atalhos para Poker, Blackjack e seus tutoriais.
-A barra inferior do smartphone apresenta **quatro destinos**: **Início**, **Eventos**, **Ranking** e **Perfil**.
+A barra inferior do smartphone apresenta **quatro destinos**: **Início**, **Eventos**, **Ligas** e **Perfil**.
 **Mesas** ficam acessíveis pelo Dashboard; a **Administração geral** é acessível pelo
 Dashboard e pelo próprio Perfil somente para administradores. No desktop, a navegação
 lateral mantém todos os destinos.
@@ -26,7 +26,7 @@ lateral mantém todos os destinos.
 - **Perfis:** apelido, foto enviada pelo próprio jogador (Supabase Storage privado), jogo favorito, descrição, histórico e aba **Meus rachas** com valores a pagar e a receber.
 - **Enquetes** somente dentro dos eventos; um voto por participante, alterável enquanto aberta.
 - **Fichas e financeiro:** Fichas e Gastos em abas separadas. Compras/recompras por denominações 1/5/10/25/50; Anfitrião confirma os recebimentos. Em **Gastos**, cada participante confirmado escolhe entrar ou sair do racha individual de cada despesa; o perfil mostra valores a pagar e a receber, divididos exatamente em centavos.
-- **Ranking anual:** Poker e Blackjack com classificações separadas, sem visão mensal. Cada jogador tem um saldo acumulado em reais e rendimento total do ano em uma única linha. Conquistas anuais nos perfis; só entram eventos encerrados, completos, revisados e não excluídos.
+- **Ranking por liga:** classificações dentro de cada liga, separadas por modalidade/variante. A aba global foi retirada; `/ranking` redireciona para `/ligas`. Estatísticas pessoais e conquistas permanecem nos perfis.
 - **Segurança:** RLS em todas as tabelas públicas, validação de capacidade e autorizações no Supabase. Não são realizadas apostas, cobranças nem pagamentos pelo aplicativo.
 
 ## Aprender com as cartas
@@ -54,7 +54,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_SUBSTITUA_PELA_CHAVE_PUBLICA
 
 A chave **publishable** é pública e utilizada com regras RLS. **Nunca** coloque uma chave `sb_secret_`, `service_role` ou senha do banco no frontend ou no GitHub.
 
-Páginas: `/login`, `/recuperar-senha`, `/redefinir-senha`, `/painel`, `/eventos/[id]`, `/ranking`, `/perfil` e `/demo.html` (protótipo antigo, apenas demonstração).
+Páginas: `/login`, `/recuperar-senha`, `/redefinir-senha`, `/painel`, `/eventos/[id]`, `/ligas`, `/perfil` e `/demo.html` (protótipo antigo, apenas demonstração).
 
 ## Banco e migrações
 

@@ -26,7 +26,7 @@ assert.ok(styles.includes("safe-area-inset-top"),"iOS PWA status bar safe area m
 assert.ok(panel.includes('getTime()>=Date.now()'),"Old events shown as upcoming");
 assert.ok(panel.includes('className="nav mm-bottom-nav"'),"Mobile bottom nav missing");
 assert.ok(panel.includes('className="nav mm-desktop-nav"'),"Desktop nav must remain");
-/* Desktop navigation stays stacked; mobile keeps five permanent destinations. */
+/* Desktop navigation stays stacked; mobile keeps four permanent destinations. */
 const desktopNavCss=styles.match(/\.sidebar \.mm-desktop-nav\{[^}]+\}/)?.[0]||"";
 assert.ok(/flex-direction:\s*column/.test(desktopNavCss),
   "Desktop navigation must stack vertically, not overflow sideways");
@@ -39,13 +39,15 @@ const mobileNav=panel.slice(
   panel.indexOf("const mobileNavEntries="),
   panel.indexOf("const mobileActivePage")
 );
-for(const key of ['id==="inicio"','id==="eventos"','id==="ligas"','id==="ranking"','id==="perfil"']){
+for(const key of ['id==="inicio"','id==="eventos"','id==="ligas"','id==="perfil"']){
   assert.ok(mobileNav.includes(key),"Missing mobile tab: "+key);
 }
+assert.ok(!mobileNav.includes('id==="ranking"'),"Global ranking is not a mobile destination");
+assert.ok(!dashboard.includes('onRanking'),"Homepage has no global ranking shortcut");
 assert.ok(!mobileNav.includes('id==="mesas"')&&!mobileNav.includes('id==="admin"'),
   "Other screens remain accessible via shortcuts, not new permanent tabs");
-assert.ok(styles.includes("grid-template-columns:repeat(5,minmax(0,1fr))"),
-  "Mobile bottom bar must have five equally sized columns");
+assert.ok(styles.includes("grid-template-columns:repeat(4,minmax(0,1fr))"),
+  "Mobile bottom bar must have four equally sized columns");
 assert.ok(styles.includes("safe-area-inset-bottom"),"iPhone bottom safe area missing");
 assert.ok(panel.includes("<DashboardV16"),"Action-oriented dashboard missing");
 assert.ok(!panel.includes("A próxima rodada<br/>começa aqui"),"Old oversized homepage hero still present");

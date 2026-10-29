@@ -156,10 +156,11 @@ for(const expected of ["/eventos/","/ao-vivo","/resumo","/mesas/","/ranking","/p
  assert.ok(routeFile.includes(expected),"Missing deep link mapping: "+expected);
 }
 for(const pageFile of ["painel","eventos","eventos/[id]","eventos/[id]/ao-vivo",
- "eventos/[id]/resumo","mesas","mesas/[game]","ranking","perfil","administracao"]){
+ "eventos/[id]/resumo","mesas","mesas/[game]","perfil","administracao"]){
  assert.ok(read("app/(app)/"+pageFile+"/page.tsx").includes("RoutePlaceholder"),
   "Missing route file: "+pageFile);
 }
+assert.ok(read("app/(app)/ranking/page.tsx").includes('redirect("/ligas")'),"Legacy ranking redirects to leagues");
 assert.ok(appLayout.includes("<PainelPage/>"),"Club state should survive in shared layout");
 for(const expected of ["popstate","window.history.pushState","clubHref(",
  "readClubRoute(","get_club_catalog","get_event_snapshot",

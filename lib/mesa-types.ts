@@ -1,6 +1,6 @@
 import {GAME_META,type Game} from "./games";
 export type {Game} from "./games";
-export type View = "inicio" | "eventos" | "mesas" | "mesa" | "ranking" | "perfil" | "detalhe" | "admin" | "ligas" | "liga" | "liga-admin";
+export type View = "inicio" | "eventos" | "mesas" | "mesa" | "perfil" | "detalhe" | "admin" | "ligas" | "liga" | "liga-admin";
 export type DetailTab = "visao" | "ao-vivo" | "gastos" | "resumo-evento" | "assentos" | "enquetes" | "fichas";
 export type Profile = {id:string;display_name:string;avatar_symbol:string;favorite_game:Game;bio:string;avatar_path:string|null};
 export type Room = {id:string;name:string;game:Game;description:string;status:"active"|"archived";created_by:string};

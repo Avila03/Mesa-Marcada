@@ -53,9 +53,7 @@ const NightSummary=dynamic(()=>import("./night-summary"),{loading:()=>null});
 const SeatingTable=dynamic(()=>import("./seating-table"),{loading:()=>null});
 const PostGameShare=dynamic(()=>import("./post-game-share"),{loading:()=>null});
 const ScoreGamePanel=dynamic(()=>import("./score-games"),{loading:()=> <p role="status">Carregando placar…</p>});
-const ScoreRanking=dynamic(()=>import("./score-ranking"),{loading:()=> <p role="status">Carregando ranking…</p>});
 const PlayerScoreResults=dynamic(()=>import("./score-ranking").then(m=>m.PlayerScoreResults));
-const AdvancedRankingPanel=dynamic(()=>import("./advanced-ranking"),{loading:()=>null});
 const PlayerAchievements=dynamic(()=>import("./advanced-ranking").then(module=>module.PlayerAchievements),{loading:()=>null});
 const PlayerMedals=dynamic(()=>import("./player-medals"),{loading:()=>null});
 const PlayerFrames=dynamic(()=>import("./player-frames"),{loading:()=>null});
@@ -125,7 +123,7 @@ export default function PainelPage(){
   const [selectedLeagueId,setSelectedLeagueId]=useState("");
   const [leagueCatalog,setLeagueCatalog]=useState<League[]>([]);
   const [profileId,setProfileId]=useState("");
-  const [profileReturn,setProfileReturn]=useState<View>("ranking");
+  const [profileReturn,setProfileReturn]=useState<View>("inicio");
   const [financeRows,setFinanceRows]=useState<FinanceLine[]>([]);
   const [gameView,setGameView]=useState<Game>("poker");
   const [gameTab,setGameTab]=useState<"eventos"|"tutorial">("eventos");
@@ -165,11 +163,8 @@ export default function PainelPage(){
   const [mySplits,setMySplits]=useState<MyExpenseSplitRow[]>([]);
   const [pendingReconfirmEventId,setPendingReconfirmEventId]=useState<string|undefined>();
   const [ranking,setRanking]=useState<Rank[]>([]);
-  const [periodRanking,setPeriodRanking]=useState<AdvancedRank[]>([]);
   const [annualStats,setAnnualStats]=useState<AdvancedRank[]>([]);
-  const [rankingLoading,setRankingLoading]=useState(false);
   const [approvals,setApprovals]=useState<{session_id:string;user_id:string;reviewed_at:string}[]>([]);
-  const [rankGame,setRankGame]=useState<Game>("poker");
   const [eventFilter,setEventFilter]=useState<"todos"|"agendados"|"encerrados">("agendados");
   const [form,setForm]=useState<CreateEvent>(defaultEvent);
   const ownLeagues=leagueCatalog.filter(item=>!item.finished_at&&(item.my_role==="owner"||item.my_role==="organizer"));
@@ -322,21 +317,6 @@ export default function PainelPage(){
     const {data:{subscription}}=db.auth.onAuthStateChange(e=>{if(e==="SIGNED_OUT")window.location.replace("/login")});
     return()=>{alive=false;subscription.unsubscribe()};
   },[reload]);
-
-  useEffect(()=>{
-    if(!user||!["ranking","perfil"].includes(page)||!isChipGame(rankGame))return;
-    const db=getSupabase();
-    if(!db)return;
-    let active=true;
-    setRankingLoading(true);
-    void Promise.resolve(db.rpc("get_player_stats_period_v2",{p_game:rankGame,p_period:"ano"}))
-      .then(({data,error:rankingError})=>{
-        if(!active)return;
-        if(rankingError)setError("Ranking indisponível: "+rankingError.message);
-        else {setPeriodRanking((data||[]) as AdvancedRank[]);}
-      }).finally(()=>{if(active)setRankingLoading(false);});
-    return()=>{active=false};
-  },[user,rankGame,page,events]);
 
   // Compatibilidade com convites anteriores a v2: /painel?evento=UUID.
   useEffect(()=>{
@@ -754,15 +734,13 @@ export default function PainelPage(){
     ["eventos","Eventos","calendar"],
     ["mesas","Mesas","cards"],
     ["ligas","Ligas","users"],
-    ["ranking","Ranking","trophy"],
     ["perfil","Perfil","user"],
     ...(isAdmin?[["admin","Administração","settings"] as [View,string,UiIconName]]:[])
   ];
   const activePage=page==="detalhe"?"eventos":page==="mesa"?"mesas":page==="liga"||page==="liga-admin"?"ligas":page;
-  // Cinco destinos permanentes: Ligas e Ranking acessíveis de qualquer página,
-  // inclusive evento Ao Vivo, perfil e painel do administrador.
+  // Quatro destinos: o ranking fica dentro de cada liga.
   const mobileNavEntries=navEntries.filter(([id])=>
-    id==="inicio"||id==="eventos"||id==="ligas"||id==="ranking"||id==="perfil"
+    id==="inicio"||id==="eventos"||id==="ligas"||id==="perfil"
   );
   const mobileActivePage=page==="mesas"||page==="mesa"?"inicio":page==="admin"?"perfil":activePage;
   return <div className={"layout "+(page==="mesa"&&gameView==="blackjack"||page==="detalhe"&&selectedGame==="blackjack"?"mm-game-blackjack":page==="mesa"&&gameView==="poker"||page==="detalhe"&&selectedGame==="poker"?"mm-game-poker":"")}>
@@ -800,7 +778,7 @@ export default function PainelPage(){
         <div className="mm-mobile-account"><button type="button" className="mm-v09-profile-link" aria-label="Abrir meu perfil" onClick={()=>{setProfileId(user.id);go("perfil")}}><PlayerAvatar photoUrl={photoUrls[user.id]} name={nickname}/></button><button type="button" aria-label="Sair" onClick={async()=>{await getSupabase()?.auth.signOut();window.location.replace("/login")}}><UiIcon name="log-out" size={21}/></button></div>
       </div>
       <div className="mm-breadcrumb-row">
-        <div className="breadcrumb">Mesa Marcada　/　{page==="inicio"?"Visão geral":page==="detalhe"?"Evento":page==="mesa"?"Mesa de "+gameName(gameView):page==="eventos"?"Eventos":page==="mesas"?"Mesas":page==="perfil"?"Perfil":page==="admin"?"Administração":page==="ligas"||page==="liga"||page==="liga-admin"?"Ligas":"Ranking"}</div>
+        <div className="breadcrumb">Mesa Marcada　/　{page==="inicio"?"Visão geral":page==="detalhe"?"Evento":page==="mesa"?"Mesa de "+gameName(gameView):page==="eventos"?"Eventos":page==="mesas"?"Mesas":page==="perfil"?"Perfil":page==="admin"?"Administração":page==="ligas"||page==="liga"||page==="liga-admin"?"Ligas":"Visão geral"}</div>
         <div className="mm-connection-group">
           <span className={"mm-sync-pill "+connection} role="status" aria-live="polite"
             title={connection==="connected"?"Atualizações em tempo real ativas":connection==="offline"?"Sem conexão; atualiza ao reconectar":connection==="stale"?"Atualização pendente; uma nova tentativa será feita automaticamente":"Sincronizando dados"}>
@@ -828,7 +806,6 @@ export default function PainelPage(){
         onGame={openGame}
         onTables={()=>go("mesas")}
         onProfile={()=>{setProfileId(user.id);go("perfil")}}
-        onRanking={()=>go("ranking")}
         onAdmin={()=>go("admin")}
         onLeagues={()=>go("ligas")}
         onOpenLeague={id=>openLeague(id)}
@@ -921,14 +898,6 @@ export default function PainelPage(){
         </>}
         {gameTab==="tutorial"&&<TableTutorial game={gameView}/>}
       </>}
-
-      {page==="ranking"&&<div className="mm-game-selectors" aria-label="Modalidade do ranking">{ALL_GAMES.map(g=><button type="button" key={g} className={"filter "+(rankGame===g?"active":"")} aria-pressed={rankGame===g} onClick={()=>setRankGame(g)}>{gameName(g)}</button>)}</div>}
-      {page==="ranking"&&!isChipGame(rankGame)&&<ScoreRanking key={rankGame} game={rankGame}/>}
-      {page==="ranking"&&isChipGame(rankGame)&&<AdvancedRankingPanel
-        game={rankGame} onGameChange={setRankGame}
-        ranking={periodRanking} busy={rankingLoading} photoUrls={photoUrls}
-        onPlayer={id=>{setProfileReturn("ranking");setProfileId(id);go("perfil")}}
-      />}
 
       {page==="admin"&&isAdmin&&<AdminPanel
         events={events} profiles={profiles} attendances={attendances} finance={adminFinance}
