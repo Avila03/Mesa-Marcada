@@ -39,13 +39,14 @@ try{
   await verify("/recuperar-senha",200);
   await verify("/redefinir-senha",200);
   await verify("/painel",200);
+  await verify("/ranking",307,"/ligas");
   const eventId="00000000-0000-4000-8000-000000000001";
   await verify("/evento/"+eventId,307,"/eventos/"+eventId);
   await verify("/evento/invalid",307,"/eventos");
   for(const path of [
     "/eventos","/eventos/"+eventId,"/eventos/"+eventId+"/ao-vivo",
     "/eventos/"+eventId+"/resumo","/mesas","/mesas/poker","/mesas/blackjack",
-    "/ranking","/perfil","/administracao",
+    "/perfil","/administracao",
     "/mesas/truco","/mesas/canastra","/mesas/pontinho","/mesas/uno","/mesas/pife"
   ])await verify(path,200);
   for(const path of ["/ligas","/ligas/"+eventId,"/ligas/"+eventId+"/gerenciar",

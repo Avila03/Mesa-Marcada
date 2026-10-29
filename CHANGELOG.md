@@ -1,5 +1,10 @@
 # Histórico de versões — Mesa Marcada
 
+## v6.4.1 — Ranking somente nas ligas (29/10/2026)
+- Removida a aba de ranking geral no celular e desktop e o atalho da página inicial. Barra inferior com Início, Eventos, Ligas e Perfil.
+- Rankings por liga e modalidade preservados. Links antigos de `/ranking` redirecionam para `/ligas`, inclusive após login.
+- Removidas a tela global e sua consulta extra. Estatísticas pessoais, resultados, conquistas e histórico dos perfis preservados.
+
 ## v6.4.0 — Cards com a identidade de cada mesa (29/10/2026)
 - Sete modelos próprios com placar em destaque, nomes das equipes ou vencedor individual e ilustrações vetoriais de cada modalidade. Poker inclui Texas Hold’em e Five Card Draw; financeiro permanece fora da imagem.
 - Nome e brasão reais da liga, reutilizando o mesmo desenho e acabamento do Estúdio de Brasões.

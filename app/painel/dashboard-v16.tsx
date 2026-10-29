@@ -22,7 +22,6 @@ type DashboardProps={
   onGame:(game:Game)=>void;
   onTables:()=>void;
   onProfile:()=>void;
-  onRanking:()=>void;
   onAdmin:()=>void;
   onLeagues:()=>void;
   onOpenLeague:(id:string)=>void;
@@ -35,7 +34,7 @@ const categoryNames:Record<string,string>={
 
 export default function DashboardV16({
   firstName,userId,upcoming,attendances,rooms,mySplits,settlements,isAdmin,
-  onCreate,onOpenEvent,onEvents,onGame,onTables,onProfile,onRanking,onAdmin,onLeagues,onOpenLeague,pendingReconfirmEventId
+  onCreate,onOpenEvent,onEvents,onGame,onTables,onProfile,onAdmin,onLeagues,onOpenLeague,pendingReconfirmEventId
 }:DashboardProps){
   const confirmed=new Set(attendances.filter(a=>a.user_id===userId).map(a=>a.session_id));
   const myUpcoming=upcoming.filter(e=>confirmed.has(e.id));
@@ -155,10 +154,9 @@ export default function DashboardV16({
 
     <GameChoices onGame={onGame} onTables={onTables}/>
 
-    <section className="mm-home-shortcuts" aria-label="Outros acessos">
-      <button type="button" onClick={onRanking}><UiIcon name="trophy" size={19}/> Ranking <UiIcon name="arrow-right" size={15}/></button>
-      {isAdmin&&<button type="button" onClick={onAdmin}><UiIcon name="settings" size={19}/> Administração <UiIcon name="arrow-right" size={15}/></button>}
-    </section>
+    {isAdmin&&<section className="mm-home-shortcuts" aria-label="Outros acessos">
+      <button type="button" onClick={onAdmin}><UiIcon name="settings" size={19}/> Administração <UiIcon name="arrow-right" size={15}/></button>
+    </section>}
   </div>;
 }
 

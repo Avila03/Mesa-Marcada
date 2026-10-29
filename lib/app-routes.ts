@@ -26,7 +26,7 @@ export function readClubRoute(pathname:string,search=""):ClubLocation{
    result.page="mesa";result.gameView=parts[1] as Game;
    result.gameTab=query.get("aba")==="tutorial"?"tutorial":"eventos";
  }else if(path==="/mesas")result.page="mesas";
- else if(path==="/ranking")result.page="ranking";
+ else if(path==="/ranking")result.page="ligas";
  else if(path==="/perfil")result.page="perfil";
  else if(path==="/administracao")result.page="admin";
  return result;
@@ -38,10 +38,11 @@ export function clubHref(page:View,selectedId:string,tab:DetailTab,game:Game,gam
     (page==="liga-admin"?"/gerenciar":"");
  if(page==="mesa")return "/mesas/"+game+(gameTab==="tutorial"?"?aba=tutorial":"");
  const urls:Record<string,string>={inicio:"/painel",eventos:"/eventos",mesas:"/mesas",
- ranking:"/ranking",perfil:"/perfil",admin:"/administracao",ligas:"/ligas"};
+ perfil:"/perfil",admin:"/administracao",ligas:"/ligas"};
  return urls[page]||"/painel";
 }
 export function validPostLoginRoute(value:string){
+ if(value.replace(/\/+$/,"")==="/ranking")return "/ligas";
  if(value.startsWith("/")&&!value.startsWith("//")&&
  /^(?:\/ligas(?:\/[0-9a-f-]{36}(?:\/gerenciar)?|\/convite\/[0-9a-f]{64})?|\/convite\/[0-9a-f]{64}|\/painel(?:\?evento=[0-9a-f-]{36})?|\/eventos(?:\/[0-9a-f-]{36}(?:\/(?:ao-vivo|resumo))?)?|\/mesas(?:\/(?:poker|blackjack|truco|canastra|pontinho|uno|pife)(?:\?aba=tutorial)?)?|\/ranking|\/perfil|\/administracao)$/i.test(value))return value;
  return "/painel";
