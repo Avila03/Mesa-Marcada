@@ -286,5 +286,9 @@
   {
     "version": "20261029161035",
     "name": "post_game_designed_cards"
+  },
+  {
+    "version": "20261030194815",
+    "name": "table_order_guide"
   }
 ]

@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import {ALL_GAMES,GAME_META,VARIANT_NAMES,defaultVariant,defaultTarget,targetLabel,isChipGame} from "@/lib/games";
 import {GAME_IDENTITY} from "@/lib/game-identity";
 import GameArtwork from "./game-artwork";
+import {rematchForm} from "@/lib/table-setup";
 import {runMutation} from "@/lib/mutations";
 import type {Catalog,EventSnapshot} from "@/lib/club-data";
 import {useProfilePhotos} from "./use-profile-photos";
@@ -42,7 +43,6 @@ import {useClubRealtime} from "./use-club-realtime";
 import type {UpdateScope} from "./use-club-realtime";
 import type {LiveState,LiveActivity} from "./event-live-panel";
 import type {UiIconName} from "./ui-icon";
-import type {AdvancedRank} from "./advanced-ranking";
 import type {HiddenEvent,AdminAudit,AdminFinance} from "./admin-panel";
 const TableTutorial=dynamic(()=>import("./table-tutorial"),{loading:()=>null});
 const AdminPanel=dynamic(()=>import("./admin-panel"),{loading:()=>null});
@@ -51,10 +51,10 @@ const EventLivePanel=dynamic(()=>import("./event-live-panel"),{loading:()=>null}
 const LiveMovements=dynamic(()=>import("./event-live-panel").then(module=>module.LiveMovements),{loading:()=>null});
 const NightSummary=dynamic(()=>import("./night-summary"),{loading:()=>null});
 const SeatingTable=dynamic(()=>import("./seating-table"),{loading:()=>null});
+const RoundOrder=dynamic(()=>import("./round-order"),{loading:()=>null});
 const PostGameShare=dynamic(()=>import("./post-game-share"),{loading:()=>null});
 const ScoreGamePanel=dynamic(()=>import("./score-games"),{loading:()=> <p role="status">Carregando placar…</p>});
 const PlayerScoreResults=dynamic(()=>import("./score-ranking").then(m=>m.PlayerScoreResults));
-const PlayerAchievements=dynamic(()=>import("./advanced-ranking").then(module=>module.PlayerAchievements),{loading:()=>null});
 const PlayerMedals=dynamic(()=>import("./player-medals"),{loading:()=>null});
 const PlayerFrames=dynamic(()=>import("./player-frames"),{loading:()=>null});
 
@@ -128,6 +128,7 @@ export default function PainelPage(){
   const [gameView,setGameView]=useState<Game>("poker");
   const [gameTab,setGameTab]=useState<"eventos"|"tutorial">("eventos");
   const [modal,setModal]=useState<Modal>(null);
+  const [repeatSource,setRepeatSource]=useState("");
   const modalOverlayRef=useStableDialog(modal!==null,page,()=>setModal(null));
   const [loading,setLoading]=useState(true);
   const context=useRef({selectedId,page,profileId});context.current={selectedId,page,profileId};
@@ -163,11 +164,10 @@ export default function PainelPage(){
   const [mySplits,setMySplits]=useState<MyExpenseSplitRow[]>([]);
   const [pendingReconfirmEventId,setPendingReconfirmEventId]=useState<string|undefined>();
   const [ranking,setRanking]=useState<Rank[]>([]);
-  const [annualStats,setAnnualStats]=useState<AdvancedRank[]>([]);
   const [approvals,setApprovals]=useState<{session_id:string;user_id:string;reviewed_at:string}[]>([]);
   const [eventFilter,setEventFilter]=useState<"todos"|"agendados"|"encerrados">("agendados");
   const [form,setForm]=useState<CreateEvent>(defaultEvent);
-  const ownLeagues=leagueCatalog.filter(item=>!item.finished_at&&(item.my_role==="owner"||item.my_role==="organizer"));
+  const ownLeagues=leagueCatalog.filter(item=>!item.finished_at&&(isAdmin||item.my_role==="owner"||item.my_role==="organizer"));
     const [liveSubtab,setLiveSubtab]=useState<LiveSubtab>("compra");
   const [showPastPolls,setShowPastPolls]=useState(false);
   const [cashoutFor,setCashoutFor]=useState("");
@@ -234,9 +234,9 @@ export default function PainelPage(){
     if(profileFlight.current)return profileFlight.current;
     const task=(async()=>{
       const db=getSupabase();if(!db)return;
-      const [all,annual]=await Promise.all([db.rpc("get_player_stats_v2",{p_game:null}),db.rpc("get_player_stats_period_v2",{p_game:null,p_period:"ano"})]);
-      if(all.error||annual.error)throw new Error(all.error?.message||annual.error?.message);
-      setRanking((all.data||[]) as Rank[]);setAnnualStats((annual.data||[]) as AdvancedRank[]);
+      const {data,error}=await db.rpc("get_player_stats_v2",{p_game:null});
+      if(error)throw new Error(error.message);
+      setRanking((data||[]) as Rank[]);
     })();
     profileFlight.current=task;
     try{await task}finally{if(profileFlight.current===task)profileFlight.current=null}
@@ -608,6 +608,7 @@ export default function PainelPage(){
     window.scrollTo({top:0,behavior:"auto"});
   }
   function openEditor(event:Event){
+    setRepeatSource("");
     setForm({
       game_variant:event.game_variant||(roomFor(event.room_id)?.game==="poker"?"texas_holdem":""),score_target:String(event.score_target||0),room_id:event.room_id,name:event.title,starts_at:localDateTimeInput(event.starts_at),
       location:event.location,min_entry_brl:String(event.min_entry_brl),
@@ -620,17 +621,33 @@ export default function PainelPage(){
     setModal("editar-evento");setError("");setMessage("");
   }
   function openCreator(roomId?:string,leagueId=""){
+    setRepeatSource("");
     const room=(roomId?activeRooms.find(r=>r.id===roomId):undefined)||activeRooms.find(r=>r.game==="poker")||activeRooms[0];
     setForm({...defaultEvent,game_variant:defaultVariant(room?.game||"poker")||"",score_target:String(defaultTarget(room?.game||"poker",defaultVariant(room?.game||"poker"))),room_id:room?.id||"",max_participants:String(GAME_META[room?.game||"poker"].capacity),league_id:leagueId,visibility:leagueId?"private":"public"});
     setModal("evento");setError("");setMessage("");
   }
+  async function openRematch(event:Event){
+    if(working)return;setWorking(true);setError("");
+    try{
+      const game=roomFor(event.room_id)?.game;
+      const room=activeRooms.find(r=>r.game===game);
+      if(!game||!room)throw new Error("Esta mesa não está disponível para um novo evento.");
+      const db=getSupabase();if(!db)throw new Error("Conexão indisponível.");
+      const {data,error}=await db.rpc("get_league_catalog_final");if(error)throw error;
+      const leagues=(data||[]) as League[];setLeagueCatalog(leagues);
+      const allowed=leagues.filter(l=>!l.finished_at&&(isAdmin||l.my_role==="owner"||l.my_role==="organizer")).map(l=>l.id);
+      const form=rematchForm(event,game,allowed);setForm({...form,room_id:room.id});
+      setRepeatSource(event.title);setModal("evento");
+      setMessage(event.league_id&&!form.league_id?"A liga de origem não está disponível para você organizar. O novo encontro será independente; você pode escolher outra liga.":"");
+    }catch(e){setError(errText(e))}finally{setWorking(false)}
+  }
   useEffect(()=>{
-    if(!user||modal!=="evento")return;
+    if(!user||modal!=="evento"||repeatSource)return;
     const db=getSupabase();if(!db)return;
     void db.rpc("get_league_catalog_final").then(({data,error})=>{
       if(!error)setLeagueCatalog((data||[]) as League[]);
     });
-  },[user,modal]);
+  },[user,modal,repeatSource]);
   async function addEvent(e:FormEvent<HTMLFormElement>){
     e.preventDefault();
     await act(async(db,id)=>{
@@ -938,7 +955,6 @@ export default function PainelPage(){
         userId={user.id} name={nameFor(profileId||user.id)}
         photoUrl={photoUrls[profileId||user.id]}/>
       <PlayerScoreResults userId={profileId||user.id}/>
-      <PlayerAchievements stats={annualStats} userId={profileId||user.id}/>
       {(profileId||user.id)===user.id&&<MySplitsSummary
         splits={mySplits} settlements={settlements} userId={user.id} nameFor={nameFor}
         onOpenEvent={eventId=>openEvent(eventId,"gastos")}
@@ -963,6 +979,7 @@ export default function PainelPage(){
             <div className="mm-action-row">
 
 
+              {selected.status==="finished"&&privateVisible&&<button type="button" className="btn gold" disabled={working} onClick={()=>void openRematch(selected)}><UiIcon name="plus" size={16}/> Jogar novamente</button>}
               {(organizer||isAdmin)&&selected.status==="scheduled"&&!selectedLive&&
                 <button type="button" className="btn" disabled={working} onClick={()=>openEditor(selected)}>
                   <UiIcon name="settings" size={16}/> Editar evento
@@ -1035,6 +1052,8 @@ export default function PainelPage(){
         {selectedPoints&&(detailTab==="ao-vivo"||detailTab==="resumo-evento")&&(privateVisible?
           <ScoreGamePanel key={selected.id} event={selected} game={selectedGame} guests={guests} seats={seatedGuests} userId={user.id} canManage={organizer||isAdmin} nameFor={nameFor} onChanged={()=>reload()}/>:
           <section className="panel"><h2>Placar restrito</h2><p>Escolha um assento e confirme sua presença para acompanhar o placar.</p></section>)}
+
+        {detailTab==="ao-vivo"&&selectedLive&&privateVisible&&<RoundOrder key={selected.id} eventId={selected.id} game={selectedGame} participants={[...seatedGuests].sort((a,b)=>a.seat_no-b.seat_no).map(s=>s.user_id)} userId={user.id} canManage={(organizer||isAdmin)&&selected.status==="scheduled"} nameFor={nameFor}/>}
 
         {detailTab==="visao"&&<>
         <SeatingTable game={selectedGame}
@@ -1284,8 +1303,9 @@ export default function PainelPage(){
 
     {(modal==="evento"||modal==="editar-evento")&&<div ref={modalOverlayRef} className="mm-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setModal(null)}}>
       <div className="mm-modal" role="dialog" aria-modal="true" aria-labelledby="new-event-title" tabIndex={-1}>
-        <header><div><div className="eyebrow">{modal==="editar-evento"?"AJUSTAR EVENTO":"ORGANIZAR UMA NOITE"}</div><h2 id="new-event-title">{modal==="editar-evento"?"Editar evento":"Criar evento"}</h2></div><button className="mm-close" type="button" aria-label="Fechar" onClick={()=>setModal(null)}><UiIcon name="close" size={22}/></button></header>
+        <header><div><div className="eyebrow">{modal==="editar-evento"?"AJUSTAR EVENTO":"ORGANIZAR UMA NOITE"}</div><h2 id="new-event-title">{modal==="editar-evento"?"Editar evento":repeatSource?"Jogar novamente":"Criar evento"}</h2></div><button className="mm-close" type="button" aria-label="Fechar" onClick={()=>setModal(null)}><UiIcon name="close" size={22}/></button></header>
         <form className="mm-form-stack" onSubmit={modal==="editar-evento"?editEvent:addEvent}>
+          {repeatSource&&<p className="mm-formfoot" role="status">Baseado em <strong>{repeatSource}</strong>. Escolha uma nova data. Os participantes confirmarão presença novamente; resultados, fichas e despesas começam vazios.{message&&" "+message}</p>}
           <label className="mm-field">Escolha a mesa
             <select value={form.room_id} onChange={e=>{
               const newRoom=activeRooms.find(room=>room.id===e.target.value);

@@ -1,5 +1,13 @@
 # Histórico de versões — Mesa Marcada
 
+## v6.5.0 — Preparar e conduzir a próxima mesa (30/10/2026)
+- Perfil com uma única galeria de conquistas (31 medalhas), mantendo molduras, resultados e troféus em destaque. Removido o bloco legado de seis conquistas anuais e sua consulta extra.
+- Histórico do placar começa recolhido, dando prioridade ao placar e aos comandos.
+- Jogar novamente abre um novo formulário com modalidade, variante e configurações da mesa; exige nova data e novas presenças. Não copia resultados, fichas, despesas ou participantes. Liga fechada ou sem permissão resulta em encontro independente privado.
+- Sorteio de duplas/equipes antes do início, com conferência, ajuste manual, equilíbrio obrigatório e preservação dos assentos.
+- Guia compartilhado de quem distribui e quem começa, com sentido e avanço manual da distribuição. Crupiê do Blackjack acompanha o assento dedicado e permanece fixo; eliminados do Pontinho são ignorados. Não altera o placar nem simula cartas.
+- Atualizações da ordem com revisão, recibo idempotente, recuperação de confirmação pendente e leitura restrita aos participantes/anfitrião/admin. Conferência em iPhone físico não realizada nesta sessão.
+
 ## v6.4.1 — Ranking somente nas ligas (29/10/2026)
 - Removida a aba de ranking geral no celular e desktop e o atalho da página inicial. Barra inferior com Início, Eventos, Ligas e Perfil.
 - Rankings por liga e modalidade preservados. Links antigos de `/ranking` redirecionam para `/ligas`, inclusive após login.

@@ -93,31 +93,3 @@ export default function AdvancedRankingPanel({
     <p className="mm-formfoot">Saldo anual = valores finais − compras de fichas, somados nos eventos conciliados do ano. Rendimento = saldo anual ÷ total comprado. Valores informativos; o aplicativo não movimenta dinheiro.</p>
   </div>;
 }
-
-export function PlayerAchievements({stats,userId}:{stats:AdvancedRank[];userId:string}){
-  const rows=stats.filter(x=>x.user_id===userId);
-  if(!rows.length)return null;
-  const nights=rows.reduce((t,x)=>t+Number(x.sessions_played),0);
-  const positive=rows.reduce((t,x)=>t+Number(x.positive_events),0);
-  const streak=Math.max(...rows.map(x=>Number(x.max_positive_streak)),0);
-  const badges=[
-    {icon:"♠",label:"Primeira noite",unlocked:nights>=1,note:"Participar de um evento validado"},
-    {icon:"★",label:"Presença de peso",unlocked:nights>=5,note:"Cinco eventos validados"},
-    {icon:"♦",label:"Noite positiva",unlocked:positive>=1,note:"Terminar um evento com saldo positivo"},
-    {icon:"✦",label:"Sequência boa",unlocked:streak>=3,note:"Três eventos seguidos com saldo positivo"},
-    {icon:"♣",label:"Veterano",unlocked:nights>=10,note:"Dez eventos validados"},
-    {icon:"✧",label:"Consistente",unlocked:positive>=5,note:"Cinco noites positivas"}
-  ];
-  const unlocked=badges.filter(x=>x.unlocked);
-  return <section className="mm-achievements">
-    <div className="mm-section-title"><h2>Conquistas do ano</h2><span className="tag">{unlocked.length}/{badges.length} desbloqueadas</span></div>
-    <div className="mm-achievement-grid">
-      {badges.map(b=><div key={b.label} className={"mm-achievement "+(b.unlocked?"earned":"locked")}>
-        <span className="mm-achievement-symbol" aria-hidden="true">{b.icon}</span>
-        <strong>{b.label}</strong><small>{b.note}</small>
-        <span className="mm-achievement-status">{b.unlocked?"✓ Desbloqueada":"Bloqueada"}</span>
-      </div>)}
-    </div>
-    <p className="mm-formfoot">Conquistas de {new Date().getFullYear()}, calculadas somente com eventos encerrados e revisados. Não envolvem prêmios ou dinheiro.</p>
-  </section>;
-}
