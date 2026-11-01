@@ -1,5 +1,12 @@
 # Histórico de versões — Mesa Marcada
 
+## v6.6.0 — O encerramento da liga vira card (01/11/2026)
+- Card no resumo final de ligas encerradas, com monograma, brasão real, troféu, campeão em destaque, campanha e pódio por modalidade/variante arquivada.
+- Compacto 1080 × 1350 e stories 1080 × 1920; prévia, download PNG e compartilhamento nativo usam a mesma imagem, preparada antes do clique para preservar a ativação no iPhone.
+- Critérios esportivos do arquivo preservados: saldo e participações no Poker/Blackjack; vitórias, aproveitamento e partidas nos demais jogos. Empates recebem a mesma colocação no resumo e no card, com escolha do cocampeão em destaque. Nomes não desempatam títulos.
+- Sem dados financeiros na imagem, estatísticas de vitória inventadas ou campeões sem resultados. Variantes de Poker continuam consolidadas como no arquivo histórico. Nenhuma alteração no banco ou nas permissões de acesso.
+- Testes de 11 modalidades/variantes em ambos os formatos, arquivos antigos, ausência de resultados, títulos compartilhados, brasão e privacidade. Conferência das imagens geradas; teste em iPhone físico segue pendente.
+
 ## v6.5.0 — Preparar e conduzir a próxima mesa (30/10/2026)
 - Perfil com uma única galeria de conquistas (31 medalhas), mantendo molduras, resultados e troféus em destaque. Removido o bloco legado de seis conquistas anuais e sua consulta extra.
 - Histórico do placar começa recolhido, dando prioridade ao placar e aos comandos.
