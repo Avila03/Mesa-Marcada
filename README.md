@@ -1,4 +1,4 @@
-# Mesa Marcada — v6.5.0
+# Mesa Marcada — v6.6.0
 
 Aplicação web para organizar encontros presenciais de **Poker, Blackjack, Truco, Canastra/Buraco, Pontinho, UNO e Pife** entre amigos. Construída com **Next.js 16, React 19 e Supabase Auth/PostgreSQL**, publicada na Vercel. Visual **Dark Cards** inspirado no protótipo HTML v0.5, com prioridade para smartphones.
 
@@ -15,6 +15,7 @@ lateral mantém todos os destinos.
 
 ## Funcionalidades principais
 
+- **Card de encerramento da liga:** no resumo final, escolha uma modalidade e prepare a imagem com brasão, campeão, campanha e pódio. Compacto 4:5 ou stories 9:16, prévia, salvar PNG e compartilhar. Usa apenas a classificação arquivada; empates esportivos geram títulos compartilhados, com escolha do campeão em destaque. Poker/Blackjack mantêm a classificação consolidada do arquivo e mostram participações, sem valores financeiros ou estatísticas de vitória inventadas. Ligas sem resultados não geram campeão.
 - **Jogar novamente:** reutiliza modalidade, variante e regras no formulário; nova data e presenças obrigatórias, sem copiar lançamentos. Liga encerrada ou sem permissão não é reaproveitada.
 - **Preparação e ordem:** sorteio de equipes equilibradas com ajuste antes de iniciar; guia compartilhado de distribuidor e primeiro jogador, com avanço manual por assento. Crupiê fixo no Blackjack e eliminados fora da próxima distribuição no Pontinho.
 - **Perfil e foco na partida:** galeria única de 31 medalhas, molduras e resultados preservados; histórico do placar recolhido por padrão.
@@ -69,6 +70,7 @@ As migrações efetivamente aplicadas estão em [`supabase/migrations/`](supabas
 ```bash
 npm run check:migrations
 npm run check:reliability
+npm run test:league-cards
 npm run test:database
 npm run typecheck
 npm run build

@@ -80,7 +80,7 @@ export default function LeagueFinalizationControls({mode,leagueId,isAdmin=false}
     <span>ARQUIVO DA LIGA</span>
    </div>
    {league.final_summary?
-    <LeagueFinalReport summary={league.final_summary} emblem={league.emblem}/>:
+    <LeagueFinalReport key={league.id} summary={league.final_summary} emblem={league.emblem}/>:
     <section className="mm-league-final-report">
      <div className="mm-closed-ident"><CrestMark value={league.emblem}/><h2>{league.name}</h2></div>
      <p>Esta Liga foi finalizada. O resumo histórico está disponível apenas para os membros e o dono.</p>
@@ -99,7 +99,7 @@ export default function LeagueFinalizationControls({mode,leagueId,isAdmin=false}
   {confirmOpen&&<div className="mm-final-modal-backdrop" role="presentation">
    <div className="mm-final-modal" role="dialog" aria-modal="true" aria-label="Finalizar Liga" aria-describedby="mm-final-warning">
     <h2>Finalizar {league.name}?</h2>
-    <p id="mm-final-warning">Esta ação encerra definitivamente a Liga e gera um relatório com os campeões de Poker e Blackjack, rankings e histórico. Não será possível criar novos eventos nem editar a identidade da Liga.</p>
+    <p id="mm-final-warning">Esta ação encerra definitivamente a Liga e gera um relatório com a classificação de cada modalidade, histórico e cards dos campeões. Não será possível criar novos eventos nem editar a identidade da Liga.</p>
     {scheduled>0&&<p className="mm-final-error">Ainda existem {scheduled} eventos agendados. Encerre ou cancele esses eventos antes de finalizar a Liga.</p>}
     {error&&<p className="mm-final-error" role="alert">{error}</p>}
     <div className="mm-final-modal-actions">
