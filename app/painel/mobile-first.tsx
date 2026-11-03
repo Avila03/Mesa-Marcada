@@ -37,7 +37,12 @@ import PollComposer from "./poll-composer";
 import ExpenseComposer from "./expense-composer";
 import PlayerProfileTrigger from "./player-profile-preview";
 import type {TableSeat} from "./seating-table";
-import {useStableDialog} from "./use-stable-dialog";
+import EventWizard from "./event-wizard";
+import TaskNavigation from "./task-navigation";
+import {EMPTY_EVENT,eventDraftFromEvent,eventDraftKey,validateEventDraft,type EventDraft as CreateEvent} from "@/lib/event-draft";
+import {eventDestination,eventStatus,filterEvents,type EventFilter} from "@/lib/event-navigation";
+import type {ProfileTab,LeagueTab} from "@/lib/app-routes";
+import "./task-layout.css";
 import {readClubRoute,clubHref} from "@/lib/app-routes";
 import {useClubRealtime} from "./use-club-realtime";
 import type {UpdateScope} from "./use-club-realtime";
@@ -59,18 +64,7 @@ const PlayerMedals=dynamic(()=>import("./player-medals"),{loading:()=>null});
 const PlayerFrames=dynamic(()=>import("./player-frames"),{loading:()=>null});
 
 
-type LiveSubtab="compra"|"resumo"|"encerrar";
-type ChipPriceKey="chip_price_1_brl"|"chip_price_5_brl"|"chip_price_10_brl"|"chip_price_25_brl"|"chip_price_50_brl";
-const chipPriceFields:{value:number;key:ChipPriceKey}[]=[
-  {value:1,key:"chip_price_1_brl"},
-  {value:5,key:"chip_price_5_brl"},
-  {value:10,key:"chip_price_10_brl"},
-  {value:25,key:"chip_price_25_brl"},
-  {value:50,key:"chip_price_50_brl"}
-];
-type CreateEvent = {game_variant:string;score_target:string;room_id:string;name:string;starts_at:string;location:string;min_entry_brl:string;max_participants:string;league_id:string;visibility:"public"|"private";chip_pricing_special:boolean}&Record<ChipPriceKey,string>;
-const defaultEvent:CreateEvent={game_variant:"",score_target:"0",room_id:"",name:"",starts_at:"",location:"",min_entry_brl:"0",max_participants:"10",league_id:"",visibility:"public",chip_pricing_special:false,chip_price_1_brl:"1.00",chip_price_5_brl:"5.00",chip_price_10_brl:"0.10",chip_price_25_brl:"0.25",chip_price_50_brl:"0.50"};
-type Modal = "evento" | "editar-evento" | null;
+const defaultEvent=EMPTY_EVENT;
 const MONTHS=["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 const localDateTimeInput=(iso:string)=>{
  const d=new Date(iso);const pad=(n:number)=>String(n).padStart(2,"0");
@@ -97,13 +91,13 @@ function EventTile({value,room,count,confirmed,live,open}:{value:Event;room?:Roo
   return <article className="mm-event-card">
     <GameBanner game={game} name={value.game_variant?VARIANT_NAMES[value.game_variant]:game==="poker"?VARIANT_NAMES.texas_holdem:undefined}/>
     <div className="mm-event-content">
-      <div className="mm-title-actions"><h3>{value.title}</h3><span className={"tag "+(value.status==="scheduled"?game:"archive")}>{value.status==="scheduled"?(live?"Ao vivo":"Agendado"):value.status==="finished"?"Encerrado":"Cancelado"}</span></div>
+      <div className="mm-title-actions"><h3>{value.title}</h3><span className={"tag "+(value.status==="scheduled"?game:"archive")}>{eventStatus(value,live)}</span></div>
       <div className="mm-event-info">{value.league_id&&<span>♠ Evento de liga</span>}<span>◷ {fullDate(value.starts_at)}</span><span>⌖ {value.location}</span></div>
       <div className="mm-event-occupancy"><span>{count} de {value.max_participants} participantes</span><span>{Math.max(0,value.max_participants-count)} vagas</span></div>
       <div className="mm-progress" aria-hidden="true"><div style={{width:(Math.min(1,count/value.max_participants)*100)+"%"}}/></div>
       <div className="mm-v09-event-actions">
         <button type="button" className={confirmed?"btn mm-v09-confirmed":"btn gold"} onClick={open}>
-          {value.status!=="scheduled"?"Ver evento →":live?"Ver partida ao vivo →":confirmed?"✓ Ver meu assento →":"Escolher assento →"}
+          {value.status==="finished"?"Ver resultado →":value.status==="cancelled"?"Ver evento →":live?"Ver partida ao vivo →":confirmed?"✓ Ver meu assento →":"Escolher assento →"}
         </button>
       </div>
     </div>
@@ -118,6 +112,8 @@ export default function PainelPage(){
   const [adminFinance,setAdminFinance]=useState<AdminFinance[]>([]);
   const [page,setPage]=useState<View>("inicio");
   const [routeReady,setRouteReady]=useState(false);
+  const hydratingRoute=useRef(true);
+  const firstRoute=useRef(true),autoEvent=useRef<string|null>(null),replaceRoute=useRef(false);
   const [detailTab,setDetailTab]=useState<DetailTab>("visao");
   const [selectedId,setSelectedId]=useState("");
   const [selectedLeagueId,setSelectedLeagueId]=useState("");
@@ -126,10 +122,14 @@ export default function PainelPage(){
   const [profileReturn,setProfileReturn]=useState<View>("inicio");
   const [financeRows,setFinanceRows]=useState<FinanceLine[]>([]);
   const [gameView,setGameView]=useState<Game>("poker");
+  const [gameVariant,setGameVariant]=useState("");
   const [gameTab,setGameTab]=useState<"eventos"|"tutorial">("eventos");
-  const [modal,setModal]=useState<Modal>(null);
+  const [profileTab,setProfileTab]=useState<ProfileTab>("resumo");
+  const [leagueTab,setLeagueTab]=useState<LeagueTab>("eventos");
+  const [creatorStep,setCreatorStep]=useState(1);
+  const [creatorEpoch,setCreatorEpoch]=useState(0);
+  const [editSeedId,setEditSeedId]=useState("");
   const [repeatSource,setRepeatSource]=useState("");
-  const modalOverlayRef=useStableDialog(modal!==null,page,()=>setModal(null));
   const [loading,setLoading]=useState(true);
   const context=useRef({selectedId,page,profileId});context.current={selectedId,page,profileId};
   const catalogFlight=useRef(new Map<string,Promise<void>>());
@@ -165,14 +165,15 @@ export default function PainelPage(){
   const [pendingReconfirmEventId,setPendingReconfirmEventId]=useState<string|undefined>();
   const [ranking,setRanking]=useState<Rank[]>([]);
   const [approvals,setApprovals]=useState<{session_id:string;user_id:string;reviewed_at:string}[]>([]);
-  const [eventFilter,setEventFilter]=useState<"todos"|"agendados"|"encerrados">("agendados");
+  const [eventFilter,setEventFilter]=useState<EventFilter>("abertos");
   const [form,setForm]=useState<CreateEvent>(defaultEvent);
   const ownLeagues=leagueCatalog.filter(item=>!item.finished_at&&(isAdmin||item.my_role==="owner"||item.my_role==="organizer"));
-    const [liveSubtab,setLiveSubtab]=useState<LiveSubtab>("compra");
+  const liveSubtab=detailTab==="conferencia"?"encerrar":"compra";
   const [showPastPolls,setShowPastPolls]=useState(false);
   const [cashoutFor,setCashoutFor]=useState("");
   const [cashoutDraft,setCashoutDraft]=useState("");
   const [purchaseFor,setPurchaseFor]=useState("");
+  useEffect(()=>{setPurchaseFor("");setCashoutFor("");setCashoutDraft("")},[selectedId]);
   const [finalItems,setFinalItems]=useState<{session_id:string;user_id:string;chip_value:number;quantity:number}[]>([]);
   const [chipCashouts,setChipCashouts]=useState<{session_id:string;user_id:string;final_brl:number;updated_at:string}[]>([]);
   const [chipPayouts,setChipPayouts]=useState<{session_id:string;user_id:string;confirmed_at:string}[]>([]);
@@ -248,7 +249,7 @@ export default function PainelPage(){
   },[]);
   const reload=useCallback(async(_mode:"full"|"list"="full")=>{
     await Promise.all([loadCatalog(),loadPersonalSplits()]);
-    if(context.current.page==="detalhe"&&context.current.selectedId)await loadEvent(context.current.selectedId);
+    if((context.current.page==="detalhe"||context.current.page==="editar-evento")&&context.current.selectedId)await loadEvent(context.current.selectedId);
     if(context.current.page==="perfil")await loadProfileStats();
     if(context.current.page==="admin")await loadAdminAudits();
   },[loadCatalog,loadPersonalSplits,loadEvent,loadProfileStats,loadAdminAudits]);
@@ -257,9 +258,12 @@ export default function PainelPage(){
   // atualização de página reproduzem a mesma tela sem recarregar a SPA.
   useEffect(()=>{
     const sync=()=>{
+      hydratingRoute.current=true;
       const state=readClubRoute(window.location.pathname,window.location.search);
+      if(firstRoute.current){if(state.page==="detalhe"&&(/^\/eventos\/[0-9a-f-]{36}\/?$/i.test(window.location.pathname)||window.location.pathname==="/painel"))autoEvent.current=state.selectedId;firstRoute.current=false;}
       setPage(state.page);setSelectedId(state.selectedId);setSelectedLeagueId(state.leagueId);
-      setDetailTab(state.detailTab);setGameView(state.gameView);setGameTab(state.gameTab);
+      setDetailTab(state.detailTab);setGameView(state.gameView);setGameTab(state.gameTab);setGameVariant(state.gameVariant||"");
+      setProfileId(state.profileId);setProfileTab(state.profileTab);setLeagueTab(state.leagueTab);setCreatorStep(state.creatorStep);setEventFilter(state.eventFilter);
       setRouteReady(true);
     };
     sync();
@@ -269,10 +273,20 @@ export default function PainelPage(){
 
   useEffect(()=>{
     if(!routeReady)return;
-    const next=clubHref(page,selectedId,detailTab,gameView,gameTab,selectedLeagueId);
+    const next=clubHref(page,selectedId,detailTab,gameView,gameTab,selectedLeagueId,{profileId:profileId&&profileId!==user?.id?profileId:"",profileTab,leagueTab,creatorStep,eventFilter,gameVariant});
     const now=window.location.pathname+window.location.search;
-    if(next!==now)window.history.pushState({mesaMarcada:true},"",next);
-  },[routeReady,page,selectedId,detailTab,gameView,gameTab,selectedLeagueId]);
+    if(next!==now){
+      const canonical=hydratingRoute.current||replaceRoute.current||/\/(ao-vivo|resumo)$/.test(window.location.pathname)||window.location.pathname==="/ranking"||page==="perfil"&&profileId===user?.id&&window.location.pathname.startsWith("/jogadores/");
+      if(canonical)window.history.replaceState(window.history.state,"",next);else window.history.pushState({mesaMarcada:true,from:now},"",next);
+    }
+    hydratingRoute.current=false;replaceRoute.current=false;
+  },[routeReady,page,selectedId,detailTab,gameView,gameTab,selectedLeagueId,profileId,profileTab,leagueTab,creatorStep,eventFilter,gameVariant,user?.id]);
+
+  useEffect(()=>{
+    if(!routeReady)return;
+    const frame=requestAnimationFrame(()=>{const heading=document.querySelector<HTMLElement>("#main-content h1");if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true})}});
+    return()=>cancelAnimationFrame(frame);
+  },[routeReady,page,detailTab,profileTab,leagueTab,creatorStep]);
 
   // Concurrent scopes share one catalog request and one event snapshot.
   const refreshScope=useCallback(async(scope:UpdateScope)=>{
@@ -291,7 +305,7 @@ export default function PainelPage(){
     if(scope==="expenses")await loadPersonalSplits();
   },[loadCatalog,loadEvent,loadPersonalSplits]);
 
-  const connection=useClubRealtime({enabled:Boolean(user),eventId:page==="detalhe"?selectedId:"",onRefresh:refreshScope});
+  const connection=useClubRealtime({enabled:Boolean(user),eventId:page==="detalhe"||page==="editar-evento"?selectedId:"",onRefresh:refreshScope});
 
   useEffect(()=>{
     let alive=true;
@@ -332,12 +346,12 @@ export default function PainelPage(){
     if(!user||!routeReady)return;
     let active=true;
     setDetailLoading(true);
-    const task=page==="detalhe"&&selectedId?loadEvent(selectedId):
+    const task=(page==="detalhe"||page==="editar-evento")&&selectedId?(events.some(e=>e.id===selectedId)?loadEvent(selectedId):loadCatalog().then(()=>loadEvent(selectedId))):
       page==="perfil"?loadProfileStats():page==="admin"?loadAdminAudits():Promise.resolve();
     void task.catch(e=>{if(active)setError("Não foi possível carregar esta área: "+errText(e))})
       .finally(()=>{if(active)setDetailLoading(false)});
     return()=>{active=false};
-  },[user,routeReady,page,selectedId,loadEvent,loadProfileStats,loadAdminAudits]);
+  },[user,routeReady,page,selectedId,loadEvent,loadCatalog,loadProfileStats,loadAdminAudits,events.some(e=>e.id===selectedId)]);
 
   useEffect(()=>{
     const id=profileId||user?.id;if(page!=="perfil"||!id)return;
@@ -383,7 +397,7 @@ export default function PainelPage(){
   }
 
   async function startLiveEvent(eventId:string){
-    if(!window.confirm("Iniciar o Evento ao Vivo? Os participantes confirmados poderão acompanhar a linha do tempo da partida."))return;
+    if(!window.confirm("Iniciar a partida com os participantes confirmados? Os assentos ficam bloqueados até o encerramento."))return;
     const db=getSupabase();
     if(!db||!user)return;
     setWorking(true);setMessage("");setError("");
@@ -392,7 +406,7 @@ export default function PainelPage(){
       if(startError)throw startError;
       void sendEventPush(eventId,"live");
       const updates=await Promise.allSettled([refreshScope("chips"),refreshScope("catalog")]);
-      setDetailTab("ao-vivo");setLiveSubtab("compra");
+      setDetailTab("ao-vivo");
       setMessage("Evento ao Vivo iniciado!"+(updates.some(r=>r.status==="rejected")?" A atualização da tela está pendente.":" Os registros da mesa aparecem na linha do tempo."));
     }catch(e){setError(errText(e));}
     finally{setWorking(false);}
@@ -419,7 +433,7 @@ export default function PainelPage(){
   async function act(fn:(db:SupabaseClient,id:string)=>Promise<void>,success:string,
                      scope?:UpdateScope|UpdateScope[]){
     const db=getSupabase();
-    if(!db||!user)return;
+    if(!db||!user)return false;
     setWorking(true);setMessage("");setError("");
     try{
       await fn(db,user.id);
@@ -428,7 +442,8 @@ export default function PainelPage(){
         if(scope)await Promise.all((Array.isArray(scope)?scope:[scope]).map(item=>refreshScope(item)));
         else await reload();
       }catch{setMessage(success+" A atualização da tela está pendente.");}
-    }catch(e){setError(errText(e));}
+      return true;
+    }catch(e){setError(errText(e));return false;}
     finally{setWorking(false);}
   }
 
@@ -445,7 +460,10 @@ export default function PainelPage(){
   const agendaEvents=events.filter(e=>!hiddenEventIds.has(e.id));
   // Evita apresentar eventos históricos ou excluídos como "Sua próxima noite".
   const upcoming=agendaEvents.filter(e=>e.status==="scheduled"&&new Date(e.starts_at).getTime()>=Date.now())
+    .filter(e=>!liveStates.some(l=>l.session_id===e.id))
     .sort((a,b)=>new Date(a.starts_at).getTime()-new Date(b.starts_at).getTime());
+  const activeEvents=agendaEvents.filter(e=>e.status==="scheduled"&&liveStates.some(l=>l.session_id===e.id)&&(e.organizer_id===user?.id||attendances.some(a=>a.session_id===e.id&&a.user_id===user?.id)));
+  const waitingEvents=agendaEvents.filter(e=>e.status==="scheduled"&&!liveStates.some(l=>l.session_id===e.id)&&Date.parse(e.starts_at)<Date.now()&&(e.organizer_id===user?.id||attendances.some(a=>a.session_id===e.id&&a.user_id===user?.id)));
   const myUpcoming=upcoming.filter(e=>attendances.some(a=>a.session_id===e.id&&a.user_id===user?.id));
   useEffect(()=>{
     const uid=user?.id;
@@ -464,18 +482,26 @@ export default function PainelPage(){
     const timer=window.setInterval(focus,45000);
     return()=>{alive=false;clearInterval(timer);document.removeEventListener("visibilitychange",focus)};
   },[user?.id,upcoming.map(e=>e.id+e.starts_at).join(",")]);
-  const formGame:Game=activeRooms.find(r=>r.id===form.room_id)?.game||"poker";
   const selected=events.find(e=>e.id===selectedId);
   const selectedLive=liveStates.find(l=>l.session_id===selectedId);
   const eventLiveActivities=liveActivities.filter(a=>a.session_id===selectedId);
   const guests=selected?attendances.filter(a=>a.session_id===selected.id):[];
   const selectedGame:Game=selected?(roomFor(selected.room_id)?.game||"poker"):"poker";
   const selectedPoints=!isChipGame(selectedGame);
+  useEffect(()=>{
+    if(loading||detailLoading||page!=="detalhe"||!selected||autoEvent.current!==selected.id)return;
+    autoEvent.current=null;const destination=eventDestination(selected,Boolean(selectedLive));
+    if(destination!==detailTab){replaceRoute.current=true;setDetailTab(destination)}
+  },[loading,detailLoading,page,selected?.id,selected?.status,Boolean(selectedLive),detailTab]);
   const seatedGuests=selected?tableSeats.filter(st=>st.session_id===selected.id):[];
   const blackjackDealerReady=selectedGame!=="blackjack"||seatedGuests.some(st=>st.seat_no===0);
   const meConfirmed=Boolean(user&&guests.some(a=>a.user_id===user.id));
   const organizer=Boolean(user&&selected?.organizer_id===user.id);
   const privateVisible=meConfirmed||organizer||isAdmin;
+  useEffect(()=>{
+    if(page!=="editar-evento"||!selected||editSeedId===selected.id)return;
+    setForm(eventDraftFromEvent(selected,selectedGame));setEditSeedId(selected.id);
+  },[page,selected,editSeedId,selectedGame]);
   const eventBuys=selected?buys.filter(b=>b.session_id===selected.id):[];
   const eventFinalItems=selected?finalItems.filter(f=>f.session_id===selected.id):[];
   const eventCashouts=selected?chipCashouts.filter(c=>c.session_id===selected.id):[];
@@ -490,8 +516,8 @@ export default function PainelPage(){
   const cashBalanced=eventBuys.length>0&&guests.length>0&&guests.every(g=>eventCashouts.some(c=>c.user_id===g.user_id))
     &&eventCashouts.every(c=>guests.some(g=>g.user_id===c.user_id))
     &&Math.round(totalFinalBRL*100)===Math.round(totalBoughtBRL*100);
-  const cashoutTarget=(organizer||isAdmin)?(cashoutFor||guests[0]?.user_id||user?.id):(user?.id);
-  const buyingTarget=(organizer||isAdmin)?(purchaseFor||guests[0]?.user_id||user?.id):(user?.id);
+  const cashoutTarget=(organizer||isAdmin)?(cashoutFor||(guests.some(g=>g.user_id===user?.id)?user?.id:guests[0]?.user_id)):(user?.id);
+  const buyingTarget=(organizer||isAdmin)?(purchaseFor||(guests.some(g=>g.user_id===user?.id)?user?.id:guests[0]?.user_id)):(user?.id);
   const playerSettlement=(id:string)=>{
     const purchased=eventBuys.filter(b=>b.user_id===id).reduce((n,b)=>n+Number(b.amount_brl),0);
     const returned=selected?.chip_settlement_brl
@@ -581,50 +607,37 @@ export default function PainelPage(){
     }catch(e){setError(errText(e));return false}finally{setWorking(false)}
   }
 
-  function openEvent(id:string,sub:DetailTab="visao",adminAccess=false){
-    // Eventos excluídos são acessíveis exclusivamente pela Administração.
-    if(hiddenEvents.some(h=>h.session_id===id)&&!(adminAccess&&isAdmin)){
-      setError("Este evento foi excluído da agenda pelo administrador.");
-      return;
-    }
-    setSelectedId(id);setLiveActivities([]);
-    const isFinished=events.some(ev=>ev.id===id&&ev.status==="finished");
-    setDetailTab(isFinished?"resumo-evento":sub==="fichas"?"ao-vivo":
-      (sub==="assentos"||sub==="enquetes"||sub==="gastos"?"visao":sub));
-    setLiveSubtab("compra");
-    setShowPastPolls(false);
-    setPage("detalhe");setError("");setMessage("");window.scrollTo({top:0,behavior:"auto"});
-    if(sub==="gastos")window.setTimeout(()=>document.getElementById("event-expenses")?.scrollIntoView({behavior:"smooth",block:"start"}),140);
+  function openEvent(id:string,sub?:DetailTab,adminAccess=false){
+    if(hiddenEvents.some(h=>h.session_id===id)&&!(adminAccess&&isAdmin)){setError("Este evento foi excluído da agenda pelo administrador.");return}
+    const event=events.find(ev=>ev.id===id),live=liveStates.some(l=>l.session_id===id);
+    autoEvent.current=sub?null:id;
+    setSelectedId(id);setLiveActivities([]);setPurchaseFor("");setCashoutFor("");setCashoutDraft("");
+    setDetailTab(sub==="fichas"?"ao-vivo":sub==="assentos"?"visao":sub||eventDestination(event||{status:"scheduled"},live));
+    setShowPastPolls(false);setPage("detalhe");setError("");setMessage("");window.scrollTo({top:0,behavior:"auto"});
   }
-  function openLeague(id:string,manage=false){
-    setSelectedLeagueId(id);setPage(manage?"liga-admin":"liga");setError("");setMessage("");
+  function goBack(fallback:()=>void){
+    if(window.history.state?.mesaMarcada&&typeof window.history.state.from==="string")window.history.back();else fallback();
+  }
+  function openLeague(id:string,manage=false,section:LeagueTab="eventos"){
+    setSelectedLeagueId(id);setLeagueTab(section);setPage(manage?"liga-admin":"liga");setError("");setMessage("");
     window.scrollTo({top:0,behavior:"auto"});
   }
   function go(next:View){
+    if(next==="perfil")setProfileTab("resumo");
     setPage(next);setError("");setMessage("");window.scrollTo({top:0,behavior:"auto"});
   }
-  function openGame(game:Game,tab:"eventos"|"tutorial"="eventos"){
-    setGameView(game);setGameTab(tab);setPage("mesa");setError("");setMessage("");
+  function openGame(game:Game,tab:"eventos"|"tutorial"="eventos",variant=""){
+    setGameView(game);setGameTab(tab);setGameVariant(variant);setPage("mesa");setError("");setMessage("");
     window.scrollTo({top:0,behavior:"auto"});
   }
   function openEditor(event:Event){
-    setRepeatSource("");
-    setForm({
-      game_variant:event.game_variant||(roomFor(event.room_id)?.game==="poker"?"texas_holdem":""),score_target:String(event.score_target||0),room_id:event.room_id,name:event.title,starts_at:localDateTimeInput(event.starts_at),
-      location:event.location,min_entry_brl:String(event.min_entry_brl),
-      max_participants:String(event.max_participants),league_id:event.league_id||"",
-      visibility:event.visibility,chip_pricing_special:event.chip_pricing_special,
-      chip_price_1_brl:String(event.chip_price_1_brl),chip_price_5_brl:String(event.chip_price_5_brl),
-      chip_price_10_brl:String(event.chip_price_10_brl),chip_price_25_brl:String(event.chip_price_25_brl),
-      chip_price_50_brl:String(event.chip_price_50_brl)
-    });
-    setModal("editar-evento");setError("");setMessage("");
+    setRepeatSource("");setSelectedId(event.id);setForm(eventDraftFromEvent(event,roomFor(event.room_id)?.game));setEditSeedId(event.id);setCreatorStep(1);setCreatorEpoch(n=>n+1);go("editar-evento");
   }
   function openCreator(roomId?:string,leagueId=""){
     setRepeatSource("");
-    const room=(roomId?activeRooms.find(r=>r.id===roomId):undefined)||activeRooms.find(r=>r.game==="poker")||activeRooms[0];
-    setForm({...defaultEvent,game_variant:defaultVariant(room?.game||"poker")||"",score_target:String(defaultTarget(room?.game||"poker",defaultVariant(room?.game||"poker"))),room_id:room?.id||"",max_participants:String(GAME_META[room?.game||"poker"].capacity),league_id:leagueId,visibility:leagueId?"private":"public"});
-    setModal("evento");setError("");setMessage("");
+    const room=roomId?activeRooms.find(r=>r.id===roomId):undefined;
+    setForm({...defaultEvent,...(room?{game_variant:defaultVariant(room.game)||"",score_target:String(defaultTarget(room.game,defaultVariant(room.game))),room_id:room.id,max_participants:String(GAME_META[room.game].capacity)}:{}),league_id:leagueId,visibility:leagueId?"private":"public"});
+    setCreatorStep(1);setCreatorEpoch(n=>n+1);go("criar-evento");
   }
   async function openRematch(event:Event){
     if(working)return;setWorking(true);setError("");
@@ -637,20 +650,21 @@ export default function PainelPage(){
       const leagues=(data||[]) as League[];setLeagueCatalog(leagues);
       const allowed=leagues.filter(l=>!l.finished_at&&(isAdmin||l.my_role==="owner"||l.my_role==="organizer")).map(l=>l.id);
       const form=rematchForm(event,game,allowed);setForm({...form,room_id:room.id});
-      setRepeatSource(event.title);setModal("evento");
+      try{sessionStorage.setItem(eventDraftKey(user!.id),JSON.stringify({version:1,form:{...form,room_id:room.id},step:1}))}catch{}
+      setRepeatSource(event.title);setCreatorStep(1);setCreatorEpoch(n=>n+1);go("criar-evento");
       setMessage(event.league_id&&!form.league_id?"A liga de origem não está disponível para você organizar. O novo encontro será independente; você pode escolher outra liga.":"");
     }catch(e){setError(errText(e))}finally{setWorking(false)}
   }
   useEffect(()=>{
-    if(!user||modal!=="evento"||repeatSource)return;
+    if(!user||(page!=="criar-evento"&&page!=="editar-evento"))return;
     const db=getSupabase();if(!db)return;
     void db.rpc("get_league_catalog_final").then(({data,error})=>{
       if(!error)setLeagueCatalog((data||[]) as League[]);
     });
-  },[user,modal,repeatSource]);
-  async function addEvent(e:FormEvent<HTMLFormElement>){
-    e.preventDefault();
-    await act(async(db,id)=>{
+  },[user,page]);
+  async function addEvent(form:CreateEvent):Promise<boolean>{
+    const issue=validateEventDraft(form,activeRooms);if(issue){setError(issue.message);return false}
+    return act(async(db,id)=>{
       const room=activeRooms.find(r=>r.id===form.room_id);
       if(!room)throw new Error("Selecione uma modalidade para criar o evento.");
       if(!form.starts_at)throw new Error("Informe data e horário.");
@@ -669,16 +683,16 @@ export default function PainelPage(){
         chip_price_50_brl:form.chip_pricing_special?Number(form.chip_price_50_brl):0.50
       }).select("id").single();
       if(eventError)throw eventError;
-      setModal(null);openEvent(data.id,"visao");
+      openEvent(data.id,"visao");
       if(form.visibility==="public"&&!form.league_id)void sendEventPush(data.id,"event");
     },"Evento criado! Escolham uma cadeira para participar.");
   }
 
-  async function editEvent(e:FormEvent<HTMLFormElement>){
-    e.preventDefault();
+  async function editEvent(form:CreateEvent):Promise<boolean>{
     const event=selected;
-    if(!event)throw new Error("Selecione um evento para editar.");
-    await act(async db=>{
+    if(!event){setError("Selecione um evento para editar.");return false}
+    const issue=validateEventDraft(form,activeRooms);if(issue){setError(issue.message);return false}
+    return act(async db=>{
       if(!form.starts_at)throw new Error("Informe data e horário.");
       const {error:editError}=await db.rpc("edit_event_details",{
         p_event_id:event.id,p_title:form.name.trim(),
@@ -693,7 +707,7 @@ export default function PainelPage(){
         p_chip_price_50_brl:form.chip_pricing_special?Number(form.chip_price_50_brl):0.50
       });
       if(editError)throw editError;
-      setModal(null);
+      openEvent(event.id,"visao");
       void sendEventPush(event.id,"edit");
     },"Evento atualizado! Os participantes serão avisados das alterações.",["catalog","presence"]);
   }
@@ -740,8 +754,7 @@ export default function PainelPage(){
       const description=errText(e);setError(description);throw new Error(description);
     }finally{setWorking(false);}
   }
-  const visibleEvents=agendaEvents.filter(e=>eventFilter==="todos"||
-    (eventFilter==="agendados"?e.status==="scheduled":e.status!=="scheduled"));
+  const visibleEvents=filterEvents(agendaEvents,new Set(liveStates.map(l=>l.session_id)),eventFilter);
 
   if(loading)return <main className="mm-login-shell"><p className="mm-loading">Preparando sua mesa...</p></main>;
   if(!user)return <main className="mm-login-shell"><div className="mm-login-card"><SiteLogo kind="mobile"/><p className="mm-message">{error||"Redirecionando para login..."}</p><a href="/login" className="btn gold">Ir para o login</a></div></main>;
@@ -749,12 +762,12 @@ export default function PainelPage(){
   const navEntries:[View,string,UiIconName][]=[
     ["inicio","Início","home"],
     ["eventos","Eventos","calendar"],
-    ["mesas","Mesas","cards"],
+    ["mesas","Jogos","cards"],
     ["ligas","Ligas","users"],
     ["perfil","Perfil","user"],
     ...(isAdmin?[["admin","Administração","settings"] as [View,string,UiIconName]]:[])
   ];
-  const activePage=page==="detalhe"?"eventos":page==="mesa"?"mesas":page==="liga"||page==="liga-admin"?"ligas":page;
+  const activePage=page==="detalhe"||page==="criar-evento"||page==="editar-evento"?"eventos":page==="mesa"?"mesas":page==="liga"||page==="liga-admin"?"ligas":page;
   // Quatro destinos: o ranking fica dentro de cada liga.
   const mobileNavEntries=navEntries.filter(([id])=>
     id==="inicio"||id==="eventos"||id==="ligas"||id==="perfil"
@@ -795,7 +808,7 @@ export default function PainelPage(){
         <div className="mm-mobile-account"><button type="button" className="mm-v09-profile-link" aria-label="Abrir meu perfil" onClick={()=>{setProfileId(user.id);go("perfil")}}><PlayerAvatar photoUrl={photoUrls[user.id]} name={nickname}/></button><button type="button" aria-label="Sair" onClick={async()=>{await getSupabase()?.auth.signOut();window.location.replace("/login")}}><UiIcon name="log-out" size={21}/></button></div>
       </div>
       <div className="mm-breadcrumb-row">
-        <div className="breadcrumb">Mesa Marcada　/　{page==="inicio"?"Visão geral":page==="detalhe"?"Evento":page==="mesa"?"Mesa de "+gameName(gameView):page==="eventos"?"Eventos":page==="mesas"?"Mesas":page==="perfil"?"Perfil":page==="admin"?"Administração":page==="ligas"||page==="liga"||page==="liga-admin"?"Ligas":"Visão geral"}</div>
+        <div className="breadcrumb">Mesa Marcada　/　{page==="inicio"?"Visão geral":page==="detalhe"?"Evento":page==="mesa"?"Mesa de "+gameName(gameView):page==="eventos"?"Eventos":page==="criar-evento"?"Criar evento":page==="editar-evento"?"Editar evento":page==="mesas"?"Jogos":page==="perfil"?"Perfil":page==="admin"?"Administração":page==="ligas"||page==="liga"||page==="liga-admin"?"Ligas":"Visão geral"}</div>
         <div className="mm-connection-group">
           <span className={"mm-sync-pill "+connection} role="status" aria-live="polite"
             title={connection==="connected"?"Atualizações em tempo real ativas":connection==="offline"?"Sem conexão; atualiza ao reconectar":connection==="stale"?"Atualização pendente; uma nova tentativa será feita automaticamente":"Sincronizando dados"}>
@@ -811,18 +824,26 @@ export default function PainelPage(){
 
       <NotificationCenter userId={user.id} onOpenEvent={id=>openEvent(id)} onOpenLeague={openLeague}/>
 
+      {(page==="criar-evento"||page==="editar-evento")&&(page==="criar-evento"||selected&&editSeedId===selected.id)&&
+        (page==="editar-evento"&&(!selected||selected.status!=="scheduled"||selectedLive||!organizer&&!isAdmin)?
+          <section className="panel"><h1>Evento indisponível para edição</h1><p>Somente o anfitrião ou administrador pode editar um evento antes do início.</p><button className="btn" onClick={()=>openEvent(selectedId)}>Voltar ao evento</button></section>:
+          <EventWizard key={user.id+":"+page+":"+selectedId+":"+creatorEpoch} userId={user.id} initial={form}
+            event={page==="editar-evento"?selected||undefined:undefined} rooms={activeRooms} leagues={ownLeagues}
+            step={creatorStep} onStep={setCreatorStep} onSave={page==="editar-evento"?editEvent:addEvent}
+            onExit={()=>page==="editar-evento"?openEvent(selectedId,"visao"):go("eventos")}
+            busy={working} pricingLocked={page==="editar-evento"&&Boolean(selected?.chip_pricing_locked||eventBuys.length)} source={repeatSource}/>) }
        {page==="inicio"&&<DashboardV16
-        firstName={firstName} userId={user.id} upcoming={upcoming}
+        firstName={firstName} userId={user.id} upcoming={upcoming} activeEvents={activeEvents} waitingEvents={waitingEvents}
         attendances={attendances} rooms={activeRooms}
         mySplits={mySplits} settlements={settlements}
         isAdmin={isAdmin}
-        onCreate={openCreator}
+        onCreate={()=>openCreator()}
         onOpenEvent={id=>openEvent(id)}
 
         onEvents={()=>go("eventos")}
         onGame={openGame}
         onTables={()=>go("mesas")}
-        onProfile={()=>{setProfileId(user.id);go("perfil")}}
+        onProfile={()=>{setProfileId(user.id);setProfileTab("rachas");setPage("perfil");window.scrollTo({top:0,behavior:"auto"})}}
         onAdmin={()=>go("admin")}
         onLeagues={()=>go("ligas")}
         onOpenLeague={id=>openLeague(id)}
@@ -833,7 +854,8 @@ export default function PainelPage(){
         <LeagueHub isAdmin={isAdmin} leagueId={selectedLeagueId}
           mode={page==="ligas"?"list":page==="liga-admin"?"manage":"detail"}
           userId={user.id} profiles={profiles} events={agendaEvents} rooms={activeRooms} attendances={attendances}
-          onBack={()=>go("ligas")}
+          section={leagueTab} onSection={setLeagueTab} liveEventIds={liveStates.map(l=>l.session_id)}
+          onBack={()=>goBack(()=>page==="liga-admin"?openLeague(selectedLeagueId):go("ligas"))}
           onOpenLeague={openLeague}
           onOpenEvent={id=>openEvent(id)}
           onCreateEvent={leagueId=>openCreator(undefined,leagueId)}
@@ -842,13 +864,13 @@ export default function PainelPage(){
       {page==="eventos"&&<>
         <div className="heading"><div><div className="eyebrow">AGENDA DO GRUPO</div><h1>Eventos</h1><p>Confira as próximas noites ou marque um novo encontro.</p></div><button className="btn gold mm-create" type="button" onClick={()=>openCreator()}><UiIcon name="plus" size={18}/> Criar evento</button></div>
         <div className="mm-filter-bar" aria-label="Filtrar eventos">
-          {([["agendados","Próximos"],["todos","Todos"],["encerrados","Anteriores"]] as const).map(([id,label])=>
-            <button className={"filter "+(eventFilter===id?"active":"")} type="button" key={id} onClick={()=>setEventFilter(id)}>{label}</button>
+          {([["abertos","Em aberto"],["ao-vivo","Ao vivo"],["encerrados","Histórico"],["todos","Todos"]] as const).map(([id,label])=>
+            <button className={"filter "+(eventFilter===id?"active":"")} type="button" aria-pressed={eventFilter===id} key={id} onClick={()=>setEventFilter(id)}>{label}</button>
           )}
         </div>
         <div className="mm-eventgrid">
           {visibleEvents.map(ev=><EventTile key={ev.id} value={ev} room={roomFor(ev.room_id)} count={attendances.filter(a=>a.session_id===ev.id).length} confirmed={attendances.some(a=>a.session_id===ev.id&&a.user_id===user.id)} live={ev.status==="scheduled"&&liveStates.some(l=>l.session_id===ev.id)} open={()=>openEvent(ev.id)}/>)}
-          {historyMore&&eventFilter!=="agendados"&&<button type="button" className="btn" disabled={historyLoading} onClick={()=>{
+          {historyMore&&(eventFilter==="todos"||eventFilter==="encerrados")&&<button type="button" className="btn" disabled={historyLoading} onClick={()=>{
             setHistoryLoading(true);void loadCatalog(true).catch(e=>setError(errText(e))).finally(()=>setHistoryLoading(false));
           }}>{historyLoading?"Carregando…":"Carregar eventos anteriores"}</button>}
         </div>
@@ -857,7 +879,7 @@ export default function PainelPage(){
 
       {page==="mesas"&&<>
         <div className="heading">
-          <div><div className="eyebrow">ESCOLHA SEU JOGO</div><h1>Mesas</h1><p>Sete modalidades, um lugar para organizar cada rodada. Escolha uma mesa para ver os eventos e aprender as regras.</p></div>
+          <div><div className="eyebrow">ESCOLHA SEU JOGO</div><h1>Jogos e tutoriais</h1><p>Escolha uma modalidade para organizar um encontro ou aprender a jogar.</p></div>
         </div>
         <div className="mm-rooms mm-permanent-tables">
           {ALL_GAMES.map(game=>{
@@ -883,7 +905,7 @@ export default function PainelPage(){
       </>}
 
       {page==="mesa"&&<>
-        <button className="back" type="button" onClick={()=>go("mesas")}>← Voltar às mesas</button>
+        <button className="back" type="button" onClick={()=>goBack(()=>go("mesas"))}>← Voltar</button>
         <div className="mm-table-hero">
           <GameBanner game={gameView} large/>
           <div className="mm-table-hero-content">
@@ -913,7 +935,7 @@ export default function PainelPage(){
             <button type="button" className="btn gold" onClick={()=>openCreator(activeRooms.find(r=>r.game===gameView)?.id)}><UiIcon name="plus" size={18}/> Criar evento</button>
           </div>}
         </>}
-        {gameTab==="tutorial"&&<TableTutorial game={gameView}/>}
+        {gameTab==="tutorial"&&<TableTutorial key={gameView+":"+gameVariant} game={gameView} variant={gameVariant}/>}
       </>}
 
       {page==="admin"&&isAdmin&&<AdminPanel
@@ -925,18 +947,17 @@ export default function PainelPage(){
       />}
 
       {page==="perfil"&&<>
-      {isAdmin&&(!profileId||profileId===user.id)&&
-        <button type="button" className="mm-profile-admin-link" onClick={()=>go("admin")}>
-          <UiIcon name="settings" size={20}/>
-          <span><strong>Administração geral</strong><small>Gerenciar eventos, Anfitriões e auditoria</small></span>
-          <UiIcon name="arrow-right" size={18}/>
-        </button>}
-      <ProfilePanel
+        {profileTab!=="resumo"&&<><button type="button" className="back" onClick={()=>goBack(()=>setProfileTab("resumo"))}>← Voltar</button><TaskNavigation label="Páginas do perfil" active={profileTab} items={([
+          ["resumo","Perfil"],["conquistas","Conquistas"],["molduras","Molduras"],["resultados","Resultados"],
+          ...(!profileId||profileId===user.id?[["rachas","Meus rachas"]]:[])
+        ] as [ProfileTab,string][]).map(([id,label])=>({id,label,href:clubHref("perfil","","visao","poker","eventos","",{profileId:profileId&&profileId!==user.id?profileId:"",profileTab:id}),onSelect:()=>setProfileTab(id)}))}/></>}
+        {(["resumo","editar","resultados"] as ProfileTab[]).includes(profileTab)&&<>
+      <ProfilePanel key={(profileId||user.id)+":"+profileTab} mode={profileTab==="editar"?"edit":profileTab==="resultados"?"results":"summary"} onEdit={()=>setProfileTab("editar")} onCancel={()=>setProfileTab("resumo")}
         profile={profiles.find(p=>p.id===(profileId||user.id))}
-        userId={user.id} events={agendaEvents} attendances={attendances.filter(a=>agendaEvents.some(e=>e.id===a.session_id))} stats={ranking}
+        userId={user.id} events={agendaEvents} attendances={attendances.filter(a=>agendaEvents.some(e=>e.id===a.session_id))} stats={ranking} liveEventIds={liveStates.map(l=>l.session_id)}
         photoUrl={photoUrls[profileId||user.id]}
         onUploadPhoto={uploadProfilePhoto} onRemovePhoto={removeProfilePhoto}
-        busy={working} onBack={profileId&&profileId!==user.id?()=>go(profileReturn):undefined}
+        busy={working} onBack={profileId&&profileId!==user.id?()=>goBack(()=>go(profileReturn)):undefined}
         onSave={async details=>{
           const db=getSupabase();
           if(!db)throw new Error("Sem conexão com o banco.");
@@ -944,42 +965,48 @@ export default function PainelPage(){
           try{
             const {error:updateError}=await db.from("profiles").update(details).eq("id",user.id);
             if(updateError)throw updateError;
-            await reload();setMessage("Perfil atualizado!");
+            await reload();setProfileTab("resumo");setMessage("Perfil atualizado!");
           }finally{setWorking(false);}
         }}
       />
-      <PlayerMedals key={profileId||user.id} playerId={profileId||user.id}
-        userId={user.id} name={nameFor(profileId||user.id)}
-        photoUrl={photoUrls[profileId||user.id]}/>
-      <PlayerFrames key={"frames-"+(profileId||user.id)} playerId={profileId||user.id}
-        userId={user.id} name={nameFor(profileId||user.id)}
-        photoUrl={photoUrls[profileId||user.id]}/>
-      <PlayerScoreResults userId={profileId||user.id}/>
-      {(profileId||user.id)===user.id&&<MySplitsSummary
-        splits={mySplits} settlements={settlements} userId={user.id} nameFor={nameFor}
-        onOpenEvent={eventId=>openEvent(eventId,"gastos")}
 
-      />}
+        </>}
+        {profileTab==="resumo"&&<><div className="mm-profile-destinations" aria-label="Áreas do perfil">{([
+          ["conquistas","Conquistas","Sua coleção de medalhas"],["molduras","Molduras","Personalize sua foto"],["resultados","Resultados","Seu desempenho por jogo"],
+          ...(!profileId||profileId===user.id?[["rachas","Meus rachas","Sua parte nas despesas"]]:[])
+        ] as [ProfileTab,string,string][]).map(([id,label,description])=><button key={id} type="button" onClick={()=>{setProfileTab(id);window.scrollTo({top:0,behavior:"auto"})}}><span><strong>{label}</strong><small>{description}</small></span><UiIcon name="arrow-right" size={20}/></button>)}</div>
+        <PlayerMedals key={"compact-"+(profileId||user.id)} compact onView={()=>setProfileTab("conquistas")} playerId={profileId||user.id} userId={user.id} name={nameFor(profileId||user.id)} photoUrl={photoUrls[profileId||user.id]}/>
+        {isAdmin&&(!profileId||profileId===user.id)&&<button type="button" className="mm-profile-admin-link" onClick={()=>go("admin")}><UiIcon name="settings" size={20}/><span><strong>Administração geral</strong><small>Gerenciar eventos, anfitriões e auditoria</small></span><UiIcon name="arrow-right" size={18}/></button>}
+        </>}
+        {profileTab==="conquistas"&&<><header className="mm-task-heading"><h1>Conquistas</h1><p>Medalhas, progresso e seus três troféus em destaque.</p></header><PlayerMedals key={profileId||user.id} expandedOnLoad playerId={profileId||user.id} userId={user.id} name={nameFor(profileId||user.id)} photoUrl={photoUrls[profileId||user.id]}/></>}
+        {profileTab==="molduras"&&<><header className="mm-task-heading"><h1>Molduras</h1><p>Escolha a moldura que acompanha sua foto.</p></header><PlayerFrames key={"frames-"+(profileId||user.id)} playerId={profileId||user.id} userId={user.id} name={nameFor(profileId||user.id)} photoUrl={photoUrls[profileId||user.id]}/></>}
+        {profileTab==="resultados"&&<PlayerScoreResults userId={profileId||user.id}/>}
+        {profileTab==="rachas"&&(!profileId||profileId===user.id)&&<><header className="mm-task-heading"><h1>Meus rachas</h1><p>Consulte sua parte nas despesas e abra o evento correspondente.</p></header><MySplitsSummary splits={mySplits} settlements={settlements} userId={user.id} nameFor={nameFor} onOpenEvent={eventId=>openEvent(eventId,"gastos")}/></>}
       </>}
 
+      {(page==="detalhe"||page==="editar-evento")&&!selected&&!detailLoading&&<section className="panel"><h1>Evento indisponível</h1><p>Confira se você tem acesso ao encontro ou abra sua agenda.</p><button className="btn" onClick={()=>go("eventos")}>Ver eventos</button></section>}
       {page==="detalhe"&&selected&&<>
         {selected.status==="scheduled"&&<EventReconfirmation eventId={selected.id} startsAt={selected.starts_at} userId={user.id} attending={meConfirmed} host={organizer}/>}
-        <button type="button" className="back" onClick={()=>selected.league_id?openLeague(selected.league_id):go("eventos")}>← {selected.league_id?"Voltar à liga":"Voltar aos eventos"}</button>
-        <section className="detailblock" style={{padding:0,overflow:"hidden"}}>
-          <GameBanner game={roomFor(selected.room_id)?.game||"poker"} name={selected.game_variant?VARIANT_NAMES[selected.game_variant]:selectedGame==="poker"?VARIANT_NAMES.texas_holdem:undefined} large/>
-          <div style={{padding:"20px 22px 21px"}}>
-            <div className="mm-event-head">
-              <div><div className="eyebrow">{roomTitle(selected.room_id)}　·　{gameName(roomFor(selected.room_id)?.game||"poker")}</div><h1 style={{marginBottom:6}}>{selected.title}</h1>
-              <span className="mm-v1-host-label">♠ Anfitrião: {nameFor(selected.organizer_id)}{organizer?" (você)":""}</span></div>
-              <span className={"tag "+(selected.status==="scheduled"?(roomFor(selected.room_id)?.game||"poker"):"archive")}>
-                {selected.status==="scheduled"?(selectedLive?"Ao vivo":"Agendado"):selected.status==="finished"?"Encerrado":"Cancelado"}
-              </span>
-            </div>
-            <div className="mm-event-meta"><span>◷ {fullDate(selected.starts_at)}</span><span>⌖ {selected.location}</span><span>♠ {guests.length}/{selected.max_participants} participantes</span></div>
+        <button type="button" className="back" onClick={()=>goBack(()=>go("eventos"))}>← Voltar</button>
+        <header className={"mm-event-context mm-event-"+selectedGame}>
+          <div className="mm-event-mini-art" aria-hidden="true"><GameArtwork game={selectedGame}/></div><div className="mm-event-context-title"><span className="eyebrow">{({visao:"Preparação",["ao-vivo"]:"Partida",gastos:"Despesas e rachas",conferencia:"Conferência",["resumo-evento"]:"Resultado",enquetes:"Enquetes",gerenciar:"Gerenciar evento"} as Partial<Record<DetailTab,string>>)[detailTab]} · {GAME_META[selectedGame].name}</span><h1>{selected.title}</h1>
+            <p>{VARIANT_NAMES[selected.game_variant||""]||GAME_META[selectedGame].name} · {guests.length} participantes · {organizer?"Você é o anfitrião":"Anfitrião: "+nameFor(selected.organizer_id)}</p></div>
+          <span className={"tag "+(selected.status==="scheduled"?selectedGame:"archive")}>{eventStatus(selected,Boolean(selectedLive))}</span>
+        </header>
+        <TaskNavigation label="Páginas do evento" active={detailTab} items={([
+          ["visao","Preparação"],["ao-vivo","Partida"],["gastos","Despesas"],
+          ...(selected.status==="scheduled"&&selectedLive?[["conferencia","Conferência"]]:[]),
+          ...(selected.status==="finished"?[["resumo-evento","Resultado"]]:[]),
+          ...(organizer||isAdmin?[["gerenciar","Gerenciar"]]:[])
+        ] as [DetailTab,string][]).map(([id,label])=>({id,label,href:clubHref("detalhe",selected.id,id,selectedGame,"eventos"),onSelect:()=>setDetailTab(id)}))}/>
+        <fieldset className="mm-event-task-content" disabled={detailLoading} aria-busy={detailLoading} aria-label="Conteúdo do evento">
+        {detailTab==="resumo-evento"&&selected.status!=="finished"&&<section className="panel"><h2>O resultado ainda não foi publicado</h2><p>O resultado fica disponível após a conferência e o encerramento.</p><button className="btn gold" onClick={()=>setDetailTab(selectedLive?"ao-vivo":"visao")}>Voltar ao encontro →</button></section>}
+        {detailTab==="conferencia"&&!selectedLive&&<section className="panel"><h2>Prepare a partida antes de conferir</h2><button className="btn gold" onClick={()=>setDetailTab("visao")}>Abrir preparação →</button></section>}
+        {detailTab==="gerenciar"&&!organizer&&!isAdmin&&<section className="panel"><h2>Área do anfitrião</h2><p>Os ajustes do encontro são feitos pelo organizador.</p><button className="btn" onClick={()=>setDetailTab("visao")}>Voltar à preparação</button></section>}
+        {detailTab==="gerenciar"&&(organizer||isAdmin)&&<section className="panel mm-event-management"><h2>Gerenciar evento</h2><p>Ajustes e ações administrativas do anfitrião.</p>
             <div className="mm-action-row">
 
 
-              {selected.status==="finished"&&privateVisible&&<button type="button" className="btn gold" disabled={working} onClick={()=>void openRematch(selected)}><UiIcon name="plus" size={16}/> Jogar novamente</button>}
               {(organizer||isAdmin)&&selected.status==="scheduled"&&!selectedLive&&
                 <button type="button" className="btn" disabled={working} onClick={()=>openEditor(selected)}>
                   <UiIcon name="settings" size={16}/> Editar evento
@@ -1002,29 +1029,12 @@ export default function PainelPage(){
                   },"Evento cancelado. O histórico foi mantido.");
                 }}>Cancelar evento</button>}
             </div>
-            {(organizer||isAdmin)&&selected.status==="scheduled"&&!canFinish&&
-              <p className="mm-formfoot">{selected.live_start_required&&!selectedLive
-                ?"Inicie a partida na aba Ao vivo para liberar o encerramento.":selectedPoints?"Confira o placar da modalidade na aba Ao vivo.":"Para encerrar, confira compras, resultados e repasses no Ao vivo."}
-              </p>}
-            {selected.league_id?<div className="mm-league-event-share">
-               <p className="mm-formfoot">♠ Este evento pertence a uma liga. Apenas membros aprovados podem abrir o convite e participar.</p>
-               <button className="btn" type="button" onClick={()=>openLeague(selected.league_id!)}>Ver liga →</button>
-               <EventShareActions id={selected.id} title={selected.title} date={selected.starts_at} room={roomTitle(selected.room_id)}/>
-             </div>:selected.visibility==="private"
-               ?<PrivateInviteShare eventId={selected.id} title={selected.title}
-                   canInvite={organizer||isAdmin} status={selected.status}/>
-               :<EventShareActions id={selected.id} title={selected.title} date={selected.starts_at} room={roomTitle(selected.room_id)}/>}
-
-          </div>
-        </section>
-        <div className="mm-detail-tabs" role="tablist" aria-label="Conteúdo deste evento">
-          {([["visao","Visão geral"],["ao-vivo","Ao vivo"],
-    ...(selected.status==="finished"?[["resumo-evento","Resumo do evento"] as const]:[])] as const).map(([id,title])=><button type="button" key={id} className={detailTab===id?"active":""} role="tab" aria-selected={detailTab===id} onClick={()=>{setDetailTab(id);if(id==="ao-vivo")setLiveSubtab("compra")}}>{title}</button>)}
-        </div>
-
-        {!selectedPoints&&detailTab==="ao-vivo"&&privateVisible&&selectedLive&&selected.status==="scheduled"&&<div className="mm-live-subnav" role="tablist" aria-label="Áreas do Ao vivo">{([["compra","Compra"],["resumo","Resumo"],["encerrar","Encerrar"]] as const).map(([id,title])=><button type="button" role="tab" aria-selected={liveSubtab===id} className={liveSubtab===id?"active":""} key={id} onClick={()=>setLiveSubtab(id)}>{title}</button>)}</div>}
-        {!selectedPoints&&detailTab==="ao-vivo"&&(!selectedLive||liveSubtab==="resumo")&&selected.status==="scheduled"&&<EventLivePanel
+        </section>}
+        {detailTab==="ao-vivo"&&selectedLive&&!privateVisible&&<section className="panel"><h2>Partida reservada aos participantes</h2><p>Acompanhar o placar e os lançamentos exige participação confirmada no encontro.</p><button className="btn" onClick={()=>setDetailTab("visao")}>Ver preparação</button></section>}
+        {detailTab==="ao-vivo"&&!selectedLive&&selected.status==="scheduled"&&!selectedPoints&&<section className="panel"><h2>A partida ainda não começou</h2><p>Confira os participantes na Preparação e inicie quando a mesa estiver pronta.</p><button className="btn gold" onClick={()=>setDetailTab("visao")}>Abrir preparação →</button></section>}
+        {!selectedPoints&&privateVisible&&(detailTab==="visao"&&!selectedLive||detailTab==="conferencia"&&selectedLive)&&selected.status==="scheduled"&&<EventLivePanel
           title={selected.title}
+          reviewOnly={detailTab==="conferencia"}
           status={selected.status}
           startedAt={selectedLive?.started_at||null}
           requiresStart={selected.live_start_required}
@@ -1040,23 +1050,29 @@ export default function PainelPage(){
           canFinish={canFinish}
           activities={eventLiveActivities}
           nameFor={nameFor}
-          canStart={blackjackDealerReady}
-          onSeats={()=>setDetailTab("visao")}
+          canStart={blackjackDealerReady&&guests.length>=2}
+          startHint={guests.length<2?"Confirme pelo menos dois participantes antes de iniciar.":"Alguém precisa ocupar a cadeira do crupiê para iniciar o Blackjack."}
+          onSeats={()=>document.getElementById("event-seats")?.scrollIntoView({behavior:"auto",block:"start"})}
           onStart={()=>void startLiveEvent(selected.id)}
           onFinish={()=>void finishLiveEvent(selected.id,organizer)}
           onRefresh={()=>void refreshLive(true).catch(e=>setError(errText(e)))}
-          onFichas={()=>setLiveSubtab("encerrar")}
+          onFichas={()=>setDetailTab("conferencia")}
           showTimeline={false}
         />}
 
-        {selectedPoints&&(detailTab==="ao-vivo"||detailTab==="resumo-evento")&&(privateVisible?
-          <ScoreGamePanel key={selected.id} event={selected} game={selectedGame} guests={guests} seats={seatedGuests} userId={user.id} canManage={organizer||isAdmin} nameFor={nameFor} onChanged={()=>reload()}/>:
+        {selectedPoints&&(detailTab!=="resumo-evento"||selected.status==="finished")&&(["visao","ao-vivo","conferencia","resumo-evento"] as DetailTab[]).includes(detailTab)&&(privateVisible?
+          <ScoreGamePanel key={selected.id} event={selected} game={selectedGame} guests={guests} seats={seatedGuests} userId={user.id} canManage={organizer||isAdmin} nameFor={nameFor} mode={detailTab==="visao"?"prepare":detailTab==="conferencia"?"review":detailTab==="resumo-evento"?"result":"play"} onNavigate={setDetailTab} onRules={()=>openGame(selectedGame,"tutorial",selected.game_variant||"")} onChanged={()=>reload()}/>:
           <section className="panel"><h2>Placar restrito</h2><p>Escolha um assento e confirme sua presença para acompanhar o placar.</p></section>)}
 
         {detailTab==="ao-vivo"&&selectedLive&&privateVisible&&<RoundOrder key={selected.id} eventId={selected.id} game={selectedGame} participants={[...seatedGuests].sort((a,b)=>a.seat_no-b.seat_no).map(s=>s.user_id)} userId={user.id} canManage={(organizer||isAdmin)&&selected.status==="scheduled"} nameFor={nameFor}/>}
 
         {detailTab==="visao"&&<>
-        <SeatingTable game={selectedGame}
+          <section className="panel mm-event-preparation"><h2>O encontro</h2><dl className="mm-event-facts"><div><dt>Quando</dt><dd>{fullDate(selected.starts_at)}</dd></div><div><dt>Local</dt><dd>{selected.location}</dd></div><div><dt>{selectedPoints?"Meta da mesa":"Entrada mínima"}</dt><dd>{selectedPoints?selected.score_target+" "+(selectedGame==="pife"?"vitórias":"pontos"):money(selected.min_entry_brl)}</dd></div></dl>
+            {selectedLive&&selected.status==="scheduled"&&<button className="btn gold" onClick={()=>setDetailTab("ao-vivo")}>Retomar partida →</button>}
+            {selected.status==="finished"&&<button className="btn gold" onClick={()=>setDetailTab("resumo-evento")}>Ver resultado →</button>}
+          </section>
+          <div id="event-seats">
+        <SeatingTable game={selectedGame} variant={selected.game_variant}
           capacity={selected.max_participants} seats={seatedGuests}
           myId={user.id} confirmed={meConfirmed}
           canChange={selected.status==="scheduled"&&!Boolean(selectedLive)}
@@ -1065,44 +1081,21 @@ export default function PainelPage(){
           onOpenProfile={id=>{setProfileReturn("detalhe");setProfileId(id);go("perfil");}}
           onChoose={seatNo=>void chooseSeat(seatNo)}/>
 
-          <div className="two">
-          <section className="panel">
-            <div className="panelhead"><h2>Participantes</h2><span className="tag">{guests.length}/{selected.max_participants}</span></div>
-            <div className="mm-progress"><div style={{width:(Math.min(1,guests.length/selected.max_participants)*100)+"%"}}/></div>
-            <div className="mm-chipgroup">{guests.map(g=>
-              <PlayerProfileTrigger key={g.user_id} variant="attendee"
-                className="mm-v09-attendee-link" playerId={g.user_id}
-                profile={profiles.find(p=>p.id===g.user_id)}
-                photoUrl={photoUrls[g.user_id]} fallbackName={nameFor(g.user_id)}
-                onOpenProfile={()=>{setProfileReturn("detalhe");setProfileId(g.user_id);go("perfil");}}>
-                <AttendeeMiniCard playerId={g.user_id} photoUrl={photoUrls[g.user_id]} name={nameFor(g.user_id)}/>
-              </PlayerProfileTrigger>)}</div>
-            {!guests.length&&<p>Ainda não há participantes sentados. Convide seus amigos para escolher uma cadeira!</p>}
-            {organizer&&!meConfirmed&&<p className="mm-formfoot">Como anfitrião, escolha uma cadeira para participar da partida.</p>}
+          </div>
+          <details className="mm-task-options"><summary>Participantes confirmados · {guests.length}</summary><div className="mm-chipgroup">{guests.map(g=><PlayerProfileTrigger key={g.user_id} variant="attendee" className="mm-v09-attendee-link" playerId={g.user_id} profile={profiles.find(p=>p.id===g.user_id)} photoUrl={photoUrls[g.user_id]} fallbackName={nameFor(g.user_id)} onOpenProfile={()=>{setProfileReturn("detalhe");setProfileId(g.user_id);go("perfil")}}><AttendeeMiniCard playerId={g.user_id} photoUrl={photoUrls[g.user_id]} name={nameFor(g.user_id)}/></PlayerProfileTrigger>)}</div>{organizer&&!meConfirmed&&<p>Escolha uma cadeira para também participar da partida.</p>}</details>
+          <section className="mm-event-shortcuts" aria-label="Planejar o encontro"><button className="btn" onClick={()=>setDetailTab("enquetes")}>Enquetes · {openPolls.length} abertas →</button><button className="btn" onClick={()=>openGame(selectedGame,"tutorial",selected.game_variant||"")}>Regras do jogo →</button></section>
+          <section className="panel mm-event-invite"><h2>Convidar jogadores</h2>
+            {selected.league_id?<div className="mm-league-event-share">
+               <p className="mm-formfoot">♠ Este evento pertence a uma liga. Os membros da liga podem abrir o convite e participar.</p>
+               <button className="btn" type="button" onClick={()=>openLeague(selected.league_id!)}>Ver liga →</button>
+               <EventShareActions id={selected.id} title={selected.title} date={selected.starts_at} room={roomTitle(selected.room_id)}/>
+             </div>:selected.visibility==="private"
+               ?<PrivateInviteShare eventId={selected.id} title={selected.title}
+                   canInvite={organizer||isAdmin} status={selected.status}/>
+               :<EventShareActions id={selected.id} title={selected.title} date={selected.starts_at} room={roomTitle(selected.room_id)}/>}
           </section>
-          <section className="panel">
-            <div className="panelhead"><h2>Informações do evento</h2></div>
-            <div className="mm-detail-stats">
-              <div><small>Entrada mínima</small><strong>{money(selected.min_entry_brl)}</strong></div>
-              <div><small>Enquetes</small><strong>{eventPolls.length}</strong></div>
-              <div><small>Vagas livres</small><strong>{Math.max(0,selected.max_participants-guests.length)}</strong></div>
-            </div>
-            <p style={{marginTop:16}}>Organizado por {nameFor(selected.organizer_id)}.</p>
-            <div className="mm-action-row" style={{marginTop:15}}>
-              <button type="button" className="btn" onClick={()=>document.getElementById("event-polls")?.scrollIntoView({behavior:"smooth",block:"start"})}>Ver enquetes abertas →</button>
-              <button type="button" className="btn" onClick={()=>document.getElementById("event-expenses")?.scrollIntoView({behavior:"smooth",block:"start"})}>Ver despesas e rachas →</button>
-              <button type="button" className="btn" onClick={()=>{setDetailTab("ao-vivo");setLiveSubtab("compra")}}>Ver compras ao vivo →</button>
-            </div>
-            {meConfirmed&&selected.status==="scheduled"&&<>
-              <PollComposer key={"poll-"+selected.id} onCreate={createPoll} disabled={working}/>
-              <ExpenseComposer key={"expense-"+selected.id} userId={user.id} organizer={organizer}
-                attendees={guests.map(g=>g.user_id)} nameFor={nameFor}
-                onCreate={createExpense} disabled={working}/>
-            </>}
-          </section>
-        </div>
-
-
+        </>}
+        {detailTab==="enquetes"&&<><button className="back" onClick={()=>setDetailTab("visao")}>← Voltar à preparação</button><header className="mm-task-heading"><h2>Enquetes do encontro</h2><p>Combine os detalhes com quem participa.</p></header>{meConfirmed&&selected.status==="scheduled"&&<PollComposer key={"poll-"+selected.id} onCreate={createPoll} disabled={working}/>}
         <div id="event-polls" className="mm-overview-polls">
           <div className="stack">
             <section className="panel">
@@ -1139,6 +1132,9 @@ export default function PainelPage(){
             </section>
           </div>
         </div>
+
+        </>}
+        {detailTab==="gastos"&&<><header className="mm-task-heading"><h2>Despesas e rachas</h2><p>Comida, bebida e outros gastos do encontro.</p></header>{meConfirmed&&selected.status==="scheduled"&&<ExpenseComposer key={"expense-"+selected.id} userId={user.id} organizer={organizer} attendees={guests.map(g=>g.user_id)} nameFor={nameFor} onCreate={createExpense} disabled={working}/>}
         <section id="event-expenses" className="mm-overview-expenses" aria-label="Despesas e rachas">
         {!privateVisible?
           <div className="panel"><h2>Despesas restritas</h2><p>Confirme sua presença para consultar e participar dos rachas deste evento.</p></div>:
@@ -1170,10 +1166,11 @@ export default function PainelPage(){
         </section>
 
         </>}
-        {!selectedPoints&&detailTab==="ao-vivo"&&selectedLive&&selected.status==="scheduled"&&privateVisible&&(liveSubtab==="compra"||liveSubtab==="encerrar")&&<>
+
+        {!selectedPoints&&(detailTab==="ao-vivo"||detailTab==="conferencia")&&selectedLive&&selected.status==="scheduled"&&privateVisible&&<>
           {!privateVisible?<div className="panel"><h2>Informações restritas</h2><p>Confirme presença neste evento para consultar ou registrar informações financeiras.</p></div>:<>
             {liveSubtab==="compra"&&<><div className="metrics" style={{gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))"}}>
-              <div className="metric"><div className="mhead">Fichas distribuídas <span className="micon"><UiIcon name="check" size={22}/></span></div><strong>{eventBuys.reduce((n,b)=>n+Number(b.chips_received),0).toLocaleString("pt-BR")}</strong><small>Compras e recompras</small></div>
+              <div className="metric"><div className="mhead">Pontos em fichas <span className="micon"><UiIcon name="check" size={22}/></span></div><strong>{eventBuys.reduce((n,b)=>n+Number(b.chips_received),0).toLocaleString("pt-BR")}</strong><small>Compras e recompras</small></div>
               <div className="metric"><div className="mhead">Entradas registradas <span className="micon"><UiIcon name="calendar" size={22}/></span></div><strong>{money(eventBuys.reduce((n,b)=>n+Number(b.amount_brl),0))}</strong><small>Valor informativo</small></div>
             </div>
             <div className="mm-denom-layout">
@@ -1211,7 +1208,7 @@ export default function PainelPage(){
                   </select>
                 </label>}
                 <label className="mm-field">Valor final a receber (R$)
-                  <input type="number" min={0} max={totalBoughtBRL} step="0.01" inputMode="decimal" value={cashoutDraft}
+                  <input id="mm-final-cashout" type="number" min={0} max={totalBoughtBRL} step="0.01" inputMode="decimal" value={cashoutDraft}
                     placeholder="Ex.: 25,00" onChange={e=>setCashoutDraft(e.target.value)}/>
                 </label>
                 <button type="button" className="btn gold" disabled={working||!cashoutDraft.trim()||!(meConfirmed||organizer||isAdmin)}
@@ -1242,12 +1239,12 @@ export default function PainelPage(){
                     <small>Lucro / prejuízo: {submitted?(v.net>0?"+":"")+money(v.net):"—"}</small>
                   </div>
                   {submitted&&v.returned===0&&<span className="mm-cash-zero">Sem repasse</span>}
+                  {(organizer||isAdmin)&&<button className="btn" type="button" disabled={working} onClick={()=>{setCashoutFor(g.user_id);setCashoutDraft(submitted?String(v.returned):"");requestAnimationFrame(()=>{const input=document.getElementById("mm-final-cashout");input?.scrollIntoView({block:"center",behavior:"auto"});input?.focus({preventScroll:true})})}}>{submitted?"Corrigir":"Informar valor"}</button>}
                 </div>})}
               {(organizer||isAdmin)&&selected.status==="scheduled"&&<button className="btn gold" disabled={!canFinish||working}
                 onClick={()=>void finishLiveEvent(selected.id,organizer)}>Encerrar Ao vivo e ver resumo →</button>}
             </section>}
-            {liveSubtab==="compra"&&<><section className="panel mm-v09-purchases" style={{marginTop:19}}>
-              <div className="panelhead"><h2>Compras e recompras registradas</h2><span className="tag">{eventBuys.length} lançamentos</span></div>
+            {liveSubtab==="compra"&&<><details className="panel mm-v09-purchases" style={{marginTop:19}}><summary>Compras e recompras registradas · {eventBuys.length} lançamentos</summary>
               <p className="mm-v1-payment-explain">Compras registradas em reais. Não há confirmação manual de pagamentos.</p>
 
               {eventBuys.map(b=><div className="item mm-v09-finance-history" key={b.id}>
@@ -1270,7 +1267,7 @@ export default function PainelPage(){
                   }}>Excluir</button>}
               </div>)}
               {!eventBuys.length&&<p>Nenhuma compra ou recompra registrada até agora.</p>}
-            </section>
+            </details>
 </>}
             {liveSubtab==="encerrar"&&<details className="mm-live-history">
               <summary>Histórico de movimentações <span>Opcional</span></summary>
@@ -1281,6 +1278,7 @@ export default function PainelPage(){
           </>}
         </>}
 
+        {!selectedPoints&&detailTab==="ao-vivo"&&selectedLive&&selected.status==="scheduled"&&privateVisible&&<div className="mm-primary-next"><button className="btn" onClick={()=>setDetailTab("conferencia")}>Conferir valores e encerrar →</button></div>}
         {!selectedPoints&&selected.status==="finished"&&detailTab==="ao-vivo"&&<section className="panel mm-night-redirect">
           <h2>Partida encerrada</h2><p>O Ao vivo terminou. Consulte os resultados no Resumo do evento.</p>
           <button className="btn gold" type="button" onClick={()=>setDetailTab("resumo-evento")}>Ver Resumo da noite →</button>
@@ -1291,86 +1289,16 @@ export default function PainelPage(){
             currentUserId={user.id} nameFor={nameFor} eventFinished title={selected.title}
             startsAt={selected.starts_at} location={selected.location} game={gameName(selectedGame)}/>:
           <section className="panel"><p>Confirme sua presença para consultar o resumo financeiro do evento.</p></section>)}
+        </fieldset>
       </>}
 
-      {page==="detalhe"&&selected?.status==="finished"&&privateVisible&&(detailTab==="resumo-evento"||selectedPoints&&detailTab==="ao-vivo")&&<PostGameShare key={selected.id} eventId={selected.id}/>}
+      {page==="detalhe"&&selected?.status==="finished"&&privateVisible&&detailTab==="resumo-evento"&&<div className="mm-result-actions"><button type="button" className="btn gold" disabled={working} onClick={()=>void openRematch(selected)}>Jogar novamente</button>{selected.league_id&&<button className="btn" onClick={()=>openLeague(selected.league_id!,false,"ranking")}>Ver ranking da liga →</button>}</div>}
+      {page==="detalhe"&&selected?.status==="finished"&&privateVisible&&detailTab==="resumo-evento"&&<PostGameShare key={selected.id} eventId={selected.id}/>}
 
-      <MobileAppCompanion onUpdate={()=>refreshScope("catalog")} visible={page==="inicio"}/>
+      <MobileAppCompanion onUpdate={()=>refreshScope("catalog")} visible={page==="perfil"&&profileTab==="editar"}/>
       <footer className="mm-formfoot" style={{marginTop:35}}>Mesa Marcada · Organize seus encontros. Valores em reais são apenas registros informativos.</footer>
     </main>
 
-    {(page==="inicio"||page==="eventos")&&!modal&&<button className="mm-fab" aria-label="Criar evento" title="Criar evento" type="button" onClick={()=>openCreator()}><UiIcon name="plus" size={29}/></button>}
-
-    {(modal==="evento"||modal==="editar-evento")&&<div ref={modalOverlayRef} className="mm-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setModal(null)}}>
-      <div className="mm-modal" role="dialog" aria-modal="true" aria-labelledby="new-event-title" tabIndex={-1}>
-        <header><div><div className="eyebrow">{modal==="editar-evento"?"AJUSTAR EVENTO":"ORGANIZAR UMA NOITE"}</div><h2 id="new-event-title">{modal==="editar-evento"?"Editar evento":repeatSource?"Jogar novamente":"Criar evento"}</h2></div><button className="mm-close" type="button" aria-label="Fechar" onClick={()=>setModal(null)}><UiIcon name="close" size={22}/></button></header>
-        <form className="mm-form-stack" onSubmit={modal==="editar-evento"?editEvent:addEvent}>
-          {repeatSource&&<p className="mm-formfoot" role="status">Baseado em <strong>{repeatSource}</strong>. Escolha uma nova data. Os participantes confirmarão presença novamente; resultados, fichas e despesas começam vazios.{message&&" "+message}</p>}
-          <label className="mm-field">Escolha a mesa
-            <select value={form.room_id} onChange={e=>{
-              const newRoom=activeRooms.find(room=>room.id===e.target.value);
-              const g=newRoom?.game||"poker";setForm({...form,room_id:e.target.value,max_participants:String(GAME_META[g].capacity),game_variant:defaultVariant(g)||"",score_target:String(defaultTarget(g,defaultVariant(g))),min_entry_brl:"0",chip_pricing_special:false});
-            }} disabled={modal==="editar-evento"} required>
-              <option value="" disabled>Selecione uma modalidade</option>
-              {ALL_GAMES.map(g=>{
-                const table=activeRooms.find(r=>r.game===g);
-                return <option key={g} value={table?.id||""} disabled={!table}>{gameName(g)}</option>;
-              })}
-            </select>
-          </label>
-          {formGame==="poker"&&<label className="mm-field">Variante do Poker<select value={form.game_variant||"texas_holdem"} disabled={modal==="editar-evento"} onChange={e=>setForm({...form,game_variant:e.target.value})}>{GAME_META.poker.variants.map(v=><option key={v} value={v}>{VARIANT_NAMES[v]}</option>)}</select></label>}
-          {!isChipGame(formGame)&&<div className="mm-form-grid"><label className="mm-field">Variante<select value={form.game_variant} disabled={modal==="editar-evento"} onChange={e=>setForm({...form,game_variant:e.target.value,score_target:String(defaultTarget(formGame,e.target.value)),max_participants:String(GAME_META[formGame].capacity)})}>{GAME_META[formGame].variants.map(v=><option key={v} value={v}>{VARIANT_NAMES[v]}</option>)}</select></label><label className="mm-field">{targetLabel(formGame)}<input type="number" required min={formGame==="pontinho"?50:formGame==="canastra"||formGame==="uno"?100:1} max={formGame==="pontinho"?500:formGame==="canastra"?10000:formGame==="uno"?2000:100} step={1} value={form.score_target} disabled={modal==="editar-evento"||formGame==="truco"} onChange={e=>setForm({...form,score_target:e.target.value})}/></label></div>}
-          {!isChipGame(formGame)&&<p className="mm-game-rules-summary">{GAME_META[formGame].description} Variante e meta são definidas na criação. {formGame==="pontinho"?"Sem reentrada e sem curinga nesta base.":formGame==="pife"?"Sem curinga; a meta de vitórias é um acordo da mesa.":formGame==="uno"?"Clássico, sem acumular cartas +2/+4.":"Confira o tutorial da variante antes de iniciar."}</p>}
-          <label className="mm-field">Nome do evento<input required minLength={2} maxLength={100} placeholder="Ex.: Poker de Sexta" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label>
-          <label className="mm-field">Liga (opcional)
-             <select value={form.league_id} disabled={modal==="editar-evento"} onChange={e=>setForm({...form,league_id:e.target.value,visibility:e.target.value?"private":"public"})}>
-               <option value="">Evento independente · sem liga</option>
-               {ownLeagues.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
-               {form.league_id&&!ownLeagues.some(item=>item.id===form.league_id)&&
-                <option value={form.league_id}>Liga selecionada</option>}
-             </select>
-           </label>
-           {form.league_id?<p className="mm-formfoot">Somente membros aprovados poderão ver este evento da liga.</p>:
-           <>          <label className="mm-field">Privacidade do evento
-             <select value={form.visibility} disabled={modal==="editar-evento"} onChange={e=>setForm({...form,visibility:e.target.value as "public"|"private"})}>
-               <option value="public">Público · visível aos jogadores cadastrados</option>
-               <option value="private">Privado · somente convidados com link ou QR Code</option>
-             </select>
-           </label></>}
-
-           <div className="mm-form-grid">
-            <label className="mm-field">Data e horário<input type="datetime-local" required value={form.starts_at} onChange={e=>setForm({...form,starts_at:e.target.value})}/></label>
-            <label className="mm-field">Local<input minLength={2} maxLength={200} required placeholder="Ex.: Casa do Bruno" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></label>
-          </div>
-          <div className="mm-form-grid">
-            {isChipGame(formGame)&&<label className="mm-field">Entrada mínima (R$)<input type="number" min={0} step="0.01" disabled={modal==="editar-evento"&&Boolean(selected&&buys.some(b=>b.session_id===selected.id))} required value={form.min_entry_brl} onChange={e=>setForm({...form,min_entry_brl:e.target.value})}/></label>}
-            <label className="mm-field">Vagas (cadeiras)<input type="number" min={formGame==="pontinho"?3:2} max={formGame==="blackjack"?6:formGame==="canastra"?4:formGame==="truco"?(form.game_variant==="gauderio"?6:4):formGame==="pontinho"||formGame==="pife"?8:10} step={formGame==="truco"||formGame==="canastra"?2:1} required value={form.max_participants} onChange={e=>setForm({...form,max_participants:e.target.value})}/></label>
-          </div>
-          {isChipGame(formGame)&&<div className="mm-denom-event-setting">
-            <label className="mm-denom-special-switch">
-              <input type="checkbox" checked={form.chip_pricing_special} disabled={modal==="editar-evento"&&Boolean(selected&&(selected.chip_pricing_locked||buys.some(b=>b.session_id===selected.id)))}
-                onChange={e=>setForm({...form,chip_pricing_special:e.target.checked})}/>
-              <span><strong>★ Evento especial</strong><small>Personalizar o preço de cada ficha somente neste evento</small></span>
-            </label>
-            {form.chip_pricing_special?<div className="mm-denom-price-grid">
-              {chipPriceFields.map(field=><label className="mm-field" key={field.key}>
-                Ficha {field.value} · R$
-                <input type="number" min="0.01" max="1000" step="0.01" disabled={modal==="editar-evento"&&Boolean(selected&&(selected.chip_pricing_locked||buys.some(b=>b.session_id===selected.id)))} required
-                  value={form[field.key]} onChange={e=>setForm({...form,[field.key]:e.target.value})}/>
-              </label>)}
-              <p className="mm-formfoot">Os preços personalizados ficam bloqueados após a primeira compra deste evento.</p>
-            </div>:<p className="mm-formfoot">Padrão: ficha 1 = R$ 1,00 · ficha 5 = R$ 5,00 · ficha 10 = R$ 0,10 · ficha 25 = R$ 0,25 · ficha 50 = R$ 0,50.</p>}
-          </div>
-          }
-          <div className="mm-create-seat-preview"><strong>♠ ♦ Assentos interativos</strong>
-            <span>{modal==="editar-evento"?"Os participantes e assentos já confirmados serão preservados.":"Após criar o evento, você irá diretamente para a mesa."} Os convidados confirmados poderão escolher seus lugares{activeRooms.find(r=>r.id===form.room_id)?.game==="blackjack"?", inclusive a cadeira exclusiva do crupiê":""}.</span>
-          </div>
-          <p className="mm-formfoot">{modal==="editar-evento"?"Alterações de nome, data, horário, local e valores serão avisadas aos participantes. Eventos já iniciados não podem ser editados.":form.visibility==="private"?"Somente convidados autorizados terão acesso. Após criar, gere o convite e compartilhe o QR Code.":"Todos os usuários cadastrados poderão ver este evento."}</p>
-          {error&&<p className="mm-message error" role="alert">{error}</p>}
-          <div className="mm-form-actions"><button type="button" className="btn" onClick={()=>setModal(null)}>Cancelar</button><button type="submit" className="btn gold" disabled={working}>{working?"Salvando...":modal==="editar-evento"?"Salvar alterações":"Criar evento →"}</button></div>
-        </form>
-      </div>
-    </div>}
 
   </div>;
 }

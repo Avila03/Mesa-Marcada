@@ -14,9 +14,9 @@ const ranks=(cards:readonly LearnCard[])=>cards.map(c=>c.rank);
 const c=(rank:number,suit:LearnCard['suit']):LearnCard=>({rank,suit});
 function CardBack({label}:{label:string}){return <span className="learn-card-back learn-hidden-card" role="img" aria-label={label}>MM</span>}
 
-export default function ClassicGameTutorial({game}:{game:ClassicGame}){
+export default function ClassicGameTutorial({game,variant:initial}:{game:ClassicGame;variant?:string|null}){
  const [section,setSection]=useState<TutorialSection>('practice');
- const [variant,setVariant]=useState('texas_holdem');const draw=game==='poker'&&variant==='five_card_draw';
+ const [variant,setVariant]=useState(initial==='five_card_draw'?'five_card_draw':'texas_holdem');const draw=game==='poker'&&variant==='five_card_draw';
  return <TutorialShell game={game} section={section} onSectionChange={setSection} edition={game==='poker'?(draw?'Five Card Draw · cinco cartas fechadas':'Texas Hold’em · baralho de 52 cartas'):'Blackjack · exemplos com regras indicadas'} variantControl={game==='poker'?<label className="learn-variant">Aprendendo a jogar<select aria-label="Variante do tutorial" value={variant} onChange={e=>setVariant(e.target.value)}><option value="texas_holdem">Texas Hold’em</option><option value="five_card_draw">Five Card Draw · Poker fechado</option></select></label>:undefined} intro={draw?'Cinco cartas só suas. Escolha o que trocar, confira a nova combinação e compare as mãos.':game==='poker'?'Abra as cartas comunitárias, monte a melhor mão e descubra o que realmente decide um showdown.':'Veja o Ás mudar de valor, experimente comprar ou parar e acompanhe a vez do dealer.'}>
   <div className="learn-content" key={variant}>{section==='practice'?<><div className="learn-start"><span className="learn-live-dot" aria-hidden="true"/><p>{draw?'Sem cartas comunitárias: são cinco fechadas e uma oportunidade de troca.':game==='poker'?'Duas cartas são suas. Cinco são da mesa. A melhor combinação usa exatamente cinco.':'Você joga contra o dealer. Os baralhos dos exemplos são preparados para ensinar as regras.'}</p></div>{draw?<DrawPractice/>:game==='poker'?<PokerPractice/>:<BlackjackPractice/>}</>:section==='basics'?draw?<DrawBasics/>:<ClassicBasics game={game}/>:<ClassicRules game={game} draw={draw}/>}</div>
  </TutorialShell>;
@@ -114,7 +114,7 @@ const BLACKJACK_ACTIONS=[
  {name:'Surrender · desistir',text:'Opcional em algumas regras: encerrar a mão com perda parcial.',example:'A disponibilidade e o momento de desistir precisam ser combinados antes.'},
  {name:'Insurance · seguro',text:'Aposta lateral, normalmente oferecida se o dealer mostra Ás.',example:'O resultado do seguro é separado do resultado da sua mão principal.'}
 ];
-function Actions({game}:{game:ClassicGame}){
+function Actions({game,variant:initial}:{game:ClassicGame;variant?:string|null}){
  const [selected,setSelected]=useState(0),actions=game==='poker'?POKER_ACTIONS:BLACKJACK_ACTIONS,action=actions[selected];
  return <section className="learn-exercise"><span className="learn-eyebrow">OS COMANDOS DA MESA</span><h3>Toque para entender a ação</h3><div className="learn-action-picker">{actions.map((a,i)=><button type="button" key={a.name} aria-pressed={selected===i} onClick={()=>setSelected(i)}>{a.name}</button>)}</div><div className="learn-action-detail" aria-live="polite"><strong>{action.name}</strong><p>{action.text}</p><small>{action.example}</small></div></section>;
 }
@@ -122,7 +122,7 @@ function PokerRanking(){
  const [selected,setSelected]=useState(0),hand=POKER_RANKS[selected];
  return <section className="learn-exercise"><span className="learn-eyebrow">DA MAIS FORTE À MAIS FRACA</span><h3>Explore o ranking das mãos</h3><div className="learn-ranking-picker">{POKER_RANKS.map((r,i)=><button type="button" key={r.name} aria-pressed={selected===i} onClick={()=>setSelected(i)}><span>{String(i+1).padStart(2,'0')}</span>{r.name}</button>)}</div><div className="learn-ranking-example" aria-live="polite"><strong>{hand.name}</strong><LearnHand cards={hand.cards}/><p>{hand.desc}</p></div><p className="learn-table-note">Royal flush é o straight flush mais alto. Naipes não têm hierarquia no Texas Hold’em.</p></section>;
 }
-function ClassicBasics({game}:{game:ClassicGame}){
+function ClassicBasics({game,variant:initial}:{game:ClassicGame;variant?:string|null}){
  const poker=game==='poker';const steps=poker?[
   {title:'Button, blinds e duas cartas',text:'O botão identifica a posição do distribuidor. Small blind e big blind são colocados antes das duas cartas privadas. Combinem os valores e a estrutura.',cards:POKER_EXAMPLES[0].hole},
   {title:'Pré-flop: as primeiras decisões',text:'Antes da mesa abrir, cada jogador decide como responder aos blinds e à ação anterior. A ordem de fala começa à esquerda do big blind.',cards:undefined},

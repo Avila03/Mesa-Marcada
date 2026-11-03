@@ -60,16 +60,16 @@ function ProfileStats({stats}:{stats:Rank[]}){
 }
 
 export function ProfilePanel({
-  profile,userId,events,attendances,stats,photoUrl,onSave,onUploadPhoto,onRemovePhoto,busy,onBack
+  profile,userId,events,attendances,stats,photoUrl,onSave,onUploadPhoto,onRemovePhoto,busy,onBack,mode="summary",onEdit,onCancel,liveEventIds=[]
 }:{
   profile:Profile|undefined;userId:string;events:Event[];attendances:Attendance[];stats:Rank[];photoUrl?:string;
   onSave:(data:{display_name:string;favorite_game:Game;bio:string})=>Promise<void>;
   onUploadPhoto:(file:File)=>Promise<void>;
   onRemovePhoto:()=>Promise<void>;
-  busy:boolean;onBack?:()=>void;
+  busy:boolean;onBack?:()=>void;mode?:"summary"|"edit"|"results";onEdit?:()=>void;onCancel?:()=>void;liveEventIds?:string[];
 }){
   const own=profile?.id===userId;
-  const [edit,setEdit]=useState(false);
+  const [edit,setEdit]=useState(mode==="edit");
   const [name,setName]=useState(profile?.display_name||"");
   const [imageFile,setImageFile]=useState<File|null>(null);
   const [preview,setPreview]=useState<string>("");
@@ -84,8 +84,8 @@ export function ProfilePanel({
     setFavorite(profile?.favorite_game||"poker");
     setBio(profile?.bio||"");
     setImageFile(null);
-    setEdit(false);
-  },[profile?.id,profile?.display_name,profile?.favorite_game,profile?.bio,profile?.avatar_path]);
+    setEdit(mode==="edit");
+  },[profile?.id,profile?.display_name,profile?.favorite_game,profile?.bio,profile?.avatar_path,mode]);
   useEffect(()=>{
     if(!imageFile){setPreview("");return;}
     const previewUrl=URL.createObjectURL(imageFile);
@@ -94,7 +94,7 @@ export function ProfilePanel({
   },[imageFile]);
   const nameShown=profile?.display_name||"Jogador";
   const allConfirmations=attendances.filter(a=>a.user_id===profile?.id);
-  const upcoming=allConfirmations.filter(a=>events.some(e=>e.id===a.session_id&&e.status==="scheduled"));
+  const upcoming=allConfirmations.filter(a=>events.some(e=>e.id===a.session_id&&e.status==="scheduled"&&Date.parse(e.starts_at)>=Date.now()&&!liveEventIds.includes(e.id)));
   const playerStats=stats.filter(s=>s.user_id===profile?.id);
 
   async function save(e:FormEvent<HTMLFormElement>){
@@ -123,13 +123,13 @@ export function ProfilePanel({
 
   return <div className="mm-v09-profile">
     {onBack&&<button className="back" type="button" onClick={onBack}>← Voltar</button>}
-    <div className="heading"><div><div className="eyebrow">JOGADORES DA MESA</div><h1>{own?"Meu perfil":"Perfil do jogador"}</h1><p>Apelido, avatar e histórico das suas noites.</p></div></div>
-    <section className="mm-v09-profile-hero">
+    <div className="heading"><div><div className="eyebrow">JOGADORES DA MESA</div><h1>{mode==="edit"?"Editar perfil":mode==="results"?"Resultados":own?"Meu perfil":"Perfil do jogador"}</h1><p>Apelido, avatar e histórico das suas noites.</p></div></div>
+    {mode!=="results"&&<section className="mm-v09-profile-hero">
       <FrameAvatar playerId={profile?.id||userId} photoUrl={photoUrl} name={nameShown} large/>
       <div className="mm-v09-profile-name"><h2>{nameShown}</h2><span className={"tag "+(profile?.favorite_game||"poker")}>Jogo favorito: {GAME_META[profile?.favorite_game||"poker"].name}</span>
       {profile?.bio&&<p>{profile.bio}</p>}</div>
-      {own&&<button type="button" className="btn" onClick={()=>setEdit(v=>!v)}>{edit?"Cancelar":"✎ Editar perfil"}</button>}
-    </section>
+      {own&&<button type="button" className="btn" onClick={()=>edit?(onCancel?onCancel():setEdit(false)):(onEdit?onEdit():setEdit(true))}>{edit?"Cancelar":"✎ Editar perfil"}</button>}
+    </section>}
 
     {uploadNotice&&<p className="mm-message" role="status">{uploadNotice}</p>}
     {edit&&own&&<section className="panel mm-v09-edit-profile">
@@ -163,14 +163,14 @@ export function ProfilePanel({
       </form>
     </section>}
 
-    <section className="mm-v09-profile-overview">
+    {mode==="summary"&&<section className="mm-v09-profile-overview">
       <Stat name="Eventos participados" value={number(allConfirmations.length)}/>
       <Stat name="Próximos eventos" value={number(upcoming.length)}/>
       <Stat name="Noites contabilizadas" value={number(playerStats.reduce((s,r)=>s+Number(r.sessions_played),0))}/>
-    </section>
-    <div className="mm-section-title"><h2>Desempenho por modalidade</h2></div>
+    </section>}
+    {mode==="results"&&<><div className="mm-section-title"><h2>Poker e Blackjack</h2></div>
     <ProfileStats stats={playerStats}/>
-    <p className="mm-formfoot">Os dados de desempenho consideram somente eventos encerrados com todos os resultados revisados. Compras em reais não entram nas pontuações.</p>
+    <p className="mm-formfoot">Os dados de desempenho consideram somente eventos encerrados com todos os resultados revisados. Os resultados financeiros e os pontos de cada jogo mantêm suas próprias unidades.</p></>}
   </div>;
 }
 

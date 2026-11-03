@@ -1,7 +1,7 @@
 "use client";
 
 import {gameName} from "@/lib/mesa-types";
-import {GAME_META} from "@/lib/games";
+import {GAME_META,VARIANT_NAMES} from "@/lib/games";
 import type {Game,Profile} from "@/lib/mesa-types";
 import FrameAvatar from "./frame-avatar";
 import PlayerProfileTrigger from "./player-profile-preview";
@@ -11,6 +11,7 @@ export type TableSeat={session_id:string;user_id:string;seat_no:number;chosen_at
 
 type Props={
  game:Game;
+ variant?:string|null;
  capacity:number;
  seats:TableSeat[];
  myId:string;
@@ -25,7 +26,7 @@ type Props={
 };
 
 
-export default function SeatingTable({game,capacity,seats,myId,confirmed,canChange,busy,nameFor,profiles,photoUrls,onOpenProfile,onChoose}:Props){
+export default function SeatingTable({game,variant,capacity,seats,myId,confirmed,canChange,busy,nameFor,profiles,photoUrls,onOpenProfile,onChoose}:Props){
  const blackjack=game==="blackjack";
  const maxPlayers=blackjack?Math.max(0,Math.min(9,capacity-1)):Math.max(0,Math.min(10,capacity));
  const slots=Array.from({length:maxPlayers},(_,i)=>i+1);
@@ -66,9 +67,9 @@ export default function SeatingTable({game,capacity,seats,myId,confirmed,canChan
  return <section className={"mm-seat-shell "+(blackjack?"is-blackjack":"is-poker")} aria-label={"Assentos da mesa de "+gameName(game)}>
    <div className="mm-seat-topline">
      <div>
-       <span className="mm-seat-eyebrow">{blackjack?"♦ BLACKJACK · 21":game==="poker"?"♠ POKER · TEXAS HOLD’EM":gameName(game).toUpperCase()}</span>
-       <h2>Escolha seu lugar à mesa</h2>
-       <p>{canChange?"Clique numa cadeira livre para participar do evento. Também é possível trocar de lugar.":"Posições da mesa. As cadeiras ficam bloqueadas depois que a partida começa."}</p>
+       <span className="mm-seat-eyebrow">{blackjack?"♦ BLACKJACK · 21":game==="poker"?"♠ POKER · "+(VARIANT_NAMES[variant||"texas_holdem"]||VARIANT_NAMES.texas_holdem).toUpperCase():gameName(game).toUpperCase()}</span>
+       <h2>{canChange?"Escolha seu lugar à mesa":"Participantes à mesa"}</h2>
+       <p>{canChange?"Clique numa cadeira livre para participar do evento. Também é possível trocar de lugar.":"Posições da mesa. Os assentos deste encontro estão bloqueados."}</p>
      </div>
      <span className="mm-seat-counter">{occupied} / {maxPlayers+(blackjack?1:0)} ocupados</span>
    </div>

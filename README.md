@@ -1,4 +1,4 @@
-# Mesa Marcada — v6.6.0
+# Mesa Marcada — v7.0.0
 
 Aplicação web para organizar encontros presenciais de **Poker, Blackjack, Truco, Canastra/Buraco, Pontinho, UNO e Pife** entre amigos. Construída com **Next.js 16, React 19 e Supabase Auth/PostgreSQL**, publicada na Vercel. Visual **Dark Cards** inspirado no protótipo HTML v0.5, com prioridade para smartphones.
 
@@ -6,12 +6,11 @@ Aplicação web para organizar encontros presenciais de **Poker, Blackjack, Truc
 
 ## Dashboard e navegação mobile
 
-Na tela inicial, o jogador encontra seu **próximo evento**, confirmação de presença,
-próximas noites, valores de rachas pendentes e atalhos para Poker, Blackjack e seus tutoriais.
-A barra inferior do smartphone apresenta **quatro destinos**: **Início**, **Eventos**, **Ligas** e **Perfil**.
-**Mesas** ficam acessíveis pelo Dashboard; a **Administração geral** é acessível pelo
-Dashboard e pelo próprio Perfil somente para administradores. No desktop, a navegação
-lateral mantém todos os destinos.
+A página inicial prioriza partidas em andamento, o próximo encontro e avisos de rachas. Encontros com horário passado e sem início continuam disponíveis com o estado **Aguardando início**. Os quatro destinos principais são **Início**, **Eventos**, **Ligas** e **Perfil**; o catálogo **Jogos e tutoriais** fica em um acesso próprio.
+
+Cada evento tem páginas de **Preparação**, **Partida**, **Despesas**, **Conferência** e **Resultado**, além de Enquetes e Gerenciar. O endereço preserva a tarefa ao atualizar, voltar ou abrir outra aba. Links anteriores de Ao vivo e Resumo continuam válidos. A preparação reúne assentos, equipes e início; a partida destaca os registros e mantém a ordem da mesa recolhida.
+
+Criar/editar evento usa **Jogo e regras → Encontro → Conferir**, com rascunho por usuário/aba no navegador e revisão antes de salvar. Campos com 16 px, controles com pelo menos 44–48 px, navegação horizontal para telas estreitas e espaço para a área segura do iPhone. A liga separa **Eventos**, **Ranking** e **Membros**. O perfil abre as próprias páginas de conquistas, molduras, resultados, rachas e edição, mantendo os três troféus em destaque.
 
 ## Funcionalidades principais
 
@@ -71,6 +70,7 @@ As migrações efetivamente aplicadas estão em [`supabase/migrations/`](supabas
 npm run check:migrations
 npm run check:reliability
 npm run test:league-cards
+npm run test:journey
 npm run test:database
 npm run typecheck
 npm run build

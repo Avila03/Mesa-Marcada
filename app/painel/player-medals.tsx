@@ -15,8 +15,8 @@ type Showcase={user_id:string;featured_id:string|null;pinned_ids:string[];visibl
 
 const levelOf=(m:Medal,amount:number)=>m.levels.reduce((index,level,i)=>amount>=level.threshold?i:index,-1);
 
-export default function PlayerMedals({playerId,userId,name,photoUrl}:{
- playerId:string;userId:string;name:string;photoUrl?:string;
+export default function PlayerMedals({playerId,userId,name,photoUrl,compact=false,expandedOnLoad=false,onView}:{
+ playerId:string;userId:string;name:string;photoUrl?:string;compact?:boolean;expandedOnLoad?:boolean;onView?:()=>void;
 }){
  const own=playerId===userId;
  const [progress,setProgress]=useState<Progress>({});
@@ -30,7 +30,7 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
  const [message,setMessage]=useState("");
  const [selected,setSelected]=useState("first");
  const [filter,setFilter]=useState("Todas");
- const [expanded,setExpanded]=useState(false);
+ const [expanded,setExpanded]=useState(expandedOnLoad);
  const [showPinPicker,setShowPinPicker]=useState(false);
  const [draftPins,setDraftPins]=useState<string[]>([]);
 
@@ -103,6 +103,7 @@ export default function PlayerMedals({playerId,userId,name,photoUrl}:{
   return <section className="mm-medals-shell"><p role="alert" className="mm-medals-error">{error}</p></section>;
  if(!allowed)return <section className="mm-medals-shell"><h2>Conquistas</h2>
   <p className="mm-medals-muted">Este jogador optou por não exibir suas medalhas.</p></section>;
+ if(compact)return <section className="mm-medals-shell mm-profile-summary-trophies" aria-label={"Troféus em destaque de "+name}><div className="mm-medals-heading"><div><h2>Troféus em destaque</h2><p>{unlocked.length} medalhas desbloqueadas.</p></div><button className="btn" type="button" onClick={onView}>Ver conquistas →</button></div>{highlights.length?<div className="mm-medals-highlights">{highlights.map(m=><button type="button" key={m.id} onClick={onView}><span><MedalMark medal={m}/></span><small>{m.title}</small></button>)}</div>:<p className="mm-medals-muted">{own?"Escolha seus três troféus na coleção de conquistas.":"Este jogador ainda não destacou troféus."}</p>}</section>;
  return <section className="mm-medals-shell" aria-label={"Conquistas de "+name}>
   <div className="mm-medals-heading">
    <div><span className="mm-medals-eyebrow">MESA MARCADA · MEDALHAS</span>

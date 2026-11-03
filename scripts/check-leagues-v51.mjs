@@ -26,7 +26,7 @@ for(const phrase of [
 assert.ok(!sql.includes("DISABLE ROW LEVEL SECURITY"),"RLS may never be disabled");
 const hub=read("app/painel/league-hub.tsx"),home=read("app/painel/dashboard-v16.tsx");
 for(const phrase of ["mm-league-overview","Próxima rodada","Pedidos pendentes",
- "attendances.filter","leader","canOrganize","set_league_member_role",
+ "attendances.filter","rankFinancialPlayers","canOrganize","set_league_member_role",
  "Promover a Organizador","Retirar cargo","LeagueFinalizationControls","/api/push/league-request"]){
  assert.ok(hub.includes(phrase),"League UI incomplete: "+phrase);
 }
