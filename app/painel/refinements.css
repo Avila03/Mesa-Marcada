@@ -12,7 +12,7 @@
  .mm-home-reconfirm-callout button{min-height:44px}
  .mm-league-header-actions{width:100%;display:flex}
  .mm-league-header-actions>.btn{min-height:44px;flex:1}
- .mm-league-modal{max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain}
+ .mm-league-modal{max-height:min(92dvh,calc(100dvh - 30px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)));overflow-y:auto;overscroll-behavior:contain}
  .mm-home-v16{min-width:0}
  .mm-league-grid,.mm-league-overview{min-width:0}
  .mm-modal .mm-form-actions{padding-bottom:max(4px,env(safe-area-inset-bottom))}

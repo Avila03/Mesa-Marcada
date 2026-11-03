@@ -16,4 +16,4 @@
 .mm-player-preview-close{position:absolute;right:10px;top:9px;background:#1a3049;color:#e2edfb;border:1px solid #3a5776;border-radius:7px;width:28px;height:28px;font-size:18px;display:grid;place-items:center;cursor:pointer}
 .mm-player-preview-popover button:focus-visible{outline:2px solid #258bff;outline-offset:2px}
 .mm-player-preview-popover:focus-within{border-color:#5b8ebf}
-@media(max-width:600px){.mm-player-preview-popover{left:12px!important;top:auto!important;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);width:auto;max-height:75dvh}.mm-player-preview-head .mm-player-avatar{width:51px;height:51px;min-width:51px}}
+@media(max-width:600px){.mm-player-preview-popover{left:calc(12px + env(safe-area-inset-left,0px))!important;top:auto!important;right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 12px);width:auto;max-height:min(75dvh,calc(100dvh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)))}.mm-player-preview-head .mm-player-avatar{width:51px;height:51px;min-width:51px}}
