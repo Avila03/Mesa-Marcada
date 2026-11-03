@@ -34,8 +34,8 @@ display:flex;justify-content:space-between;gap:12px;align-items:center;padding:1
 .mm-league-request>div{display:flex;gap:7px}.mm-league-invite{display:grid;gap:10px;margin-top:14px}
 .mm-league-invite input{width:100%;min-width:0;padding:12px;border:1px solid #3c5874;border-radius:9px;background:#0d1622;color:#fff}
 .mm-league-join p{color:#a9bed2;font-size:13px}.mm-league-overlay{position:fixed;inset:0;z-index:200;
-display:grid;place-items:center;background:#05080ce8;overflow:auto;padding:15px}
-.mm-league-modal{max-width:520px;width:100%;max-height:92dvh;overflow:auto;background:#111b29;border:1px solid #315778;
+display:grid;place-items:center;background:#05080ce8;overflow:auto;padding:calc(15px + env(safe-area-inset-top,0px)) calc(15px + env(safe-area-inset-right,0px)) calc(15px + env(safe-area-inset-bottom,0px)) calc(15px + env(safe-area-inset-left,0px))}
+.mm-league-modal{max-width:520px;width:100%;max-height:min(92dvh,calc(100dvh - 30px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)));overflow:auto;background:#111b29;border:1px solid #315778;
 border-radius:18px;padding:24px;color:#f1f5fb;display:grid;gap:15px}
 .mm-league-modal h2{margin:0}.mm-league-modal>p{font-size:12px;color:#a9bdd1}
 .mm-league-modal label{display:grid;gap:7px;font-size:12px;color:#c9dbef;font-weight:650}

@@ -1,5 +1,10 @@
 # Histórico de versões — Mesa Marcada
 
+## v7.0.1 — Controles fora da barra de status do iPhone (03/11/2026)
+- Resumo da liga respeita as quatro áreas seguras, com conteúdo rolável dentro desses limites e botão Voltar fixo no topo da área utilizável.
+- Janelas de liga, confirmação e edição limitam sua altura ao espaço disponível; prévias de perfil também respeitam os recortes laterais e inferiores.
+- Mantidos os dados, as permissões e o compartilhamento nativo.
+
 ## v7.0.0 — Uma tela para cada tarefa (03/11/2026)
 - Preparação, Partida, Despesas, Conferência e Resultado com endereços próprios, links nativos e retorno contextual; Enquetes e gerenciamento saem da tela principal da partida. Links anteriores preservados.
 - Início destaca partidas ativas mesmo após o horário marcado; eventos sem início recebem estado explícito. Botões de partida e resultado abrem o destino anunciado.

@@ -865,7 +865,7 @@ a{text-decoration:none}
 .mm-app-installed-status{display:inline-flex;align-items:center;gap:4px;font-size:12px}
 .mm-app-companion-installed .mm-formfoot{font-size:11px}
 .mm-app-device{display:inline-flex;align-items:center}
-@media(max-width:740px){
+@media(max-width:750px){
   /* A interface standalone do iPhone pode ocupar a zona da barra de status. */
   .main{padding-top:calc(18px + env(safe-area-inset-top,0px))}
   .sidebar .nav button{font-size:10px}
@@ -1132,7 +1132,7 @@ body{
   overflow:hidden;
   overscroll-behavior:none;
   touch-action:pan-y;
-  padding:18px;
+  padding:calc(18px + env(safe-area-inset-top,0px)) calc(18px + env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) calc(18px + env(safe-area-inset-left,0px));
   display:flex;
   justify-content:center;
   align-items:center;
@@ -1140,7 +1140,7 @@ body{
 .mm-modal{
   width:min(590px,100%);
   max-width:100%;
-  max-height:min(calc(var(--mm-dialog-viewport-height,100dvh) - 36px),900px);
+  max-height:min(calc(var(--mm-dialog-viewport-height,100dvh) - 36px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)),900px);
   min-height:0;
   overflow-y:auto;
   overflow-x:clip;
@@ -1183,14 +1183,14 @@ body{
 }
 @media(max-width:750px){
   .mm-overlay{
-    padding:0;
+    padding:calc(8px + env(safe-area-inset-top,0px)) env(safe-area-inset-right,0px) 0 env(safe-area-inset-left,0px);
     justify-content:stretch;
     align-items:flex-end;
   }
   .mm-modal{
     width:100%;
     max-width:100%;
-    max-height:calc(var(--mm-dialog-viewport-height,100dvh) - 8px);
+    max-height:calc(var(--mm-dialog-viewport-height,100dvh) - 8px - env(safe-area-inset-top,0px));
     align-self:flex-end;
     border-radius:20px 20px 0 0;
     border-bottom:0;
@@ -1212,9 +1212,6 @@ body{
     grid-template-columns:repeat(2,minmax(0,1fr));
   }
   .mm-modal .mm-form-actions .btn{min-height:48px}
-}
-@media(max-height:520px){
-  .mm-modal{max-height:calc(var(--mm-dialog-viewport-height,100dvh) - 4px)}
 }
 @media(prefers-reduced-motion:reduce){
   .mm-overlay,.mm-modal{scroll-behavior:auto;transition:none!important}
