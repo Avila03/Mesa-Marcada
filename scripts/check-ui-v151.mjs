@@ -18,8 +18,8 @@ for(const text of [panel,companion,features]){
 }
 assert.ok(panel.includes('<UiIcon name={icon} size={22}/>'),"Navigation does not use SVG icons");
 assert.equal((panel.match(/name="log-out"/g)||[]).length,2,"Desktop and mobile logout need icons");
-const card=panel.indexOf('<MobileAppCompanion onUpdate={()=>refreshScope("catalog")} visible={page==="inicio"}/>');
-assert.ok(card>panel.indexOf('{page==="inicio"&&'),'Install settings render too high in dashboard');
+const card=panel.indexOf('<MobileAppCompanion onUpdate={()=>refreshScope("catalog")} visible={page==="perfil"&&profileTab==="editar"}/>');
+assert.ok(card>panel.indexOf('{page==="inicio"&&'),'Install settings must remain in account settings');
 assert.ok(card<panel.indexOf("<footer"),"Install settings must precede the footer");
 assert.ok(companion.includes("appInstalled?\"Avisos de eventos\""),"Installed PWA tutorial not compact");
 assert.ok(styles.includes("safe-area-inset-top"),"iOS PWA status bar safe area missing");
@@ -51,18 +51,16 @@ assert.ok(styles.includes("grid-template-columns:repeat(4,minmax(0,1fr))"),
 assert.ok(styles.includes("safe-area-inset-bottom"),"iPhone bottom safe area missing");
 assert.ok(panel.includes("<DashboardV16"),"Action-oriented dashboard missing");
 assert.ok(!panel.includes("A próxima rodada<br/>começa aqui"),"Old oversized homepage hero still present");
-for(const anchor of [
-  "PRÓXIMO EVENTO","Escolher assento","Próximas noites","Meus rachas",
-  "ALL_GAMES.map","gameName(game)","onGame(game)","onAdmin","onProfile"
-])assert.ok(dashboard.includes(anchor),"Dashboard action or information missing: "+anchor);
+for(const anchor of ["Retomar partida","MEU PRÓXIMO ENCONTRO","Meus eventos","Minhas ligas","Jogos e tutoriais","onProfile"])
+ assert.ok(dashboard.includes(anchor),"Dashboard action or information missing: "+anchor);
 assert.ok(panel.includes("mm-profile-admin-link"),
   "Admin must remain accessible from profile");
-assert.ok(panel.includes('const activePage=page==="detalhe"?"eventos"')&&
+assert.ok(panel.includes('const activePage=page==="detalhe"||page==="criar-evento"||page==="editar-evento"?"eventos"')&&
  panel.includes('page==="liga"||page==="liga-admin"?"ligas":page;'),
  "League subpages must highlight Ligas in navigation");
 assert.ok(panel.includes('onLeagues={()=>go("ligas")}'),
  "Homepage must link to Ligas");
-assert.ok(dashboard.includes("<LeagueHomePreview"),
+assert.ok(dashboard.includes("Minhas ligas"),
  "Minhas Ligas must remain on the Inicio homepage");
 assert.ok(panel.includes('onTables={()=>go("mesas")}'),
   "Mesas must remain accessible without a mobile tab");

@@ -1,5 +1,13 @@
 # Histórico de versões — Mesa Marcada
 
+## v7.0.0 — Uma tela para cada tarefa (03/11/2026)
+- Preparação, Partida, Despesas, Conferência e Resultado com endereços próprios, links nativos e retorno contextual; Enquetes e gerenciamento saem da tela principal da partida. Links anteriores preservados.
+- Início destaca partidas ativas mesmo após o horário marcado; eventos sem início recebem estado explícito. Botões de partida e resultado abrem o destino anunciado.
+- Criação/edição em três etapas com revisão e rascunho por conta/aba; modo, variante, metas, privacidade, preços e regras permanecem validados.
+- Liga separa Eventos, Ranking e Membros; convite público explica entrada imediata. Perfil resumido com páginas próprias para conquistas, molduras, resultados, rachas e edição.
+- Cabeçalhos compactos, ordem da mesa e histórico de compras recolhidos; rótulos distinguem pontos, fichas físicas e reais. Regras abrem na variante do evento.
+- Interface para toque com alvos de 44–48 px, campos de 16 px, controles adaptáveis e áreas seguras. Regras financeiras e permissões mantidas, sem migração no banco.
+
 ## v6.6.0 — O encerramento da liga vira card (01/11/2026)
 - Card no resumo final de ligas encerradas, com monograma, brasão real, troféu, campeão em destaque, campanha e pódio por modalidade/variante arquivada.
 - Compacto 1080 × 1350 e stories 1080 × 1920; prévia, download PNG e compartilhamento nativo usam a mesma imagem, preparada antes do clique para preservar a ativação no iPhone.

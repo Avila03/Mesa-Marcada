@@ -51,6 +51,11 @@ try{
   ])await verify(path,200);
   for(const path of ["/ligas","/ligas/"+eventId,"/ligas/"+eventId+"/gerenciar",
     "/ligas/convite/"+"a".repeat(64)])await verify(path,200);
+  for(const suffix of ['preparacao','partida','despesas','conferencia','resultado','enquetes','gerenciar','editar'])await verify('/eventos/'+eventId+'/'+suffix,200);
+  await verify('/eventos/novo?etapa=2',200);
+  for(const section of ['conquistas','molduras','resultados','rachas','editar'])await verify('/perfil/'+section,200);
+  for(const section of ['ranking','membros'])await verify('/ligas/'+eventId+'/'+section,200);
+  await verify('/jogadores/'+eventId+'/conquistas',200);
   const manifest=await verify("/manifest.webmanifest",200);
   const manifestJson=await manifest.json();
   assert.equal(manifestJson.name,"Mesa Marcada");

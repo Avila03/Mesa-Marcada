@@ -5,16 +5,16 @@ const page=read("app/painel/mobile-first.tsx");
 const composer=read("app/painel/poll-composer.tsx");
 const css=read("app/painel/poll-composer.css");
 
-const eventInfo=page.indexOf('<h2>Informações do evento</h2>');
+const eventInfo=page.indexOf('<h2>Enquetes do encontro</h2>');
 const composerInInfo=page.indexOf('<PollComposer key=');
 const bottomVoting=page.indexOf('<div id="event-polls"');
 assert.ok(eventInfo>=0&&composerInInfo>eventInfo&&bottomVoting>composerInInfo,
-  "The creator must only appear in the event information card, above the voting list.");
+  "The creator must appear once in the dedicated poll page, above the voting list.");
 assert.equal((page.match(/<PollComposer /g)||[]).length,1,"The poll composer must render once.");
 for(const obsolete of ['Opções, uma por linha','showCreatePoll','setShowCreatePoll','<h2>Criar enquete</h2>']){
  assert.ok(!page.includes(obsolete),"Remove obsolete poll composer: "+obsolete);
 }
-assert.ok(page.includes('Ver enquetes abertas →')&&page.includes('pollVotes.length'),
+assert.ok(page.includes('Enquetes ·')&&page.includes('pollVotes.length'),
  "Existing poll voting and navigation must remain untouched.");
 assert.ok(page.includes('afterSaved("polls"'),
  "New poll must refresh existing voting list after creation.");
@@ -33,4 +33,4 @@ for(const behavior of [
 }
 assert.ok(css.includes('@media(max-width:560px)')&&css.includes('min-height:44px'),
  "Mobile-friendly touch targets missing.");
-console.log("✓ Criador de enquete dentro de Informações do evento, sem formulário duplicado.");
+console.log("✓ Criador de enquete na página de Enquetes, sem formulário duplicado.");

@@ -41,7 +41,7 @@ const relativeTag=(startedAt:string,status:string)=>{
 export default function EventLivePanel({
   title,status,startedAt,requiresStart,canSee,host,admin,
   busy,loading,guestCount,paidCount,purchaseCount,checkedCount,
-  canFinish,activities,nameFor,onStart,onFinish,onRefresh,onFichas,canStart,onSeats,showTimeline=true
+  canFinish,activities,nameFor,onStart,onFinish,onRefresh,onFichas,canStart,onSeats,showTimeline=true,reviewOnly=false,startHint
 }:{
   title:string;
   status:"scheduled"|"finished"|"cancelled";
@@ -49,7 +49,7 @@ export default function EventLivePanel({
   requiresStart:boolean;
   canSee:boolean;host:boolean;admin:boolean;
   busy:boolean;loading:boolean;
-  canStart:boolean;onSeats:()=>void;showTimeline?:boolean;
+  canStart:boolean;onSeats:()=>void;showTimeline?:boolean;reviewOnly?:boolean;startHint?:string;
   guestCount:number;paidCount:number;purchaseCount:number;checkedCount:number;
   canFinish:boolean;
   activities:LiveActivity[];
@@ -61,25 +61,25 @@ export default function EventLivePanel({
       <div className="mm-live-lock"><UiIcon name="users" size={30}/></div>
       <h2>Linha do tempo reservada</h2>
       <p>Confirme presença neste evento para acompanhar os acontecimentos da partida.
-        O Anfitrião e o Administrador também têm acesso.</p>
+        O anfitrião e o Administrador também têm acesso.</p>
     </section>;
   }
   const active=Boolean(startedAt&&status==="scheduled");
   const timeline=[...activities].sort((a,b)=>
     new Date(b.occurred_at).getTime()-new Date(a.occurred_at).getTime()||b.id-a.id);
   return <div className="mm-live">
-    <section className={"mm-live-panel "+(active?"mm-live-is-active":"")}>
+    {!reviewOnly&&<section className={"mm-live-panel "+(active?"mm-live-is-active":"")}>
       <div className="mm-live-topline">
         <span className="eyebrow">MESA MARCADA · EVENTO AO VIVO</span>
         <span className={"mm-live-status "+(active?"active":"")}>
           <span className="mm-live-dot"/>{relativeTag(startedAt||"",status)}
         </span>
       </div>
-      <h2>{title}</h2>
+      <h2>{startedAt?title:"Pronto para começar?"}</h2>
       {startedAt?
         <p className="mm-live-started"><UiIcon name="clock" size={16}/> Iniciado em {fullDate(startedAt)}</p>:
         <p>O evento começa quando o Anfitrião tocar em <strong>Iniciar partida</strong>.
-          A linha do tempo será formada automaticamente pelos registros feitos na mesa.</p>}
+          Os participantes e assentos serão mantidos durante a partida.</p>}
       {status==="scheduled"&&!startedAt&&host&&
         <button type="button" className="btn gold mm-live-primary"
           disabled={busy||!canStart} onClick={onStart}>
@@ -87,7 +87,7 @@ export default function EventLivePanel({
         </button>}
       {status==="scheduled"&&!startedAt&&host&&!canStart&&
         <button type="button" className="mm-seat-start-hint" onClick={onSeats}>
-          Para começar o Blackjack, alguém precisa ocupar a cadeira do crupiê. Abrir Assentos →
+          {startHint||"Para começar o Blackjack, alguém precisa ocupar a cadeira do crupiê."} Abrir assentos →
         </button>}
       {status==="scheduled"&&!startedAt&&!host&&
         <div className="mm-live-awaiting"><UiIcon name="clock" size={19}/>
@@ -96,7 +96,7 @@ export default function EventLivePanel({
         <p className="mm-live-note">A partida está acontecendo. Compre fichas na área <strong>Compra</strong> e registre o valor final em <strong>Encerrar</strong>. As despesas são independentes.</p>}
       {status==="finished"&&<p className="mm-live-good">Partida encerrada. Consulte o Resumo do evento.</p>}
       {status==="cancelled"&&<p className="mm-live-note">Evento cancelado. Os registros existentes continuam preservados.</p>}
-    </section>
+    </section>}
 
     {(active||status==="finished"&&Boolean(startedAt))&&
       <section className="mm-live-review">
@@ -119,12 +119,12 @@ export default function EventLivePanel({
             <span><strong>Conferência final</strong><small>{checkedCount} de {guestCount} valores finais informados</small></span>
           </div>
         </div>
-        <div className="mm-live-actions">
+        {!reviewOnly&&<div className="mm-live-actions">
           <button type="button" className="btn" onClick={onFichas}>
             <UiIcon name="cards" size={17}/> Conferir valores
           </button>
 
-        </div>
+        </div>}
         <p className="mm-live-expense-note">Os rachas opcionais de comida e bebida são independentes e <strong>não bloqueiam</strong> o encerramento.</p>
       </section>}
 

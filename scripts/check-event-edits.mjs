@@ -3,7 +3,7 @@ import {readFileSync} from "node:fs";
 const read=(path)=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
 const db=read("supabase/migrations/20261022154748_edit_events_notices.sql");
 const pushDb=read("supabase/migrations/20261022154752_edit_event_push.sql");
-const app=read("app/painel/mobile-first.tsx");
+const app=read("app/painel/mobile-first.tsx")+read("app/painel/event-wizard.tsx");
 const notices=read("app/painel/event-change-notices.tsx");
 const api=read("app/api/push/notify/route.ts");
 for(const pattern of [
@@ -17,7 +17,7 @@ for(const pattern of [
 ])assert.ok((db+pushDb).includes(pattern),"Missing edit security: "+pattern);
 for(const pattern of [
  '"editar-evento"','localDateTimeInput','openEditor','edit_event_details',
- 'onSubmit={modal==="editar-evento"?editEvent:addEvent}',
+ 'onSave={page==="editar-evento"?editEvent:addEvent}',
  'selected.status==="scheduled"&&!selectedLive',
  'Editar evento','Salvar alterações','NotificationCenter'
 ])assert.ok(app.includes(pattern),"Missing event edit user flow: "+pattern);

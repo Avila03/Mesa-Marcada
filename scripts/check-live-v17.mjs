@@ -11,8 +11,8 @@ const styles=read("app/event-live.css");
 const newSql=read("supabase/migrations/20261021134450_live_chips_inventory_settlements.sql");
 
 for(const piece of [
-  '["ao-vivo","Ao vivo"]','["compra","Compra"]','id="event-expenses"',
-  'db.rpc("start_live_event"','<EventLivePanel','setLiveSubtab("encerrar")',
+  '["ao-vivo","Partida"]','["conferencia","Conferência"]','id="event-expenses"',
+  'db.rpc("start_live_event"','<EventLivePanel','setDetailTab("conferencia")',
   'canSee={privateVisible}','const canFinish=(!selected?.live_start_required||Boolean(selectedLive))',
   'db.rpc("get_event_snapshot"','await loadEvent(selectedId)'
 ]){
@@ -73,7 +73,7 @@ for(const term of ["session_table_seats","UNIQUE(session_id,seat_no)",
   assert.ok(seatsSql.includes(term),"Missing seating security rule: "+term);
 }
 for(const token of ["<SeatingTable","db.rpc(\"choose_table_seat\"","detailTab===\"visao\"",
-   '["visao","Visão geral"]','openEvent(data.id,"visao")']){
+   '["visao","Preparação"]','openEvent(data.id,"visao")']){
   assert.ok(panel.includes(token),"Event seat integration missing: "+token);
 }
 assert.ok(seatsUi.includes("mm-seat-dealer")&&seatsUi.includes("CRUPIÊ"),"Blackjack dealer marker missing");
@@ -87,8 +87,8 @@ const newFinanceSql=read("supabase/migrations/20261021161036_simplified_cashout_
 const recap=read("app/painel/night-summary.tsx");
 const expenseUi=read("app/painel/expense-splits.tsx");
 const movements=read("app/painel/event-live-panel.tsx");
-for(const token of ['["visao","Visão geral"]','id="event-expenses"','["compra","Compra"]',
- '["resumo","Resumo"]','["encerrar","Encerrar"]','<SeatingTable','openPolls.length',
+for(const token of ['["visao","Preparação"]','id="event-expenses"','["conferencia","Conferência"]',
+ '["resumo-evento","Resultado"]','setDetailTab("conferencia")','<SeatingTable','openPolls.length',
  'showPastPolls','<PollComposer','<NightSummary','setDetailTab("resumo-evento")']){
  assert.ok(panel.includes(token),"Expected simplified event workflow: "+token);
 }
@@ -107,12 +107,12 @@ assert.ok(recap.includes("Compras de fichas")&&recap.includes("Despesas e rachas
  "Night summary must show chips and splits separately");
 console.log("✓ v2.0 event overview, live purchase-first, no receipts, post-finish recap");
 
-// O cadastro de despesas agora está dentro da Visão geral, sem aba própria.
-assert.ok(!panel.includes('["gastos","Despesas"]'),"Remove standalone Despesas tab");
+// v7: despesas independentes na própria página; regras financeiras preservadas.
+assert.ok(panel.includes('["gastos","Despesas"]'),"Expenses must have a dedicated task page");
 assert.ok(panel.includes('id="event-expenses"')&&panel.includes('<ExpenseSplitsPanel'),"Show expenses in overview");
 assert.ok(panel.includes('<ExpenseComposer')&&panel.includes('createForm={null}'),"Expense creator must be inside event info, not below expenses");
-assert.ok(panel.includes('sub==="gastos"?"visao"')||panel.includes('sub==="gastos"'),"Keep old profile expense links working");
-assert.ok(panel.includes('Ver despesas e rachas →'),"Link to expenses from event summary");
+assert.ok(panel.includes('onOpenEvent={eventId=>openEvent(eventId,"gastos")}'),"Keep old profile expense links working");
+assert.ok(panel.includes('["gastos","Despesas"]'),"Link to expenses from event summary");
 console.log("✓ v2.1: assentos, enquetes e despesas dentro da Visão geral");
 
 const seatAutoSql=read("supabase/migrations/20261021165041_seat_auto_attendance.sql");
@@ -135,7 +135,7 @@ console.log("✓ v2.2: seat selection automatically confirms attendance, no extr
 for(const guard of [
  "const hiddenEventIds=new Set(hiddenEvents.map(h=>h.session_id))",
  "const agendaEvents=events.filter(e=>!hiddenEventIds.has(e.id))",
- "const visibleEvents=agendaEvents.filter",
+ "const visibleEvents=filterEvents(agendaEvents",
  "const upcoming=agendaEvents.filter",
  "const count=agendaEvents.filter",
  "{agendaEvents.filter(e=>roomFor(e.room_id)?.game===gameView)",
@@ -152,7 +152,7 @@ const realtimeHook=read("app/painel/use-club-realtime.ts");
 const realtimeSql=read("supabase/migrations/20261022001640_realtime_event_sync.sql");
 const appLayout=read("app/(app)/layout.tsx");
 const login=read("app/login/page.tsx");
-for(const expected of ["/eventos/","/ao-vivo","/resumo","/mesas/","/ranking","/perfil","/administracao"]){
+for(const expected of ["/eventos/","partida","resultado","ao-vivo","resumo","/mesas/","/ranking","/perfil","/administracao"]){
  assert.ok(routeFile.includes(expected),"Missing deep link mapping: "+expected);
 }
 for(const pageFile of ["painel","eventos","eventos/[id]","eventos/[id]/ao-vivo",

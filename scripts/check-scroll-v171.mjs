@@ -9,12 +9,10 @@ const hook=read("app/painel/use-stable-dialog.ts");
 const css=read("app/v05-theme.css");
 const login=read("app/login/page.tsx");
 
-assert.ok(panel.includes('useStableDialog(modal!==null,page,()=>setModal(null))'),
-  "Dialog must use stable body-lock hook in all sections");
-assert.ok(panel.includes('ref={modalOverlayRef} className="mm-overlay"'),
-  "Event dialog must forward overlay ref");
-assert.ok(panel.includes('role="dialog" aria-modal="true"'),
-  "Dialog requires semantic modal focus handling");
+const taskCss=read("app/painel/task-layout.css"),wizard=read("app/painel/event-wizard.tsx");
+assert.ok(panel.includes('<EventWizard')&&!panel.includes('className="mm-overlay"'),"Event creation must use a dedicated page with native document scrolling");
+assert.ok(wizard.includes('mm-wizard-actions')&&wizard.includes('sessionStorage'),"Wizard must preserve drafts across navigation");
+assert.ok(taskCss.includes('font-size:16px')&&taskCss.includes('min-height:48px')&&taskCss.includes('safe-area-inset-bottom'),"Wizard needs iPhone-safe inputs and touch targets");
 assert.equal((panel.match(/window\.scrollTo\(\{top:0,behavior:"smooth"\}\)/g)||[]).length,0,
   "Page transitions cannot animate the full viewport");
 assert.ok((panel.match(/window\.scrollTo\(\{top:0,behavior:"auto"\}\)/g)||[]).length>=3,

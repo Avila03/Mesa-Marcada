@@ -22,6 +22,7 @@ jobs:
       - run: npm run test:cards
       - run: npm run test:league-cards
       - run: npm run test:setup
+      - run: npm run test:journey
       - run: npm run test:database
       - run: npm run typecheck
       - run: npm run check:ui

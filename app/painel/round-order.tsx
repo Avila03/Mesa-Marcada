@@ -31,11 +31,11 @@ export default function RoundOrder({eventId,game,participants,userId,canManage,n
  }
  const order=snapshot.order,locked=loading||busy||!!pending||snapshot.locked,blackjack=game==='blackjack';
  function submit(e:FormEvent){e.preventDefault();if(!locked)void save('configure')}
- return <section className="panel mm-round-order" aria-label="Ordem da mesa"><div className="panelhead"><div><span className="eyebrow">ORGANIZAÇÃO DA RODADA</span><h2>Quem distribui e quem começa</h2></div>{order&&<span className="tag">Distribuição {order.distribution}</span>}</div>
+ return <section className="panel mm-round-order" aria-label="Ordem da mesa"><details className="mm-order-details"><summary><strong>Ordem da mesa{order?' · distribuição '+order.distribution:''}</strong><span>{order?.dealer_id?nameFor(order.dealer_id):'Distribuidor não definido'} · {order?.starter_id?nameFor(order.starter_id):'Início não definido'}{error?' · Atualização pendente':''}</span></summary><div className="panelhead"><div><span className="eyebrow">ORGANIZAÇÃO DA RODADA</span><h2>Quem distribui e quem começa</h2></div>{order&&<span className="tag">Distribuição {order.distribution}</span>}</div>
   {loading?<p role="status">Carregando ordem da mesa…</p>:<div className="mm-round-roles"><div><small>{blackjack?'Croupier fixo':'Quem distribui'}</small><strong>{order?.dealer_id||snapshot.fixed_dealer_id?nameFor((order?.dealer_id||snapshot.fixed_dealer_id)!):'Ainda não definido'}</strong></div><div><small>{blackjack?'Primeiro a receber':game==='poker'?'Primeiro a agir · combinado':'Quem começa'}</small><strong>{order?.starter_id?nameFor(order.starter_id):'Ainda não definido'}</strong></div></div>}
   {error&&<p className="mm-message error" role="alert">{error} <button className="btn" type="button" disabled={busy} onClick={()=>{setError('');void refresh().catch(e=>setError(e.message))}}>Atualizar ordem</button></p>}
   {notice&&<p className="mm-formfoot" role="status">{notice}</p>}
-  {pending&&canManage&&<p className="mm-message" role="status">Confirmação pendente. <button type="button" className="btn" disabled={busy} onClick={()=>void save(pending.p_action)}>Confirmar mesma tentativa</button></p>}
+  {pending&&canManage&&<p className="mm-message" role="status">Confirmação pendente. <button type="button" className="btn" disabled={busy} onClick={()=>void save(pending.p_action)}>Verificar alteração</button></p>}
   {canManage&&!snapshot.locked&&<div className="mm-round-actions"><button className="btn" type="button" disabled={locked} onClick={edit}>{order?'Ajustar responsáveis':'Definir responsáveis'}</button>{order&&<button className="btn" type="button" disabled={locked} onClick={()=>void save('advance')}>Próxima distribuição</button>}</div>}
   {editing&&canManage&&!snapshot.locked&&<form className="mm-round-form" onSubmit={submit}>
    <label className="mm-field">{blackjack?'Croupier fixo':'Quem distribui'}<select value={dealer} disabled={locked||blackjack} required onChange={e=>{setDealer(e.target.value);if(game!=='poker'&&starter===e.target.value)setStarter('')}}><option value="">Selecione</option>{players.map(id=><option value={id} key={id}>{nameFor(id)}</option>)}</select></label>
@@ -44,5 +44,5 @@ export default function RoundOrder({eventId,game,participants,userId,canManage,n
    <div className="mm-round-actions"><button className="btn gold" disabled={locked}>Salvar ordem</button><button className="btn" type="button" onClick={()=>setEditing(false)}>Cancelar ajuste</button></div>
   </form>}
   <p className="mm-formfoot">Guia para a partida presencial. Avance ao terminar uma distribuição; os responsáveis passam ao próximo assento no sentido escolhido{blackjack?', mantendo o croupier fixo':''}. Ajuste conforme as regras da mesa. {game==='poker'?'Blinds e ordem pré/pós-flop são conferidos presencialmente.':game==='uno'?'Inverter, pular e compras continuam sendo resolvidos presencialmente.':''}</p>
- </section>;
+ </details></section>;
 }

@@ -19,11 +19,11 @@ assert.ok(sql.includes("league_id IS NULL OR app_private.is_league_owner(league_
 assert.ok(sql.includes("p_token ~ '^[a-f0-9]{64}$'"),"Private invite token validation absent");
 assert.ok(sql.includes("FOR SELECT TO authenticated"),"Restrict public data to authenticated");
 assert.ok(!sql.includes("DISABLE ROW LEVEL SECURITY"),"Never disable RLS");
-const routes=read("lib/app-routes.ts");
+const routes=read("lib/app-routes.ts").replaceAll("'",'"');
 for(const expected of ["/ligas/","/gerenciar","result.leagueId","page===\"liga-admin\""]){
  assert.ok(routes.includes(expected),"League routes missing: "+expected);
 }
-const panel=read("app/painel/mobile-first.tsx");
+const panel=read("app/painel/mobile-first.tsx")+read("app/painel/event-wizard.tsx");
 const home=read("app/painel/dashboard-v16.tsx");
 const hub=read("app/painel/league-hub.tsx");
 for(const token of ["<LeagueHub","onCreateEvent={leagueId=>openCreator",
@@ -31,7 +31,7 @@ for(const token of ["<LeagueHub","onCreateEvent={leagueId=>openCreator",
  "setSelectedLeagueId(state.leagueId)"]){
  assert.ok(panel.includes(token),"League interaction missing: "+token);
 }
-assert.ok(home.includes("<LeagueHomePreview"),"Show leagues on home page");
+assert.ok(home.includes("Minhas ligas"),"Show leagues on home page");
 for(const token of ["Aprovar","Recusar","Gerenciar membros","get_league_ranking",
  "request_league_join","generate_league_invite","onOpenEvent(ev.id)"]){
  assert.ok(hub.includes(token),"League hub missing feature: "+token);

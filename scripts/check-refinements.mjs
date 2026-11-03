@@ -20,11 +20,11 @@ for(const p of ["event_reconfirmations","league_notifications","event_change_not
  assert.ok((center+app).includes(p),"Notification center missing: "+p);
 assert.ok(app.includes("EventReconfirmation"),"Reconfirmation UI not accessible");
 assert.ok(reconfirm.includes("Confirmar nova data")&&reconfirm.includes("Não poderei ir"),"Responses missing");
-assert.ok(home.includes("myUpcoming[0]||upcoming[0]"),"Home must prioritize own next event");
+assert.ok(home.includes("mine[0]||upcoming[0]"),"Home must prioritize own next event");
 assert.ok(home.includes("pendingReconfirmEventId"),"Home reconfirmation warning missing");
 assert.ok(leagues.includes('leagueFilter==="finished"')&&leagues.includes("filteredOwn"),"Archived league filter missing");
 assert.ok(leagues.includes("showAllEvents"),"Full league event history missing");
 assert.ok(!leagues.includes('href="/brasoes/demo"'),"Demo shortcut must not clutter Leagues");
 assert.ok(finalizeCss.includes("position:relative"),"League finish cannot obscure mobile navigation");
-assert.ok(app.includes('(page==="inicio"||page==="eventos")&&!modal'),"Contextual mobile FAB missing");
+assert.ok(app.includes('mm-create')&&home.includes('onCreate'),"Event creation action must remain accessible");
 console.log("✓ Melhorias 3–7: homepage, reconfirmação, central, Ligas e mobile");
