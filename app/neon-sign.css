@@ -16,7 +16,7 @@
 html body{font-family:var(--sign-body)}
 html h1,html h2,html .money,html .metric strong,html .mm-home-statgrid strong,html .mm-home-datebox strong,html .bj-total{
   font-family:var(--sign-display);font-weight:400;letter-spacing:.2px}
-html .brandname{font-family:var(--sign-display);font-weight:400;letter-spacing:.3px}
+html .brandname,html .mm-site-logo .brandname{font-family:var(--sign-display)!important;font-weight:400!important;letter-spacing:.3px!important}
 
 /* Letreiro: "Marcada" em neon vermelho que pisca de leve. */
 html .mm-site-logo .brandname em,html .brandname em{
