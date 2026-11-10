@@ -1,5 +1,12 @@
 # Histórico de versões — Mesa Marcada
 
+## v7.3.0 — Letreiro na mesa e no ao vivo (09/11/2026)
+- Mesa dos assentos mantém a forma e o realismo, agora com feltro da marca (azul-noite no Poker, vinho no Blackjack), borda de couro escuro e fita de LED neon com reflexo da outra cor.
+- Naipe central em contorno de neon e textos da mesa em Tilt Neon; cadeiras livres com anel tracejado aceso, ocupadas com anel na cor da mesa e a sua com anel azul → vermelho. Cadeira do crupiê continua dourada.
+- Evento ao vivo: selo AO VIVO em neon vermelho pulsando, painel aceso e botão principal em pílula holográfica.
+- Placar dos jogos de pontos com números em neon, azul contra vermelho; valores das fichas em Tilt Neon.
+- Somente CSS: regras dos assentos, compras, placar e fechamento sem alteração.
+
 ## v7.2.0 — Letreiro (09/11/2026)
 - Refinamento sobre a identidade Dark Cards Duo: fundo azul-noite com naipes, brilhos e a mistura de neon vermelho e azul permanecem como estavam.
 - Títulos, números e marca em Tilt Neon; texto em Outfit.
