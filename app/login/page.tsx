@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase/browser";
 import "../v05-theme.css";
+import "../neon-deck.css";
 import SiteLogo from "../painel/site-logo";
 import {validPostLoginRoute} from "@/lib/app-routes";
 
