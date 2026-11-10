@@ -1,5 +1,8 @@
 # Histórico de versões — Mesa Marcada
 
+## v7.3.1 — Detalhes do Letreiro (10/11/2026)
+- Aba da tarefa atual com brilho neon; números do Resumo da noite em Tilt Neon; rótulos da mesa e do resumo com leve brilho. Somente CSS.
+
 ## v7.3.0 — Letreiro na mesa e no ao vivo (09/11/2026)
 - Mesa dos assentos mantém a forma e o realismo, agora com feltro da marca (azul-noite no Poker, vinho no Blackjack), borda de couro escuro e fita de LED neon com reflexo da outra cor.
 - Naipe central em contorno de neon e textos da mesa em Tilt Neon; cadeiras livres com anel tracejado aceso, ocupadas com anel na cor da mesa e a sua com anel azul → vermelho. Cadeira do crupiê continua dourada.
