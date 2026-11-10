@@ -1,7 +1,7 @@
 import {strict as assert} from "node:assert";
 import {readFileSync} from "node:fs";
 const read=p=>readFileSync(new URL("../"+p,import.meta.url),"utf8");
-const sql=read("supabase/migrations/20261110150000_event_waitlist.sql");
+const sql=read("supabase/migrations/20261110121047_event_waitlist.sql");
 const panel=read("app/painel/mobile-first.tsx"),list=read("app/painel/waitlist-panel.tsx");
 const notify=read("app/api/push/notify/route.ts"),reminders=read("app/api/push/reminders/route.ts"),center=read("app/painel/notification-center.tsx");
 // Fila só por funções: leitura para quem vê o evento, sem escrita direta.
