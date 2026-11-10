@@ -1,6 +1,6 @@
 "use client";
 import {useEffect,useId,useMemo,useRef,useState} from 'react';
-import type {CrestConfig} from '@/app/brasoes/demo/crest-editor';
+import type {CrestConfig} from '@/app/painel/crest-editor';
 import {leagueCardModes,leagueFinalCard} from '@/lib/league-final-card';
 import type {LeagueFinalSummary} from '@/lib/league-final-summary';
 import {cardDimensions,type CardFormat} from '@/lib/post-game-card';

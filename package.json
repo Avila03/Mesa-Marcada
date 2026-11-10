@@ -1,6 +1,6 @@
 {
   "name": "mesa-marcada",
-  "version": "7.3.1",
+  "version": "7.4.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -22,6 +22,7 @@
     "check:expense": "node scripts/check-expense-composer.mjs",
     "check:performance": "node scripts/check-performance.mjs",
     "check:medals": "node scripts/check-medals.mjs",
+    "check:admin-medals": "node scripts/check-admin-medals.mjs",
     "check:player-previews": "node scripts/check-player-previews.mjs",
     "check:frames": "node scripts/check-frames.mjs",
     "check:founder": "node scripts/check-founder-frame.mjs",

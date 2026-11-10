@@ -5,8 +5,8 @@
    Muda só: fontes, botões principais e o letreiro "Marcada".
    ============================================================ */
 :root{
-  --sign-display:'Tilt Neon',Inter,system-ui,sans-serif;
-  --sign-body:Outfit,Inter,'DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --sign-display:var(--font-tilt-neon),'Tilt Neon',Inter,system-ui,sans-serif;
+  --sign-body:var(--font-outfit),Outfit,Inter,'DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
   --sign-blue:#258bff;--sign-red:#ff424d;--sign-ink:#0c1420;
 }
 @keyframes sign-flicker{0%,18%,22%,25%,53%,57%,100%{opacity:1}20%,24%,55%{opacity:.4}}
@@ -14,7 +14,7 @@
 
 /* Fontes: corpo em Outfit, títulos e números em Tilt Neon (traço de tubo de neon). */
 html body{font-family:var(--sign-body)}
-html h1,html h2,html .money,html .metric strong,html .mm-home-statgrid strong,html .mm-home-datebox strong,html .bj-total{
+html h1,html h2,html .money,html .metric strong{
   font-family:var(--sign-display);font-weight:400;letter-spacing:.2px}
 html .brandname,html .mm-site-logo .brandname{font-family:var(--sign-display)!important;font-weight:400!important;letter-spacing:.3px!important}
 

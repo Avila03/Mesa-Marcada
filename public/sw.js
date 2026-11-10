@@ -1,5 +1,5 @@
 /* Mesa Marcada PWA: sem cache de informações privadas ou financeiras. */
-const VERSION="mm-pwa-7.3.1";
+const VERSION="mm-pwa-7.4.0";
 self.addEventListener("install",e=>{
  e.waitUntil(caches.open(VERSION).then(cache=>cache.add("/offline.html")));
  self.skipWaiting();
@@ -21,7 +21,7 @@ self.addEventListener("push",e=>{
  e.waitUntil(self.registration.showNotification(
   String(data.title||"Mesa Marcada").slice(0,90),{
    body:String(data.body||"Há novidades no seu evento.").slice(0,160),
-   icon:"/mesa-marcada-logo.webp",badge:"/mesa-marcada-logo.webp",
+   icon:"/icon",badge:"/icon",
    tag:"mm-event-update",renotify:false,
    data:{url:valid?data.url:"/eventos"}
   }

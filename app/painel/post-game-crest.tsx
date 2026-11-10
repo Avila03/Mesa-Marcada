@@ -1,7 +1,7 @@
 "use client";
 import {createRoot} from 'react-dom/client';
 import {flushSync} from 'react-dom';
-import {CrestMark} from '@/app/brasoes/demo/crest-editor';
+import {CrestMark} from '@/app/painel/crest-editor';
 
 /** Reuse the league's exact editor artwork, including its chosen finish. */
 export function renderCardCrest(value:unknown):string{

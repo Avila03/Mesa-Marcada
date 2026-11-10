@@ -1,5 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import {Outfit,Tilt_Neon} from "next/font/google";
+
+const tiltNeon=Tilt_Neon({subsets:["latin"],weight:"400",variable:"--font-tilt-neon",display:"swap"});
+const outfit=Outfit({subsets:["latin"],variable:"--font-outfit",display:"swap"});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://mesa-marcada.vercel.app"),
@@ -23,5 +27,5 @@ export const viewport: Viewport = {
   width:"device-width",initialScale:1,viewportFit:"cover",themeColor:"#080a0e"
 };
 export default function RootLayout({children}:Readonly<{children:React.ReactNode}>){
-  return <html lang="pt-BR"><head><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tilt+Neon&family=Outfit:wght@400;500;600;700;800&display=swap"/></head><body>{children}</body></html>;
+  return <html lang="pt-BR" className={tiltNeon.variable+" "+outfit.variable}><body>{children}</body></html>;
 }

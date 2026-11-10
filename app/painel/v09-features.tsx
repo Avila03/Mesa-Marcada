@@ -174,36 +174,6 @@ export function ProfilePanel({
   </div>;
 }
 
-export function RankingPanel({
-  game,onGameChange,ranking,onPlayer,photoUrls
-}:{
-  game:Game;onGameChange:(g:Game)=>void;ranking:Rank[];onPlayer:(id:string)=>void;photoUrls:Record<string,string>;
-}){
-  const ordered=useMemo(()=>ranking.filter(r=>r.game===game).slice()
-    .sort((a,b)=>Number(b.avg_yield_pct)-Number(a.avg_yield_pct)||Number(b.net_chips)-Number(a.net_chips)),[ranking,game]);
-  return <>
-    <div className="heading"><div><div className="eyebrow">CLASSIFICAÇÃO DA GALERA</div><h1>Ranking e estatísticas</h1>
-      <p>Resultados de eventos encerrados e revisados, separados por modalidade.</p></div></div>
-    <div className="mm-filter-bar">
-      {(["poker","blackjack"] as Game[]).map(g=><button key={g} type="button" className={"filter "+(game===g?"active":"")} onClick={()=>onGameChange(g)}>{g==="poker"?"♠ Poker":"♦ Blackjack"}</button>)}
-    </div>
-    <section className="panel">
-      <div className="panelhead"><h2>{game==="poker"?"♠ Poker":"♦ Blackjack"} · Classificação</h2><span className={"tag "+game}>{ordered.length} jogadores</span></div>
-      <p className="mm-formfoot" style={{marginBottom:15}}>Ordenado pelo rendimento médio (%) para comparar eventos que utilizem quantidades diferentes de fichas. O saldo absoluto aparece separadamente.</p>
-      {ordered.map((r,i)=><button className="mm-v09-rank-player" type="button" key={r.user_id} onClick={()=>onPlayer(r.user_id)}>
-        <span className={"mm-v09-medal "+(i<3?"podium":"")}>{i+1}º</span>
-        <PlayerAvatar photoUrl={photoUrls[r.user_id]} name={r.display_name}/>
-        <span className="mm-v09-rank-name"><strong>{r.display_name}</strong><small>{r.sessions_played} noites · Melhor: {cash(r.best_event_chips)}</small></span>
-        <span className="mm-v09-rank-result"><strong>{Number(r.avg_yield_pct)>0?"+":""}{number(r.avg_yield_pct)}%</strong><small>{cash(r.net_chips)}</small></span>
-        <span aria-hidden="true">›</span>
-      </button>)}
-      {ordered.length===0&&<div className="mm-empty"><span className="mm-empty-symbol">★</span>
-        <h3>Ainda sem resultados</h3><p>O ranking começará depois que um evento for encerrado com os registros completos e aprovados.</p></div>}
-    </section>
-    <p className="mm-formfoot">Média percentual = média de (fichas finais − fichas adquiridas) / fichas adquiridas, em cada evento válido. Não se converte fichas em dinheiro.</p>
-  </>;
-}
-
 function escapeIcs(value:string){
   return value.replace(/\\/g,"\\\\").replace(/\r?\n/g,"\\n").replace(/,/g,"\\,").replace(/;/g,"\\;");
 }

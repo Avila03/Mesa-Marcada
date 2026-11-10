@@ -1,6 +1,6 @@
 "use client";
 
-import {useId,useMemo,useRef,useState} from "react";
+import {useId,useMemo,useState} from "react";
 import type {ReactNode} from "react";
 
 type ShapeId="shield"|"circle"|"hex"|"card";
@@ -189,34 +189,6 @@ function CrestSvg({shape,symbol,accent,initials,year,withYear,finish,svgRef}:{
   {premium&&<circle cx="180" cy="33" r="5" fill={accent.soft} opacity=".85" filter={url("spark")}/>}
  </svg>;
 }
-function downloadSvg(svg:SVGSVGElement,filename:string){
- const clone=svg.cloneNode(true) as SVGSVGElement;
- clone.setAttribute("xmlns","http://www.w3.org/2000/svg");
- clone.setAttribute("width","720");clone.setAttribute("height","840");
- const text='<?xml version="1.0" encoding="UTF-8"?>'+new XMLSerializer().serializeToString(clone);
- const url=URL.createObjectURL(new Blob([text],{type:"image/svg+xml;charset=utf-8"}));
- const a=document.createElement("a");a.href=url;a.download=filename+".svg";a.click();
- window.setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
-async function downloadPng(svg:SVGSVGElement,filename:string){
- const clone=svg.cloneNode(true) as SVGSVGElement;
- clone.setAttribute("xmlns","http://www.w3.org/2000/svg");
- clone.setAttribute("width","1080");clone.setAttribute("height","1260");
- const source=new XMLSerializer().serializeToString(clone);
- const blob=new Blob([source],{type:"image/svg+xml;charset=utf-8"});
- const url=URL.createObjectURL(blob);
- try{
-  const img=new Image();
-  await new Promise<void>((resolve,reject)=>{img.onload=()=>resolve();img.onerror=()=>reject(new Error("Falha na exportação da imagem"));img.src=url;});
-  const canvas=document.createElement("canvas");canvas.width=1080;canvas.height=1260;
-  const ctx=canvas.getContext("2d");if(!ctx)throw new Error("Seu navegador não suporta esta exportação");
-  ctx.drawImage(img,0,0,1080,1260);
-  const png=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error("Não foi possível gerar o PNG")),"image/png"));
-  const fileUrl=URL.createObjectURL(png);
-  const a=document.createElement("a");a.href=fileUrl;a.download=filename+".png";a.click();
-  window.setTimeout(()=>URL.revokeObjectURL(fileUrl),1000);
- }finally{URL.revokeObjectURL(url);}
-}
 
 export type CrestConfig={
  shape:ShapeId;symbol:SymbolId;colorIndex:number;initials:string;withYear:boolean;year:string;finish:CrestFinish;
@@ -319,107 +291,4 @@ export function CrestCustomizer({value,onChange}:{value:CrestConfig;onChange:(va
    </div>
   </div>
  </div>;
-}
-export default function CrestEditor(){
- const [shape,setShape]=useState<ShapeId>("shield");
- const [symbol,setSymbol]=useState<SymbolId>("joker");
- const [colorIndex,setColorIndex]=useState(0);
- const [finish,setFinish]=useState<CrestFinish>("premium");
- const [initials,setInitials]=useState("MM");
- const [withYear,setWithYear]=useState(true);
- const [year,setYear]=useState("2026");
- const [group,setGroup]=useState("Todos");
- const [feedback,setFeedback]=useState("");
- const svgRef=useRef<SVGSVGElement>(null);
- const accent=COLORS[colorIndex]||COLORS[0];
- const shown=useMemo(()=>SYMBOLS.filter(item=>group==="Todos"||item.group===group),[group]);
- const filename="mesa-marcada-brasao-"+(initials||"liga").toLowerCase();
- async function exportFile(kind:"svg"|"png"){
-  if(!svgRef.current)return;
-  try{
-   setFeedback("");
-   if(kind==="svg")downloadSvg(svgRef.current,filename);
-   else await downloadPng(svgRef.current,filename);
-   setFeedback("Arquivo "+kind.toUpperCase()+" gerado. Verifique seus downloads.");
-  }catch(e){setFeedback(e instanceof Error?e.message:"Não foi possível exportar.");}
- }
- return <main className={"mm-crest-shell mm-crest-finish-"+finish}>
-  <header className="mm-crest-nav">
-   <a href="/" className="mm-crest-wordmark" aria-label="Ir para Mesa Marcada">
-    <span className="mm-crest-wordmark-mark">♠</span><span>MESA <b>MARCADA</b></span>
-   </a>
-   <a href="/ligas" className="mm-crest-back">← Voltar às ligas</a>
-  </header>
-  <section className="mm-crest-intro">
-   <span className="mm-crest-eyebrow">IDENTIDADE DAS LIGAS / LABORATÓRIO VISUAL</span>
-   <h1>Seu brasão. <em>Sua liga.</em></h1>
-   <p>Construa uma identidade única com os acabamentos Minimalista, Clássico e Premium. Escolha dentro das regras do sistema e veja o resultado em tempo real.</p>
-   <div className="mm-crest-preview-warning"><span className="mm-crest-live-dot"/>Prévia interativa · não salva dados da liga</div>
-  </section>
-  <div className="mm-crest-layout">
-   <section className="mm-crest-stage" aria-label="Prévia do brasão">
-    <div className="mm-crest-stage-bar"><span><span className="mm-crest-live-dot"/> PRÉVIA EM TEMPO REAL</span><span>ESTILO {finishName(finish).toUpperCase()}</span></div>
-    <div className="mm-crest-display">{finish==="premium"&&<div className="mm-crest-ambient" style={{background:accent.hex}}/>}
-     <CrestSvg shape={shape} symbol={symbol} accent={accent} initials={initials} year={year} withYear={withYear} finish={finish} svgRef={svgRef}/>
-    </div>
-    <div className="mm-crest-stage-caption">
-     <div><small>BRASÃO PERSONALIZADO</small><strong>{initials||"MM"} · {shapeFor(shape).name}</strong><span>{SYMBOLS.find(x=>x.id===symbol)?.name} · {accent.name}</span></div>
-     <span className="mm-crest-premium-tag">{finishName(finish)}</span>
-    </div>
-    <div className="mm-crest-export">
-     <button type="button" onClick={()=>void exportFile("png")} className="mm-crest-primary">Exportar PNG ↓</button>
-     <button type="button" onClick={()=>void exportFile("svg")} className="mm-crest-secondary">Exportar SVG ↓</button>
-    </div>
-    {feedback&&<p className="mm-crest-feedback" role="status">{feedback}</p>}
-   </section>
-   <section className="mm-crest-controls" aria-label="Personalização do brasão">
-    <div className="mm-crest-controls-head"><div><span>EDITOR DE BRASÕES</span><h2>Monte o seu emblema</h2></div><span className="mm-crest-counter">{finishName(finish).toUpperCase()}</span></div>
-    <div className="mm-crest-step">
-     <div className="mm-crest-step-head"><span className="mm-crest-step-no">01</span><div><h3>Formato</h3><p>Quatro silhuetas padronizadas.</p></div></div>
-     <div className="mm-crest-shapes">
-      {SHAPES.map(item=><button type="button" key={item.id} className={"mm-crest-shape "+(shape===item.id?"selected":"")} aria-pressed={shape===item.id} onClick={()=>setShape(item.id)}>
-       <svg viewBox="0 0 360 420" aria-hidden="true"><path d={item.path} fill={shape===item.id?"#172A44":"#121923"} stroke={shape===item.id?accent.hex:"#8190A8"} strokeWidth="11"/></svg><span>{item.name}</span>
-      </button>)}
-     </div>
-    </div>
-    <div className="mm-crest-step">
-     <div className="mm-crest-step-head"><span className="mm-crest-step-no">02</span><div><h3>Símbolo principal</h3><p>27 símbolos de cartas, poker e cassino.</p></div></div>
-     <div className="mm-crest-groups" aria-label="Categorias de símbolos">
-      {GROUPS.map(item=><button key={item} className={group===item?"active":""} onClick={()=>setGroup(item)} type="button" aria-pressed={group===item}>{item}</button>)}
-     </div>
-     <div className="mm-crest-symbols">{shown.map(item=><button type="button" key={item.id} title={item.name}
-       aria-label={item.name} aria-pressed={symbol===item.id} className={"mm-crest-symbol "+(symbol===item.id?"selected":"")} onClick={()=>setSymbol(item.id)}>
-       <svg viewBox="-88 -91 176 185" aria-hidden="true" color="#E8F2FF"><g stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" fill="none"><SymbolArt id={item.id} accent={accent.hex}/></g></svg>
-       <span>{item.name}</span>
-      </button>)}</div>
-    </div>
-    <div className="mm-crest-step">
-     <div className="mm-crest-step-head"><span className="mm-crest-step-no">03</span><div><h3>Cor de destaque</h3><p>Seis combinações aprovadas.</p></div></div>
-     <div className="mm-crest-colors">{COLORS.map((item,index)=><button type="button" title={item.name} aria-label={item.name}
-      aria-pressed={colorIndex===index} key={item.name} className={"mm-crest-color "+(colorIndex===index?"selected":"")} onClick={()=>setColorIndex(index)}>
-      <span style={{background:item.hex}}/>{colorIndex===index&&<b>✓</b>}</button>)}</div>
-     <div className="mm-crest-color-name">{accent.name} <span>{accent.hex}</span></div>
-    </div>
-   <div className="mm-crest-step">
-    <div className="mm-crest-step-head"><span className="mm-crest-step-no">04</span><div><h3>Acabamento</h3><p>Escolha entre os três estilos finalizados.</p></div></div>
-    <FinishSelector value={finish} onChange={setFinish} shape={shape}
-     symbol={symbol} accent={accent} initials={initials} year={year} withYear={withYear}/>
-   </div>
-
-    <div className="mm-crest-step">
-     <div className="mm-crest-step-head"><span className="mm-crest-step-no">05</span><div><h3>Identificação</h3><p>Seu monograma e ano opcional.</p></div></div>
-     <label className="mm-crest-label" htmlFor="mm-crest-initials">SIGLA · ATÉ 4 CARACTERES</label>
-     <input id="mm-crest-initials" maxLength={4} value={initials} autoCapitalize="characters" spellCheck={false}
-      onChange={e=>setInitials(e.target.value.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9]/g,"").toUpperCase().slice(0,4))}
-      placeholder="MM" aria-describedby="mm-crest-initials-help"/>
-     <small id="mm-crest-initials-help" className="mm-crest-field-note">Letras e números, sem espaços. {initials.length}/4</small>
-     <label className="mm-crest-switch"><input type="checkbox" checked={withYear} onChange={e=>setWithYear(e.target.checked)}/><span>Exibir ano no brasão</span></label>
-     {withYear&&<><label htmlFor="mm-crest-year" className="mm-crest-label">ANO</label>
-      <input id="mm-crest-year" type="text" inputMode="numeric" maxLength={4} value={year} onChange={e=>setYear(e.target.value.replace(/\D/g,"").slice(0,4))}/></>}
-    </div>
-    <div className="mm-crest-guidelines"><strong>PADRÃO VISUAL PRESERVADO</strong><p>Os elementos têm posição e proporção fixas. Sem uploads, arrastar, girar ou redimensionar. O acabamento escolhido determina contornos, ornamentos e brilhos.</p></div>
-   </section>
-  </div>
-  <footer className="mm-crest-footer"><span>MESA MARCADA · DARK CARDS</span><span>Editor experimental · a criação e a edição das ligas permanecem inalteradas</span></footer>
- </main>;
 }

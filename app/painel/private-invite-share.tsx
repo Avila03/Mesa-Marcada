@@ -1,6 +1,5 @@
 "use client";
-import {useMemo,useState} from "react";
-import qrcode from "@/lib/vendor/qrcode.mjs";
+import {useEffect,useState} from "react";
 import {getSupabase} from "@/lib/supabase/browser";
 import "./invite-controls.css";
 
@@ -11,10 +10,16 @@ export default function PrivateInviteShare({eventId,title,canInvite,status}:Prop
  const [message,setMessage]=useState("");
  const [working,setWorking]=useState(false);
  const url=typeof window!=="undefined"&&token?window.location.origin+"/convite/"+token:"";
- const qr=useMemo(()=>{
-  if(!url)return "";
-  try{const code=qrcode(0,"M");code.addData(url);code.make();return code.createDataURL(4,5)}
-  catch{return "";}
+ const [qr,setQr]=useState("");
+ // O gerador de QR (≈50 KB) só é baixado quando um convite é criado.
+ useEffect(()=>{
+  let active=true;
+  if(!url){setQr("");return}
+  void import("@/lib/vendor/qrcode.mjs").then(({default:qrcode})=>{
+   try{const code=qrcode(0,"M");code.addData(url);code.make();if(active)setQr(code.createDataURL(4,5))}
+   catch{if(active)setQr("")}
+  });
+  return()=>{active=false};
  },[url]);
  async function generate(){
   const db=getSupabase();if(!db||!canInvite)return;

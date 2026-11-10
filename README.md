@@ -1,8 +1,8 @@
-# Mesa Marcada — v7.0.1
+# Mesa Marcada — v7.4.0
 
 Aplicação web para organizar encontros presenciais de **Poker, Blackjack, Truco, Canastra/Buraco, Pontinho, UNO e Pife** entre amigos. Construída com **Next.js 16, React 19 e Supabase Auth/PostgreSQL**, publicada na Vercel. Visual **Dark Cards** inspirado no protótipo HTML v0.5, com prioridade para smartphones.
 
-**[Abrir Mesa Marcada](https://mesa-marcada.vercel.app)** · [Versão demonstrativa original](https://mesa-marcada.vercel.app/demo.html)
+**[Abrir Mesa Marcada](https://mesa-marcada.vercel.app)**
 
 ## Dashboard e navegação mobile
 
@@ -58,11 +58,11 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_SUBSTITUA_PELA_CHAVE_PUBLICA
 
 A chave **publishable** é pública e utilizada com regras RLS. **Nunca** coloque uma chave `sb_secret_`, `service_role` ou senha do banco no frontend ou no GitHub.
 
-Páginas: `/login`, `/recuperar-senha`, `/redefinir-senha`, `/painel`, `/eventos/[id]`, `/ligas`, `/perfil` e `/demo.html` (protótipo antigo, apenas demonstração).
+Páginas: `/login`, `/recuperar-senha`, `/redefinir-senha`, `/painel`, `/eventos/[id]`, `/ligas`, `/perfil`.
 
 ## Banco e migrações
 
-As migrações efetivamente aplicadas estão em [`supabase/migrations/`](supabase/migrations/). O arquivo legado `lib/schema.sql` é um rascunho antigo: **não o execute**. Para mudanças novas no banco, crie uma migração com RLS antes de habilitar recursos no frontend.
+As migrações efetivamente aplicadas estão em [`supabase/migrations/`](supabase/migrations/). Para mudanças novas no banco, crie uma migração com RLS antes de habilitar recursos no frontend.
 
 ## Qualidade e publicação
 
@@ -77,7 +77,7 @@ npm run build
 npm run smoke
 ```
 
-O GitHub Actions executa essas verificações em PRs e pushes. A Vercel publica automaticamente a branch `main`. Documentação por versão: [v1.7](README-v1.7.md), [v1.6.1](README-v1.6.1.md), [v1.6](README-v1.6.md), [v1.5](README-v1.5.md), [v1.4](README-v1.4.md), [v1.3](README-v1.3.md), [v1.2](README-v1.2.md), [v1.1](README-v1.1.md), [v1.0](README-v1.0.md), [v0.9](README-v0.9.md), [histórico](CHANGELOG.md) e [testes](docs/TESTES-v0.9.md).
+O GitHub Actions executa essas verificações em PRs e pushes. A Vercel publica automaticamente a branch `main`. Histórico de versões no [CHANGELOG](CHANGELOG.md) e cenários de homologação em [docs/TESTES-v0.9.md](docs/TESTES-v0.9.md).
 
 ## Privacidade e limitações
 

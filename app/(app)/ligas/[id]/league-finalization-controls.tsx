@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useState} from "react";
 import {getSupabase} from "@/lib/supabase/browser";
-import {CrestMark,type CrestConfig} from "@/app/brasoes/demo/crest-editor";
+import {CrestMark,type CrestConfig} from "@/app/painel/crest-editor";
 import LeagueFinalReport,{type LeagueFinalSummary} from "@/app/painel/league-final-report";
 import "./league-finalization-controls.css";
 

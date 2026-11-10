@@ -5,7 +5,7 @@
 .mm-league-list-switch{display:flex;gap:6px;border:1px solid #283a50;background:#0e1824;border-radius:10px;padding:5px;margin-bottom:14px}
 .mm-league-list-switch>button{flex:1;min-height:42px;border:1px solid transparent;background:transparent;color:#a9bed4;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer}
 .mm-league-list-switch>button.active{background:#173858;border-color:#258bff;color:#fff}
-.mm-modal .mm-field input,.mm-modal .mm-field select,.mm-modal .mm-field textarea{min-height:43px;min-width:0}
+
 .mm-leagues button,.mm-notif-center button,.mm-reconfirm button{touch-action:manipulation}
 @media(max-width:600px){
  .mm-home-reconfirm-callout{flex-direction:column;align-items:stretch;padding:13px}
@@ -15,7 +15,7 @@
  .mm-league-modal{max-height:min(92dvh,calc(100dvh - 30px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)));overflow-y:auto;overscroll-behavior:contain}
  .mm-home-v16{min-width:0}
  .mm-league-grid,.mm-league-overview{min-width:0}
- .mm-modal .mm-form-actions{padding-bottom:max(4px,env(safe-area-inset-bottom))}
+ 
 }
 @media(max-width:380px){
  .mm-event-meta{flex-wrap:wrap}

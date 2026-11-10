@@ -8,7 +8,7 @@ const companion=read("app/painel/mobile-app-companion.tsx");
 const styles=read("app/v05-theme.css");
 const features=read("app/painel/v09-features.tsx");
 const icons=read("app/painel/ui-icon.tsx");
-const dashboard=read("app/painel/dashboard-v16.tsx")+read("app/painel/game-choices.tsx");
+const dashboard=read("app/painel/dashboard-v16.tsx");
 
 for(const section of ["home","calendar","cards","trophy","user","settings","log-out","plus","book-open"]){
   assert.ok(icons.includes(section+":")||icons.includes('"'+section+'":'), "Missing SVG icon "+section);
