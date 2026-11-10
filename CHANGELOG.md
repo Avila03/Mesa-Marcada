@@ -1,10 +1,11 @@
 # Histórico de versões — Mesa Marcada
 
-## v7.1.0 — Baralho neon (09/11/2026)
-- Nova camada visual inspirada em baralhos pretos foscos com traço azul e vermelho neon: fundo chapado sem manchas de brilho, cartas pretas com borda fina e cartas de destaque com moldura interna e índice A♠ no canto.
-- Títulos em Barlow Condensed, números tabulares e botões principais chapados (azul; vermelho nas mesas de Blackjack), sem degradês nem sombras coloridas. A seta decorativa do botão Entrar sai da tela.
-- Somente CSS e fontes: nenhuma mudança em telas, rotas, dados, permissões, migrações ou chamadas ao banco. Artes das mesas, molduras, medalhas, brasões e cartas pós-jogo preservadas.
-- Nova verificação `check:deck` garante que a camada não altera layout nem visibilidade de conteúdo.
+## v7.2.0 — Letreiro (09/11/2026)
+- Refinamento sobre a identidade Dark Cards Duo: fundo azul-noite com naipes, brilhos e a mistura de neon vermelho e azul permanecem como estavam.
+- Títulos, números e marca em Tilt Neon; texto em Outfit.
+- Botões principais viram pílulas holográficas com borda azul → vermelho em movimento (vermelho → azul nas mesas de Blackjack).
+- "Marcada" no logotipo acende em neon vermelho e pisca de leve, como letreiro de cassino. Animações respeitam a preferência de movimento reduzido.
+- Desfaz o Baralho neon (v7.1.0). Somente CSS e fontes: nenhuma mudança em telas, rotas, dados, permissões ou migrações. Nova verificação `check:sign`.
 
 ## v7.0.1 — Controles fora da barra de status do iPhone (03/11/2026)
 - Resumo da liga respeita as quatro áreas seguras, com conteúdo rolável dentro desses limites e botão Voltar fixo no topo da área utilizável.

@@ -1,0 +1,45 @@
+/* ============================================================
+   MESA MARCADA v7.2 — LETREIRO
+   Refinamento sobre a identidade Dark Cards Duo (fundo azul-noite,
+   naipes, brilhos e neon vermelho + azul permanecem intactos).
+   Muda só: fontes, botões principais e o letreiro "Marcada".
+   ============================================================ */
+:root{
+  --sign-display:'Tilt Neon',Inter,system-ui,sans-serif;
+  --sign-body:Outfit,Inter,'DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --sign-blue:#258bff;--sign-red:#ff424d;--sign-ink:#0c1420;
+}
+@keyframes sign-flicker{0%,18%,22%,25%,53%,57%,100%{opacity:1}20%,24%,55%{opacity:.4}}
+@keyframes sign-border{0%{background-position:0 0,0% 50%}100%{background-position:0 0,200% 50%}}
+
+/* Fontes: corpo em Outfit, títulos e números em Tilt Neon (traço de tubo de neon). */
+html body{font-family:var(--sign-body)}
+html h1,html h2,html .money,html .metric strong,html .mm-home-statgrid strong,html .mm-home-datebox strong,html .bj-total{
+  font-family:var(--sign-display);font-weight:400;letter-spacing:.2px}
+html .brandname,html .mm-site-logo .brandname{font-family:var(--sign-display)!important;font-weight:400!important;letter-spacing:.3px!important}
+
+/* Letreiro: "Marcada" em neon vermelho que pisca de leve. */
+html .mm-site-logo .brandname em,html .brandname em{
+  background:none;-webkit-background-clip:border-box;background-clip:border-box;
+  color:#ff6b74;font-weight:400;text-shadow:0 0 6px #ff424d,0 0 18px #ff424d99;
+  animation:sign-flicker 6s infinite}
+
+/* Botões principais: pílula holográfica com borda azul → vermelho em movimento. */
+html .btn.gold,html .mm-home-primary,html .mm-home-create,html .mm-split-actions .btn.gold{
+  border:1.5px solid transparent!important;border-radius:999px!important;
+  background:linear-gradient(var(--sign-ink),var(--sign-ink)) padding-box,linear-gradient(90deg,var(--sign-blue),var(--sign-red),var(--sign-blue)) border-box!important;
+  background-size:100% 100%,200% 100%!important;
+  color:#f1f5fb!important;box-shadow:0 0 18px #258bff2e,0 0 26px #ff424d1a!important;
+  animation:sign-border 3.5s linear infinite}
+html .btn.gold:hover,html .mm-home-primary:hover,html .mm-home-create:hover,html .mm-split-actions .btn.gold:hover{
+  background:linear-gradient(#111d2e,#111d2e) padding-box,linear-gradient(90deg,var(--sign-blue),var(--sign-red),var(--sign-blue)) border-box!important;
+  background-size:100% 100%,200% 100%!important;box-shadow:0 0 22px #258bff4d,0 0 30px #ff424d33!important}
+html .mm-fixed-roomcard:has(.mm-room-banner.blackjack) .btn.gold,
+html .mm-event-card:has(.mm-event-banner.blackjack) .btn.gold,
+html .mm-game-blackjack .btn.gold{
+  background:linear-gradient(#170c12,#170c12) padding-box,linear-gradient(90deg,var(--sign-red),var(--sign-blue),var(--sign-red)) border-box!important;
+  background-size:100% 100%,200% 100%!important;box-shadow:0 0 18px #ff424d38!important}
+
+@media(prefers-reduced-motion:reduce){
+  html .brandname em,html .btn.gold,html .mm-home-primary,html .mm-home-create,html .mm-split-actions .btn.gold{animation:none}
+}
