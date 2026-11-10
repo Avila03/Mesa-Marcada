@@ -11,7 +11,8 @@ assert.ok(shell.indexOf('import "../neon-sign.css";')>shell.indexOf('import "./t
 for(const page of ["app/login/page.tsx","app/recuperar-senha/page.tsx","app/redefinir-senha/page.tsx"]){
   assert.ok(read(page).includes('import "../neon-sign.css";'),`Letreiro missing on ${page}`);
 }
-assert.ok(layout.includes("family=Tilt+Neon")&&layout.includes("family=Outfit"),"Letreiro fonts missing");
+assert.ok(layout.includes("Tilt_Neon(")&&layout.includes("Outfit(")&&layout.includes("next/font/google"),"Letreiro fonts must be self-hosted with next/font");
+assert.ok(!layout.includes("fonts.googleapis.com"),"No render-blocking external font stylesheet");
 
 // A identidade Dark Cards Duo continua intacta: fundo, barra lateral e naipes não são tocados.
 const rules=css.replace(/\/\*[\s\S]*?\*\//g,"");

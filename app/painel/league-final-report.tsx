@@ -2,8 +2,8 @@
 import {GAME_META,VARIANT_NAMES,type Game} from "@/lib/games";
 import {useState} from "react";
 import dynamic from "next/dynamic";
-import type {CrestConfig} from "@/app/brasoes/demo/crest-editor";
-import {CrestMark} from "@/app/brasoes/demo/crest-editor";
+import type {CrestConfig} from "@/app/painel/crest-editor";
+import {CrestMark} from "@/app/painel/crest-editor";
 import type {LeagueFinalSummary} from "@/lib/league-final-summary";
 import {rankFinancialPlayers,rankScorePlayers} from "@/lib/league-final-card";
 import "./league-final-report.css";

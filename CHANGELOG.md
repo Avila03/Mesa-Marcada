@@ -1,5 +1,12 @@
 # Histórico de versões — Mesa Marcada
 
+## v7.4.0 — Código enxuto (10/11/2026)
+- Removidos componentes que não eram mais usados: painel de ranking antigo, avisos de liga e de evento substituídos pela central de notificações, escolha de jogos antiga e a trava de diálogos dos modais que viraram páginas.
+- CSS sem regras mortas: cerca de 50 KB de estilos de telas que não existem mais (tema verde da v0.5, modais, abas e cartões antigos) saem dos arquivos. O que aparece na tela continua igual.
+- Rota de demonstração de brasões e protótipo `/demo.html` aposentados; o editor de brasões passa a morar junto das ligas. Saem também os READMEs por versão, roteiros de teste antigos, o rascunho `lib/schema.sql` e o logotipo antigo; as notificações push passam a usar o monograma atual.
+- Desempenho: fontes Tilt Neon e Outfit servidas pelo próprio site (sem folha de estilo externa bloqueando a primeira tela) e gerador de QR Code baixado só quando um convite é criado.
+- `check:admin-medals` volta a rodar no CI. Nenhuma mudança em dados, permissões ou regras.
+
 ## v7.3.1 — Detalhes do Letreiro (10/11/2026)
 - Aba da tarefa atual com brilho neon; números do Resumo da noite em Tilt Neon; rótulos da mesa e do resumo com leve brilho. Somente CSS.
 

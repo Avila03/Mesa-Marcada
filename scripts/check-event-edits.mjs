@@ -4,7 +4,7 @@ const read=(path)=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
 const db=read("supabase/migrations/20261022154748_edit_events_notices.sql");
 const pushDb=read("supabase/migrations/20261022154752_edit_event_push.sql");
 const app=read("app/painel/mobile-first.tsx")+read("app/painel/event-wizard.tsx");
-const notices=read("app/painel/event-change-notices.tsx");
+const notices=read("app/painel/notification-center.tsx");
 const api=read("app/api/push/notify/route.ts");
 for(const pattern of [
  "CREATE OR REPLACE FUNCTION public.edit_event_details","REVOKE ALL ON FUNCTION public.edit_event_details",

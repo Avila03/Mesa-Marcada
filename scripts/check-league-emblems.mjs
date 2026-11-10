@@ -1,9 +1,9 @@
 import {strict as assert} from "node:assert";
-import {readFileSync} from "node:fs";
+import {readFileSync,existsSync} from "node:fs";
 const read=(name)=>readFileSync(new URL("../"+name,import.meta.url),"utf8");
 const db=read("supabase/migrations/20261022124957_league_premium_emblems.sql");
 const hub=read("app/painel/league-hub.tsx");
-const editor=read("app/brasoes/demo/crest-editor.tsx");
+const editor=read("app/painel/crest-editor.tsx");
 const css=read("app/painel/league-hub.css");
 for(const s of [
  "ALTER TABLE public.leagues","emblem jsonb NOT NULL DEFAULT",
@@ -26,7 +26,7 @@ for(const s of ['"joker"','"two-jokers"','"roulette"','"poker-table"','"shield"'
  assert.ok(editor.includes(s),"Missing shape or symbol: "+s);
 assert.ok(css.includes("mm-league-modal-wide"),"Responsive embedded editor missing");
 assert.ok(read("app/painel/mobile-first.tsx").includes("get_league_catalog_final"),"Event editor catalog out of date");
-assert.ok(read("app/brasoes/demo/page.tsx").includes("CrestEditor"),"Demo route must remain available");
+assert.ok(!existsSync(new URL("../app/brasoes/demo/page.tsx",import.meta.url)),"Crest playground route was retired; the editor lives in league creation");
 assert.ok(!db.includes("DISABLE ROW LEVEL SECURITY"),"Do not bypass RLS");
 console.log("✓ Brasões Premium: schema validation, owner authorization, creation wizard, display and editing");
 
@@ -41,12 +41,12 @@ for(const name of ["minimal","classic","premium"]){
 for(const feature of [
  "finish:CrestFinish","finish:FINISHES.some",
  "finish={crest.finish}","finish={value.finish}","finish={item.id}",
- "<FinishSelector","value={value.finish}","value={finish}",
+ "<FinishSelector","value={value.finish}",
  "const premium=finish==="+'"'+"premium"+'"'+',classic=finish==='+'"classic"',
  "premium&&<path","classic&&<g","mm-crest-finish-"
 ])assert.ok(editor.includes(feature),"Real finish behavior missing: "+feature);
 assert.ok(finishes.includes("WHERE NOT (emblem ? 'finish')"),"Existing leagues must be backfilled");
-const finishCss=read("app/brasoes/demo/crest-demo.css");
+const finishCss=read("app/painel/crest.css");
 assert.ok(finishCss.includes("mm-crest-finish-minimal .mm-crest-display>svg{filter:none}"),"Minimal style must be glow-free");
 assert.ok(finishCss.includes("mm-crest-finish-classic"),"Classic style missing");
 assert.ok(finishCss.includes("mm-crest-option-premium"),"Premium preview missing");
