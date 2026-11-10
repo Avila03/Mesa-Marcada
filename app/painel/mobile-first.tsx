@@ -43,6 +43,7 @@ import {EMPTY_EVENT,eventDraftFromEvent,eventDraftKey,validateEventDraft,type Ev
 import {eventDestination,eventStatus,filterEvents,type EventFilter} from "@/lib/event-navigation";
 import type {ProfileTab,LeagueTab} from "@/lib/app-routes";
 import "./task-layout.css";
+import "../neon-deck.css";
 import {readClubRoute,clubHref} from "@/lib/app-routes";
 import {useClubRealtime} from "./use-club-realtime";
 import type {UpdateScope} from "./use-club-realtime";
