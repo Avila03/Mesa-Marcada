@@ -1,5 +1,14 @@
 # Histórico de versões — Mesa Marcada
 
+## v7.5.0 — Feito para o uso diário (10/11/2026)
+- **Marcar de novo:** com a agenda livre, o Início oferece repetir a última noite. O assistente já vem com o mesmo jogo, local, regras e o mesmo dia da semana e horário da semana seguinte; ao criar, quem jogou é convidado e recebe um aviso único. A revanche no Resultado também sugere a data.
+- **Eventos parados:** quando o horário passa sem início, o anfitrião resolve pelo Início: Iniciar agora, Remarcar ou Cancelar, vendo há quanto tempo o encontro está atrasado.
+- **Topo enxuto no celular:** notificações viram um sino com contador; a trilha de navegação some; sair da conta passa para o Perfil, com confirmação. Um ponto amarelo/vermelho aparece só quando a conexão cai.
+- **Etapas do evento:** Preparação → Partida → (Conferência) → Resultado aparecem como etapas numeradas, com a fase atual em destaque e nada cortado; Despesas e Gerenciar ficam como atalhos ao lado.
+- **Recompra rápida:** no ao vivo, o anfitrião repete a última compra de cada jogador com um toque (com confirmação e respeitando o estoque de fichas).
+- **Lembrete 2 horas antes:** rota de envio e regras no banco para avisar quem confirmou presença, uma vez por encontro.
+- Banco: remove 11 funções antigas sem uso; adiciona `invite_previous_players`, `claim_invited_push_targets` e `claim_reminder_push_targets`. Nova verificação `check:daily`.
+
 ## v7.4.0 — Código enxuto (10/11/2026)
 - Removidos componentes que não eram mais usados: painel de ranking antigo, avisos de liga e de evento substituídos pela central de notificações, escolha de jogos antiga e a trava de diálogos dos modais que viraram páginas.
 - CSS sem regras mortas: cerca de 50 KB de estilos de telas que não existem mais (tema verde da v0.5, modais, abas e cartões antigos) saem dos arquivos. O que aparece na tela continua igual.

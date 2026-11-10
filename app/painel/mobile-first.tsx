@@ -5,7 +5,8 @@ import dynamic from "next/dynamic";
 import {ALL_GAMES,GAME_META,VARIANT_NAMES,defaultVariant,defaultTarget,targetLabel,isChipGame} from "@/lib/games";
 import {GAME_IDENTITY} from "@/lib/game-identity";
 import GameArtwork from "./game-artwork";
-import {rematchForm} from "@/lib/table-setup";
+import {rematchForm,nextWeeklySlot} from "@/lib/table-setup";
+import QuickRebuy from "./quick-rebuy";
 import {runMutation} from "@/lib/mutations";
 import type {Catalog,EventSnapshot} from "@/lib/club-data";
 import {useProfilePhotos} from "./use-profile-photos";
@@ -38,11 +39,12 @@ import ExpenseComposer from "./expense-composer";
 import PlayerProfileTrigger from "./player-profile-preview";
 import type {TableSeat} from "./seating-table";
 import EventWizard from "./event-wizard";
-import TaskNavigation from "./task-navigation";
+import TaskNavigation,{type TaskLink} from "./task-navigation";
 import {EMPTY_EVENT,eventDraftFromEvent,eventDraftKey,validateEventDraft,type EventDraft as CreateEvent} from "@/lib/event-draft";
 import {eventDestination,eventStatus,filterEvents,type EventFilter} from "@/lib/event-navigation";
 import type {ProfileTab,LeagueTab} from "@/lib/app-routes";
 import "./task-layout.css";
+import "./daily.css";
 import "../neon-sign.css";
 import {readClubRoute,clubHref} from "@/lib/app-routes";
 import {useClubRealtime} from "./use-club-realtime";
@@ -131,6 +133,13 @@ export default function PainelPage(){
   const [creatorEpoch,setCreatorEpoch]=useState(0);
   const [editSeedId,setEditSeedId]=useState("");
   const [repeatSource,setRepeatSource]=useState("");
+  const [repeatSourceId,setRepeatSourceId]=useState("");
+  const [isMobile,setIsMobile]=useState(false);
+  useEffect(()=>{
+    const query=window.matchMedia("(max-width: 750px)");
+    const sync=()=>setIsMobile(query.matches);sync();
+    query.addEventListener("change",sync);return()=>query.removeEventListener("change",sync);
+  },[]);
   const [loading,setLoading]=useState(true);
   const context=useRef({selectedId,page,profileId});context.current={selectedId,page,profileId};
   const catalogFlight=useRef(new Map<string,Promise<void>>());
@@ -384,7 +393,7 @@ export default function PainelPage(){
   }
 
   // Notificações opcionais: envio autorizado pelo servidor e protegido por JWT.
-  async function sendEventPush(eventId:string,kind:"event"|"poll"|"live"|"summary"|"edit"){
+  async function sendEventPush(eventId:string,kind:"event"|"poll"|"live"|"summary"|"edit"|"invited"){
     try{
       const db=getSupabase();if(!db)return;
       const {data:{session}}=await db.auth.getSession();
@@ -464,6 +473,8 @@ export default function PainelPage(){
     .filter(e=>!liveStates.some(l=>l.session_id===e.id))
     .sort((a,b)=>new Date(a.starts_at).getTime()-new Date(b.starts_at).getTime());
   const activeEvents=agendaEvents.filter(e=>e.status==="scheduled"&&liveStates.some(l=>l.session_id===e.id)&&(e.organizer_id===user?.id||attendances.some(a=>a.session_id===e.id&&a.user_id===user?.id)));
+  const lastNight=agendaEvents.filter(e=>e.status==="finished"&&(e.organizer_id===user?.id||attendances.some(a=>a.session_id===e.id&&a.user_id===user?.id)))
+    .sort((a,b)=>Date.parse(b.starts_at)-Date.parse(a.starts_at))[0]||null;
   const waitingEvents=agendaEvents.filter(e=>e.status==="scheduled"&&!liveStates.some(l=>l.session_id===e.id)&&Date.parse(e.starts_at)<Date.now()&&(e.organizer_id===user?.id||attendances.some(a=>a.session_id===e.id&&a.user_id===user?.id)));
   const myUpcoming=upcoming.filter(e=>attendances.some(a=>a.session_id===e.id&&a.user_id===user?.id));
   useEffect(()=>{
@@ -596,13 +607,13 @@ export default function PainelPage(){
     setMessage(success);
     try{await refreshScope(scope)}catch{setMessage(success+" A atualização da tela está pendente; não repita o lançamento.");}
   }
-  async function recordPurchase(quantities:number[]):Promise<boolean>{
+  async function recordPurchase(quantities:number[],forUser?:string):Promise<boolean>{
     const db=getSupabase();if(!db||!user||!selected)return false;
     setWorking(true);setError("");setMessage("");
     try{
       await runMutation(db,user.id,"record_chip_purchase_once",{
         p_event_id:selected.id,p_quantities:quantities,
-        p_user_id:organizer||isAdmin?(purchaseFor||guests[0]?.user_id||user.id):user.id
+        p_user_id:organizer||isAdmin?(forUser||purchaseFor||guests[0]?.user_id||user.id):user.id
       });
       await afterSaved("chips","Compra registrada!");return true;
     }catch(e){setError(errText(e));return false}finally{setWorking(false)}
@@ -631,11 +642,18 @@ export default function PainelPage(){
     setGameView(game);setGameTab(tab);setGameVariant(variant);setPage("mesa");setError("");setMessage("");
     window.scrollTo({top:0,behavior:"auto"});
   }
+  function cancelEventFromHome(event:Event){
+    if(!window.confirm("Cancelar \""+event.title+"\"? Os registros e o histórico serão preservados."))return;
+    void act(async(db,id)=>{
+      const {error:cancelError}=await db.from("sessions").update({status:"cancelled"}).eq("id",event.id).eq("organizer_id",id);
+      if(cancelError)throw cancelError;
+    },"Evento cancelado. O histórico foi mantido.");
+  }
   function openEditor(event:Event){
-    setRepeatSource("");setSelectedId(event.id);setForm(eventDraftFromEvent(event,roomFor(event.room_id)?.game));setEditSeedId(event.id);setCreatorStep(1);setCreatorEpoch(n=>n+1);go("editar-evento");
+    setRepeatSource("");setRepeatSourceId("");setSelectedId(event.id);setForm(eventDraftFromEvent(event,roomFor(event.room_id)?.game));setEditSeedId(event.id);setCreatorStep(1);setCreatorEpoch(n=>n+1);go("editar-evento");
   }
   function openCreator(roomId?:string,leagueId=""){
-    setRepeatSource("");
+    setRepeatSource("");setRepeatSourceId("");
     const room=roomId?activeRooms.find(r=>r.id===roomId):undefined;
     setForm({...defaultEvent,...(room?{game_variant:defaultVariant(room.game)||"",score_target:String(defaultTarget(room.game,defaultVariant(room.game))),room_id:room.id,max_participants:String(GAME_META[room.game].capacity)}:{}),league_id:leagueId,visibility:leagueId?"private":"public"});
     setCreatorStep(1);setCreatorEpoch(n=>n+1);go("criar-evento");
@@ -650,9 +668,9 @@ export default function PainelPage(){
       const {data,error}=await db.rpc("get_league_catalog_final");if(error)throw error;
       const leagues=(data||[]) as League[];setLeagueCatalog(leagues);
       const allowed=leagues.filter(l=>!l.finished_at&&(isAdmin||l.my_role==="owner"||l.my_role==="organizer")).map(l=>l.id);
-      const form=rematchForm(event,game,allowed);setForm({...form,room_id:room.id});
+      const form={...rematchForm(event,game,allowed),starts_at:nextWeeklySlot(event.starts_at)};setForm({...form,room_id:room.id});
       try{sessionStorage.setItem(eventDraftKey(user!.id),JSON.stringify({version:1,form:{...form,room_id:room.id},step:1}))}catch{}
-      setRepeatSource(event.title);setCreatorStep(1);setCreatorEpoch(n=>n+1);go("criar-evento");
+      setRepeatSource(event.title);setRepeatSourceId(event.status==="finished"?event.id:"");setCreatorStep(1);setCreatorEpoch(n=>n+1);go("criar-evento");
       setMessage(event.league_id&&!form.league_id?"A liga de origem não está disponível para você organizar. O novo encontro será independente; você pode escolher outra liga.":"");
     }catch(e){setError(errText(e))}finally{setWorking(false)}
   }
@@ -686,6 +704,11 @@ export default function PainelPage(){
       if(eventError)throw eventError;
       openEvent(data.id,"visao");
       if(form.visibility==="public"&&!form.league_id)void sendEventPush(data.id,"event");
+      if(repeatSourceId){
+        const source=repeatSourceId;setRepeatSourceId("");
+        const {data:invited,error:inviteError}=await db.rpc("invite_previous_players",{p_event_id:data.id,p_source_event_id:source});
+        if(!inviteError&&Number(invited)>0)void sendEventPush(data.id,"invited");
+      }
     },"Evento criado! Escolham uma cadeira para participar.");
   }
 
@@ -806,7 +829,7 @@ export default function PainelPage(){
     <main className="main" id="main-content">
       <div className="mm-mobile-head">
         <SiteLogo kind="mobile"/>
-        <div className="mm-mobile-account"><button type="button" className="mm-v09-profile-link" aria-label="Abrir meu perfil" onClick={()=>{setProfileId(user.id);go("perfil")}}><PlayerAvatar photoUrl={photoUrls[user.id]} name={nickname}/></button><button type="button" aria-label="Sair" onClick={async()=>{await getSupabase()?.auth.signOut();window.location.replace("/login")}}><UiIcon name="log-out" size={21}/></button></div>
+        <div className="mm-mobile-account">{connection!=="connected"&&<span className={"mm-mobile-sync "+connection} role="status" title={connection==="offline"?"Sem conexão":"Sincronizando"}><span className="mm-visually-hidden">{connection==="offline"?"Sem conexão":"Sincronizando"}</span></span>}{isMobile&&<NotificationCenter compact userId={user.id} onOpenEvent={id=>openEvent(id)} onOpenLeague={openLeague}/>}<button type="button" className="mm-v09-profile-link" aria-label="Abrir meu perfil" onClick={()=>{setProfileId(user.id);go("perfil")}}><PlayerAvatar photoUrl={photoUrls[user.id]} name={nickname}/></button></div>
       </div>
       <div className="mm-breadcrumb-row">
         <div className="breadcrumb">Mesa Marcada　/　{page==="inicio"?"Visão geral":page==="detalhe"?"Evento":page==="mesa"?"Mesa de "+gameName(gameView):page==="eventos"?"Eventos":page==="criar-evento"?"Criar evento":page==="editar-evento"?"Editar evento":page==="mesas"?"Jogos":page==="perfil"?"Perfil":page==="admin"?"Administração":page==="ligas"||page==="liga"||page==="liga-admin"?"Ligas":"Visão geral"}</div>
@@ -823,7 +846,7 @@ export default function PainelPage(){
       {error&&<div className="mm-message error" role="alert" style={{marginBottom:16}}>{error} <button type="button" className="btn" onClick={()=>{setError("");void reload().catch(e=>setError(errText(e)))}}>Tentar novamente</button></div>}
       {message&&<p className="mm-message" role="status" style={{marginBottom:16}}>{message}</p>}
 
-      <NotificationCenter userId={user.id} onOpenEvent={id=>openEvent(id)} onOpenLeague={openLeague}/>
+      {!isMobile&&<NotificationCenter userId={user.id} onOpenEvent={id=>openEvent(id)} onOpenLeague={openLeague}/>}
 
       {(page==="criar-evento"||page==="editar-evento")&&(page==="criar-evento"||selected&&editSeedId===selected.id)&&
         (page==="editar-evento"&&(!selected||selected.status!=="scheduled"||selectedLive||!organizer&&!isAdmin)?
@@ -840,6 +863,8 @@ export default function PainelPage(){
         isAdmin={isAdmin}
         onCreate={()=>openCreator()}
         onOpenEvent={id=>openEvent(id)}
+        lastNight={lastNight} onRepeat={event=>void openRematch(event)}
+        onStartEvent={id=>openEvent(id,"visao")} onReschedule={openEditor} onCancelEvent={cancelEventFromHome}
 
         onEvents={()=>go("eventos")}
         onGame={openGame}
@@ -978,6 +1003,7 @@ export default function PainelPage(){
         ] as [ProfileTab,string,string][]).map(([id,label,description])=><button key={id} type="button" onClick={()=>{setProfileTab(id);window.scrollTo({top:0,behavior:"auto"})}}><span><strong>{label}</strong><small>{description}</small></span><UiIcon name="arrow-right" size={20}/></button>)}</div>
         <PlayerMedals key={"compact-"+(profileId||user.id)} compact onView={()=>setProfileTab("conquistas")} playerId={profileId||user.id} userId={user.id} name={nameFor(profileId||user.id)} photoUrl={photoUrls[profileId||user.id]}/>
         {isAdmin&&(!profileId||profileId===user.id)&&<button type="button" className="mm-profile-admin-link" onClick={()=>go("admin")}><UiIcon name="settings" size={20}/><span><strong>Administração geral</strong><small>Gerenciar eventos, anfitriões e auditoria</small></span><UiIcon name="arrow-right" size={18}/></button>}
+        {(!profileId||profileId===user.id)&&<button type="button" className="mm-profile-logout" onClick={async()=>{if(!window.confirm("Sair da sua conta neste aparelho?"))return;await getSupabase()?.auth.signOut();window.location.replace("/login")}}><UiIcon name="log-out" size={20}/><span>Sair da conta</span></button>}
         </>}
         {profileTab==="conquistas"&&<><header className="mm-task-heading"><h1>Conquistas</h1><p>Medalhas, progresso e seus três troféus em destaque.</p></header><PlayerMedals key={profileId||user.id} expandedOnLoad playerId={profileId||user.id} userId={user.id} name={nameFor(profileId||user.id)} photoUrl={photoUrls[profileId||user.id]}/></>}
         {profileTab==="molduras"&&<><header className="mm-task-heading"><h1>Molduras</h1><p>Escolha a moldura que acompanha sua foto.</p></header><PlayerFrames key={"frames-"+(profileId||user.id)} playerId={profileId||user.id} userId={user.id} name={nameFor(profileId||user.id)} photoUrl={photoUrls[profileId||user.id]}/></>}
@@ -994,12 +1020,18 @@ export default function PainelPage(){
             <p>{VARIANT_NAMES[selected.game_variant||""]||GAME_META[selectedGame].name} · {guests.length} participantes · {organizer?"Você é o anfitrião":"Anfitrião: "+nameFor(selected.organizer_id)}</p></div>
           <span className={"tag "+(selected.status==="scheduled"?selectedGame:"archive")}>{eventStatus(selected,Boolean(selectedLive))}</span>
         </header>
-        <TaskNavigation label="Páginas do evento" active={detailTab} items={([
-          ["visao","Preparação"],["ao-vivo","Partida"],["gastos","Despesas"],
-          ...(selected.status==="scheduled"&&selectedLive?[["conferencia","Conferência"]]:[]),
-          ...(selected.status==="finished"?[["resumo-evento","Resultado"]]:[]),
-          ...(organizer||isAdmin?[["gerenciar","Gerenciar"]]:[])
-        ] as [DetailTab,string][]).map(([id,label])=>({id,label,href:clubHref("detalhe",selected.id,id,selectedGame,"eventos"),onSelect:()=>setDetailTab(id)}))}/>
+        <TaskNavigation label="Etapas do evento" active={detailTab} items={(()=>{
+          const flow:DetailTab[]=["visao","ao-vivo",...(selected.status==="scheduled"&&selectedLive?["conferencia" as DetailTab]:[]),"resumo-evento"];
+          const current=selected.status==="finished"?"resumo-evento":selectedLive?"ao-vivo":"visao";
+          const at=flow.indexOf(current);
+          const labels=Object.fromEntries([["visao","Preparação"],["ao-vivo","Partida"],["conferencia","Conferência"],["resumo-evento","Resultado"],["gastos","Despesas"],["gerenciar","Gerenciar"]] as [DetailTab,string][]) as Partial<Record<DetailTab,string>>;
+          const link=(id:DetailTab,extra:Partial<TaskLink>)=>({id,label:labels[id]||id,href:clubHref("detalhe",selected.id,id,selectedGame,"eventos"),onSelect:()=>setDetailTab(id),...extra});
+          return [
+            ...flow.map((id,i)=>link(id,{state:(selected.status==="finished"||i<at?"done":i===at?"now":"next") as TaskLink["state"]})),
+            link("gastos",{secondary:true}),
+            ...(organizer||isAdmin?[link("gerenciar",{secondary:true})]:[])
+          ];
+        })()}/>
         <fieldset className="mm-event-task-content" disabled={detailLoading} aria-busy={detailLoading} aria-label="Conteúdo do evento">
         {detailTab==="resumo-evento"&&selected.status!=="finished"&&<section className="panel"><h2>O resultado ainda não foi publicado</h2><p>O resultado fica disponível após a conferência e o encerramento.</p><button className="btn gold" onClick={()=>setDetailTab(selectedLive?"ao-vivo":"visao")}>Voltar ao encontro →</button></section>}
         {detailTab==="conferencia"&&!selectedLive&&<section className="panel"><h2>Prepare a partida antes de conferir</h2><button className="btn gold" onClick={()=>setDetailTab("visao")}>Abrir preparação →</button></section>}
@@ -1175,6 +1207,9 @@ export default function PainelPage(){
               <div className="metric"><div className="mhead">Entradas registradas <span className="micon"><UiIcon name="calendar" size={22}/></span></div><strong>{money(eventBuys.reduce((n,b)=>n+Number(b.amount_brl),0))}</strong><small>Valor informativo</small></div>
             </div>
             <div className="mm-denom-layout">
+              {(organizer||isAdmin)&&<QuickRebuy guests={guests} buys={eventBuys} items={chipItems} busy={working} nameFor={nameFor}
+                available={chipValues.map((v,i)=>Math.max(0,Math.max(40,selected.chip_stock_legacy?soldByDenom[i]:40)-soldByDenom[i]))}
+                onRebuy={(userId,quantities)=>recordPurchase(quantities,userId)}/>}
               {(organizer||isAdmin)&&<label className="mm-field" style={{marginBottom:14}}>Registrar compra para o jogador
                 <select value={buyingTarget||""} onChange={e=>setPurchaseFor(e.target.value)}>
                   {guests.map(g=><option key={g.user_id} value={g.user_id}>{nameFor(g.user_id)}</option>)}

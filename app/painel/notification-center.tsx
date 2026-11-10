@@ -11,8 +11,9 @@ const leagueTitles:Record<string,string>={
  join_request:"Nova solicitação de entrada",join_approved:"Entrada aprovada",
  join_rejected:"Solicitação recusada",role_changed:"Cargo na Liga alterado",new_event:"Novo evento da Liga"
 };
-export default function NotificationCenter({userId,onOpenEvent,onOpenLeague}:{
+export default function NotificationCenter({userId,onOpenEvent,onOpenLeague,compact=false}:{
  userId:string;onOpenEvent:(id:string)=>void;onOpenLeague:(id:string,manage?:boolean)=>void
+compact?:boolean;
 }){
  const [items,setItems]=useState<Item[]>([]);
  const [open,setOpen]=useState(false);
@@ -79,13 +80,17 @@ export default function NotificationCenter({userId,onOpenEvent,onOpenLeague}:{
   if(item.eventId)onOpenEvent(item.eventId);
   else if(item.leagueId)onOpenLeague(item.leagueId,item.manage);
  }
- return <section className="mm-notif-center" aria-label="Central de notificações">
-  <button type="button" className="mm-notif-trigger" aria-expanded={open} onClick={()=>setOpen(o=>!o)}>
+ return <section className={"mm-notif-center"+(compact?" is-compact":"")} aria-label="Central de notificações">
+  {compact?<button type="button" className="mm-notif-bell" aria-expanded={open} onClick={()=>setOpen(o=>!o)}
+    aria-label={unread>0?"Notificações: "+unread+(unread===1?" nova":" novas"):"Notificações"}>
+   <UiIcon name="bell" size={21}/>
+   {unread>0&&<span className="mm-notif-badge" aria-hidden="true">{unread>9?"9+":unread}</span>}
+  </button>:<button type="button" className="mm-notif-trigger" aria-expanded={open} onClick={()=>setOpen(o=>!o)}>
    <UiIcon name="bell" size={18}/>
    <strong>Notificações</strong>
    {unread>0&&<span className="mm-notif-count">{unread} {unread===1?"nova":"novas"}</span>}
    <UiIcon name="arrow-right" size={15}/>
-  </button>
+  </button>}
   {open&&<div className="mm-notif-panel">
    <div className="mm-notif-filters">
     {([["all","Todas"],["event","Eventos"],["league","Ligas"]] as const).map(([key,label])=>

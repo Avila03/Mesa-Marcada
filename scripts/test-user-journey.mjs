@@ -54,6 +54,21 @@ const props={firstName:'Bruno',userId:'me',upcoming:[],activeEvents:[live],waiti
 const home=renderToStaticMarkup(React.createElement(Dashboard,props));assert.ok(home.includes('Retomar partida'));assert.ok(home.includes('Mesa em andamento'));assert.ok(!home.includes('AGENDA LIVRE'));
 const waiting=renderToStaticMarkup(React.createElement(Dashboard,{...props,activeEvents:[],waitingEvents:[late]}));assert.ok(waiting.includes('Aguardando')||waiting.includes('AGUARDANDO'));assert.ok(!waiting.includes('AGENDA LIVRE'));
 const blank=renderToStaticMarkup(React.createElement(Dashboard,{...props,activeEvents:[]}));assert.ok(blank.includes('AGENDA LIVRE'));
+const hostLate={...live,id:'late-host',title:'Noite parada',starts_at:new Date(Date.now()-3*3600000).toISOString()};
+const hostWaiting=renderToStaticMarkup(React.createElement(Dashboard,{...props,activeEvents:[],waitingEvents:[hostLate],onStartEvent:noop,onReschedule:noop,onCancelEvent:noop}));
+assert.ok(hostWaiting.includes('Iniciar agora')&&hostWaiting.includes('Remarcar')&&hostWaiting.includes('Cancelar'),'Host can resolve a stalled event from home');
+assert.ok(hostWaiting.includes('3 horas'),'Stalled card says how late the event is');
+const guestWaiting=renderToStaticMarkup(React.createElement(Dashboard,{...props,activeEvents:[],waitingEvents:[{...hostLate,organizer_id:'other'}],onStartEvent:noop,onReschedule:noop,onCancelEvent:noop}));
+assert.ok(!guestWaiting.includes('Iniciar agora')&&guestWaiting.includes('Abrir preparação'),'Guests only open the event');
+const repeat=renderToStaticMarkup(React.createElement(Dashboard,{...props,activeEvents:[],lastNight:{...live,id:'done',status:'finished',title:'Estreia'},onRepeat:noop}));
+assert.ok(repeat.includes('AGENDA LIVRE')&&repeat.includes('Marcar de novo')&&repeat.includes('Estreia'),'Empty agenda offers to repeat the last night');
+const steps=renderToStaticMarkup(React.createElement(Nav,{label:'Etapas do evento',active:'ao-vivo',items:[
+ {id:'visao',label:'Preparação',href:'/eventos/'+id+'/preparacao',onSelect:noop,state:'done'},
+ {id:'ao-vivo',label:'Partida',href:'/eventos/'+id+'/partida',onSelect:noop,state:'now'},
+ {id:'resumo-evento',label:'Resultado',href:'/eventos/'+id+'/resultado',onSelect:noop,state:'next'},
+ {id:'gastos',label:'Despesas',href:'/eventos/'+id+'/despesas',onSelect:noop,secondary:true}]}));
+assert.ok(steps.includes('mm-step is-now')&&steps.includes('mm-step is-done')&&steps.includes('mm-task-extras'),'Event tasks render as steps plus side tasks');
+assert.ok(steps.includes('repeat(3,minmax(0,1fr))'),'All steps fit in one row');
 const navigation=renderToStaticMarkup(React.createElement(Nav,{label:'Páginas do evento',active:'conferencia',items:[{id:'partida',label:'Partida',href:'/eventos/'+id+'/partida',onSelect:noop},{id:'conferencia',label:'Conferência',href:'/eventos/'+id+'/conferencia',onSelect:noop}]}));
 assert.ok(navigation.includes('aria-current="page"'));assert.ok(navigation.includes('href="/eventos/'+id+'/conferencia"'),'Task pages have real links for reload and new tabs');
 console.log('✓ User journey: exact task/login routes, aliases, native links, live/past/finished states, 7 game drafts/validation, account isolation and rendered home priorities');
