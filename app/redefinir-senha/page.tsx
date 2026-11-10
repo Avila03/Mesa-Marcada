@@ -3,6 +3,7 @@ import {useEffect,useState,type FormEvent} from "react";
 import {getSupabase} from "@/lib/supabase/browser";
 import SiteLogo from "../painel/site-logo";
 import "../v05-theme.css";
+import "../neon-sign.css";
 export default function ResetPassword(){
  const [ready,setReady]=useState(false);const [busy,setBusy]=useState(false);const [password,setPassword]=useState("");const [confirmation,setConfirmation]=useState("");const [notice,setNotice]=useState("");
  useEffect(()=>{
