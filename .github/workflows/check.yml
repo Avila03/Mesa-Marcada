@@ -45,6 +45,7 @@ jobs:
       - run: npm run check:brand
       - run: npm run check:sign
       - run: npm run check:daily
+      - run: npm run check:waitlist
       - run: npm run check:scroll
       - run: npm run build
       - run: npm run smoke

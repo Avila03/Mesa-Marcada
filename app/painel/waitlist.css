@@ -1,0 +1,16 @@
+/* v7.6 · Lista de espera do evento lotado. */
+.mm-waitlist{margin:14px 0;padding:16px;border:1px solid #2b4560;border-radius:14px;background:linear-gradient(160deg,#0f1823,#0b1119)}
+.mm-waitlist-me{display:grid;grid-template-columns:auto 1fr;gap:12px 14px;align-items:center}
+.mm-waitlist-me>div strong{display:block;font-size:16px;color:#eef6ff}
+.mm-waitlist-me>div p{margin:4px 0 0;font-size:14px;line-height:1.5;color:#a9bfd6}
+.mm-waitlist-me>button{grid-column:1/-1;min-height:48px;width:100%;justify-content:center}
+.mm-waitlist-place{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;border:1.5px solid #58adff;color:#cfe8ff;font:400 22px var(--sign-display,Inter);text-shadow:0 0 8px #258bff99;box-shadow:0 0 14px #258bff33,inset 0 0 10px #258bff22}
+.mm-waitlist-place.is-full{border-color:#ff6b74;color:#ffd0d3;text-shadow:0 0 8px #ff424d99;box-shadow:0 0 14px #ff424d33,inset 0 0 10px #ff424d22}
+.mm-waitlist-error{margin:12px 0 0;color:#ffb3b8;font-size:14px}
+.mm-waitlist-note{margin:10px 0 0;font-size:13px;line-height:1.5;color:#a9bfd6}
+.mm-waitlist-queue{margin-top:12px}
+.mm-waitlist-me+.mm-waitlist-queue{border-top:1px solid #1d2f42;padding-top:12px}
+.mm-waitlist-queue summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:700;color:#cfe3f7}
+.mm-waitlist-queue ol{margin:6px 0 0;padding-left:26px;display:grid;gap:6px;color:#dbe9f7}
+.mm-waitlist-queue li.is-me{color:#8fc8ff;font-weight:700}
+@media(min-width:751px){.mm-waitlist-me{grid-template-columns:auto 1fr auto}.mm-waitlist-me>button{grid-column:auto;width:auto;padding-inline:22px}}

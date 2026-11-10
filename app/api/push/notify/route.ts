@@ -8,7 +8,8 @@ const contents={
  live:{title:"Mesa Marcada · Partida iniciada",body:"A mesa está ao vivo! Confira sua posição e as fichas."},
  summary:{title:"Mesa Marcada · Resumo da noite",body:"A partida foi encerrada. Veja seu resultado e os rachas."},
  edit:{title:"Mesa Marcada · Evento atualizado",body:"O anfitrião alterou informações da próxima noite. Confira a nova programação."},
- invited:{title:"Mesa Marcada · Bora de novo?",body:"A turma da última noite foi chamada para a próxima. Escolha seu assento."}
+ invited:{title:"Mesa Marcada · Bora de novo?",body:"A turma da última noite foi chamada para a próxima. Escolha seu assento."},
+ waitlist:{title:"Mesa Marcada · Abriu uma vaga!",body:"Você saiu da lista de espera e já tem cadeira guardada. Se não puder ir, libere para o próximo."}
 } as const;
 export async function POST(req:NextRequest){
  try{
@@ -35,11 +36,13 @@ export async function POST(req:NextRequest){
    ?await db.rpc("claim_new_event_push_targets",{p_event_id:id,p_server_secret:serverSecret})
    :kind==="invited"
    ?await db.rpc("claim_invited_push_targets",{p_event_id:id,p_server_secret:serverSecret})
+   :kind==="waitlist"
+   ?await db.rpc("claim_waitlist_push_targets",{p_event_id:id,p_server_secret:serverSecret})
    :await db.rpc("claim_event_push_targets",{p_event_id:id,p_kind:kind,p_server_secret:serverSecret});
   if(rpcError)return NextResponse.json({error:rpcError.message},{status:403});
   const content=contents[kind];
   webPush.setVapidDetails("https://mesa-marcada.vercel.app",pub,priv);
-  const payload=JSON.stringify({...content,url:"/eventos/"+id+(kind==="live"?"/ao-vivo":kind==="summary"?"/resumo":kind==="invited"?"/preparacao":"")});
+  const payload=JSON.stringify({...content,url:"/eventos/"+id+(kind==="live"?"/ao-vivo":kind==="summary"?"/resumo":kind==="invited"||kind==="waitlist"?"/preparacao":"")});
   const outcomes=await Promise.allSettled(((targets||[]) as {endpoint:string;p256dh:string;auth_key:string}[]).map(t=>
    webPush.sendNotification({endpoint:t.endpoint,keys:{p256dh:t.p256dh,auth:t.auth_key}},
       payload,{TTL:3600})

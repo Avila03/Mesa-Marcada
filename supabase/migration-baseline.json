@@ -298,5 +298,9 @@
   {
     "version": "20261110034109",
     "name": "daily_use_invites_reminders"
+  },
+  {
+    "version": "20261110121047",
+    "name": "event_waitlist"
   }
 ]
