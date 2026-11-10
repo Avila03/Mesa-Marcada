@@ -3,7 +3,6 @@ import {useState,type FormEvent} from "react";
 import {getSupabase} from "@/lib/supabase/browser";
 import SiteLogo from "../painel/site-logo";
 import "../v05-theme.css";
-import "../neon-deck.css";
 export default function RecoverPassword(){
  const [email,setEmail]=useState("");const [busy,setBusy]=useState(false);const [notice,setNotice]=useState("");
  async function submit(event:FormEvent<HTMLFormElement>){
