@@ -1,5 +1,13 @@
 # Histórico de versões — Mesa Marcada
 
+## v7.6.0 — Lista de espera (10/11/2026)
+- **Mesa cheia não é fim de papo:** com todas as cadeiras ocupadas, a Preparação oferece **Entrar na lista de espera** e mostra quantas pessoas aguardam. Quem está na fila vê a própria posição e pode sair quando quiser.
+- **A fila anda sozinha:** se alguém libera a cadeira antes do início — ou o anfitrião aumenta a mesa —, o primeiro da fila é confirmado na hora, na cadeira livre. A cadeira do crupiê no Blackjack só vai para a fila quando é a última livre.
+- **Aviso na hora:** quem é chamado recebe “Abriu uma vaga para você” na central e um push único; o agendador de 15 minutos entrega avisos que ficaram para trás.
+- Anfitrião e confirmados veem a ordem da fila. Depois do início da partida a fila é encerrada e ninguém é promovido; evento cancelado também não chama ninguém.
+- Agendador dos lembretes de 2 horas antes ativado em produção.
+- Banco: tabela `session_waitlist` (leitura conforme a visibilidade do evento, escrita só por funções), `join_event_waitlist`, `leave_event_waitlist` e `claim_waitlist_push_targets`. Novos testes de banco e verificação `check:waitlist`.
+
 ## v7.5.0 — Feito para o uso diário (10/11/2026)
 - **Marcar de novo:** com a agenda livre, o Início oferece repetir a última noite. O assistente já vem com o mesmo jogo, local, regras e o mesmo dia da semana e horário da semana seguinte; ao criar, quem jogou é convidado e recebe um aviso único. A revanche no Resultado também sugere a data.
 - **Eventos parados:** quando o horário passa sem início, o anfitrião resolve pelo Início: Iniciar agora, Remarcar ou Cancelar, vendo há quanto tempo o encontro está atrasado.

@@ -1,4 +1,4 @@
-# Mesa Marcada — v7.5.0
+# Mesa Marcada — v7.6.0
 
 Aplicação web para organizar encontros presenciais de **Poker, Blackjack, Truco, Canastra/Buraco, Pontinho, UNO e Pife** entre amigos. Construída com **Next.js 16, React 19 e Supabase Auth/PostgreSQL**, publicada na Vercel. Visual **Dark Cards** inspirado no protótipo HTML v0.5, com prioridade para smartphones.
 
@@ -25,6 +25,7 @@ Criar/editar evento usa **Jogo e regras → Encontro → Conferir**, com rascunh
 
 - **Sete mesas fixas:** Poker, Blackjack, Truco, Canastra/Buraco, Pontinho, UNO e Pife. Truco reúne Gaudério, Paulista e Mineiro na mesma mesa; Canastra/Buraco reúne Canastra, Buraco aberto e fechado. Cada evento define sua variante antes de começar.
 - **Placar presencial:** equipes equilibradas, pontos por rodada, envites do Truco Gaudério, canastras, eliminação no Pontinho, cartas restantes no UNO e vitórias no Pife. Histórico, desfazer antes do encerramento e rankings por modalidade/variante no perfil e nas ligas. O aplicativo registra resultados conferidos pelos jogadores; não distribui cartas virtualmente.
+- **Lista de espera:** evento lotado aceita fila; quando uma cadeira abre antes do início, o primeiro é confirmado automaticamente e avisado na central e por push.
 - **Eventos:** criação, capacidade máxima, confirmação individual diretamente dos cards, cancelamento pelo Anfitrião, compartilhamento (WhatsApp/nativo/link) e calendário `.ics`.
 - **Cadastro aberto:** login e senha com Supabase Auth, sem convite obrigatório. Confirmação de e-mail é configurável no dashboard do Supabase.
 - **Perfis:** apelido, foto enviada pelo próprio jogador (Supabase Storage privado), jogo favorito, descrição, histórico e aba **Meus rachas** com valores a pagar e a receber.

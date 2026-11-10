@@ -8,6 +8,7 @@ const timeFormat=new Intl.DateTimeFormat("pt-BR",{hour:"2-digit",minute:"2-digit
 
 /**
  * Lembrete 2 horas antes, chamado a cada 15 minutos pelo agendador do banco.
+ * Também entrega avisos pendentes da lista de espera.
  * É seguro chamar a qualquer momento: o banco só libera encontros dentro da
  * janela e nunca repete o lembrete para a mesma pessoa e o mesmo encontro.
  */
@@ -30,7 +31,19 @@ async function deliver(){
    body:(String(t.title).slice(0,60)||"Seu encontro")+" começa às "+timeFormat.format(new Date(t.starts_at))+". Sua cadeira está guardada.",
    url:"/eventos/"+t.session_id+"/preparacao"
   }),{TTL:5400})));
- return NextResponse.json({sent:outcomes.filter(o=>o.status==="fulfilled").length,attempted:outcomes.length},{headers:{"Cache-Control":"no-store"}});
+ // Mesma passada entrega avisos da lista de espera que ficaram para trás
+ // (por exemplo, quando quem saiu do evento perdeu a conexão).
+ const waiting=await db.rpc("claim_waitlist_push_targets",{p_event_id:null,p_server_secret:serverSecret});
+ const promoted=(waiting.error?[]:waiting.data||[]) as {endpoint:string;p256dh:string;auth_key:string;session_id:string;title:string}[];
+ const vacancies=await Promise.allSettled(promoted.map(t=>webPush.sendNotification(
+  {endpoint:t.endpoint,keys:{p256dh:t.p256dh,auth:t.auth_key}},
+  JSON.stringify({
+   title:"Mesa Marcada · Abriu uma vaga!",
+   body:"Sua cadeira em "+(String(t.title).slice(0,60)||"um encontro")+" está guardada. Se não puder ir, libere para o próximo.",
+   url:"/eventos/"+t.session_id+"/preparacao"
+  }),{TTL:3600})));
+ const all=[...outcomes,...vacancies];
+ return NextResponse.json({sent:all.filter(o=>o.status==="fulfilled").length,attempted:all.length},{headers:{"Cache-Control":"no-store"}});
 }
 
 export async function GET(){

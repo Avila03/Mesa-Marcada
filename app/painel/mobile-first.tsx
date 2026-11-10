@@ -7,6 +7,7 @@ import {GAME_IDENTITY} from "@/lib/game-identity";
 import GameArtwork from "./game-artwork";
 import {rematchForm,nextWeeklySlot} from "@/lib/table-setup";
 import QuickRebuy from "./quick-rebuy";
+import WaitlistPanel from "./waitlist-panel";
 import {runMutation} from "@/lib/mutations";
 import type {Catalog,EventSnapshot} from "@/lib/club-data";
 import {useProfilePhotos} from "./use-profile-photos";
@@ -45,6 +46,7 @@ import {eventDestination,eventStatus,filterEvents,type EventFilter} from "@/lib/
 import type {ProfileTab,LeagueTab} from "@/lib/app-routes";
 import "./task-layout.css";
 import "./daily.css";
+import "./waitlist.css";
 import "../neon-sign.css";
 import {readClubRoute,clubHref} from "@/lib/app-routes";
 import {useClubRealtime} from "./use-club-realtime";
@@ -393,7 +395,7 @@ export default function PainelPage(){
   }
 
   // Notificações opcionais: envio autorizado pelo servidor e protegido por JWT.
-  async function sendEventPush(eventId:string,kind:"event"|"poll"|"live"|"summary"|"edit"|"invited"){
+  async function sendEventPush(eventId:string,kind:"event"|"poll"|"live"|"summary"|"edit"|"invited"|"waitlist"){
     try{
       const db=getSupabase();if(!db)return;
       const {data:{session}}=await db.auth.getSession();
@@ -740,6 +742,8 @@ export default function PainelPage(){
     await act(async db=>{
       const {error:seatError}=await db.rpc("choose_table_seat",{p_event_id:selected.id,p_seat_no:seatNo});
       if(seatError)throw seatError;
+      // Sair pode ter chamado o primeiro da lista de espera: avisa na hora.
+      if(seatNo===null)void sendEventPush(selected.id,"waitlist");
     },seatNo===null?"Você saiu da mesa.":seatNo===0?"Você assumiu o crupiê e entrou no evento.":"Você entrou no evento! Assento reservado.",["presence","catalog"]);
   }
 
@@ -1115,6 +1119,10 @@ export default function PainelPage(){
           onChoose={seatNo=>void chooseSeat(seatNo)}/>
 
           </div>
+          <WaitlistPanel key={"waitlist-"+selected.id} eventId={selected.id} userId={user.id}
+            full={guests.length>=Math.min(selected.max_participants,10)} confirmed={meConfirmed}
+            open={selected.status==="scheduled"&&!Boolean(selectedLive)} host={organizer||isAdmin}
+            nameFor={nameFor} onChanged={()=>void reload()}/>
           <details className="mm-task-options"><summary>Participantes confirmados · {guests.length}</summary><div className="mm-chipgroup">{guests.map(g=><PlayerProfileTrigger key={g.user_id} variant="attendee" className="mm-v09-attendee-link" playerId={g.user_id} profile={profiles.find(p=>p.id===g.user_id)} photoUrl={photoUrls[g.user_id]} fallbackName={nameFor(g.user_id)} onOpenProfile={()=>{setProfileReturn("detalhe");setProfileId(g.user_id);go("perfil")}}><AttendeeMiniCard playerId={g.user_id} photoUrl={photoUrls[g.user_id]} name={nameFor(g.user_id)}/></PlayerProfileTrigger>)}</div>{organizer&&!meConfirmed&&<p>Escolha uma cadeira para também participar da partida.</p>}</details>
           <section className="mm-event-shortcuts" aria-label="Planejar o encontro"><button className="btn" onClick={()=>setDetailTab("enquetes")}>Enquetes · {openPolls.length} abertas →</button><button className="btn" onClick={()=>openGame(selectedGame,"tutorial",selected.game_variant||"")}>Regras do jogo →</button></section>
           <section className="panel mm-event-invite"><h2>Convidar jogadores</h2>

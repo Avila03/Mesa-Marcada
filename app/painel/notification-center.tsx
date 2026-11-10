@@ -7,6 +7,8 @@ import "./notification-center.css";
 type Item={key:string;id:number|string;source:"league"|"event"|"reconfirm";time:string;
   title:string;detail:string;read:boolean;eventId?:string;leagueId?:string;manage?:boolean};
 type Filter="all"|"league"|"event";
+/** Marcador gravado pelo banco quando a lista de espera promove alguém. */
+const WAITLIST_FIELD="vaga da lista de espera";
 const leagueTitles:Record<string,string>={
  join_request:"Nova solicitação de entrada",join_approved:"Entrada aprovada",
  join_rejected:"Solicitação recusada",role_changed:"Cargo na Liga alterado",new_event:"Novo evento da Liga"
@@ -36,11 +38,12 @@ compact?:boolean;
    read:!!x.read_at,eventId:x.event_id||undefined,leagueId:x.league_id,
    manage:x.kind==="join_request"
   }));
-  const edited=(e.data||[]).map(x=>({
+  const edited=(e.data||[]).map(x=>{const vacancy=(x.changed_fields||[]).includes(WAITLIST_FIELD);return{
    key:"e-"+x.id,id:x.id,source:"event" as const,time:x.created_at,
-   title:"Evento atualizado",detail:"Alterações: "+(x.changed_fields||[]).join(", "),
+   title:vacancy?"Abriu uma vaga para você":"Evento atualizado",
+   detail:vacancy?"Você saiu da lista de espera e já tem cadeira guardada.":"Alterações: "+(x.changed_fields||[]).join(", "),
    read:!!x.read_at,eventId:x.event_id
-  }));
+  }});
   const reconfirm=(r.data||[]).map(x=>({
    key:"r-"+x.event_id,id:x.event_id,source:"reconfirm" as const,time:x.changed_at,
    title:"Sua presença precisa ser reconfirmada",
