@@ -290,5 +290,13 @@
   {
     "version": "20261030194815",
     "name": "table_order_guide"
+  },
+  {
+    "version": "20261110033500",
+    "name": "drop_unused_rpcs"
+  },
+  {
+    "version": "20261110034109",
+    "name": "daily_use_invites_reminders"
   }
 ]

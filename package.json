@@ -1,6 +1,6 @@
 {
   "name": "mesa-marcada",
-  "version": "7.4.0",
+  "version": "7.5.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -28,6 +28,7 @@
     "check:founder": "node scripts/check-founder-frame.mjs",
     "check:brand": "node scripts/check-brand-monogram.mjs",
     "check:sign": "node scripts/check-neon-sign.mjs",
+    "check:daily": "node scripts/check-daily.mjs",
     "check:reliability": "node scripts/check-reliability.mjs",
     "check:migrations": "node scripts/check-migrations.mjs",
     "test:database": "node scripts/test-database.mjs",

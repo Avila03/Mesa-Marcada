@@ -13,6 +13,15 @@ export function rematchForm(event:Event,game:Game,allowedLeagues:readonly string
   chip_price_5_brl:String(event.chip_price_5_brl),chip_price_10_brl:String(event.chip_price_10_brl),
   chip_price_25_brl:String(event.chip_price_25_brl),chip_price_50_brl:String(event.chip_price_50_brl)};
 }
+/** Mesmo dia da semana e horário da noite de origem, na próxima data futura (com 1 h de folga). */
+export function nextWeeklySlot(startsAt:string,now:Date=new Date()):string{
+ const d=new Date(startsAt);
+ if(!Number.isFinite(d.getTime()))return '';
+ const limit=now.getTime()+60*60*1000;
+ do d.setDate(d.getDate()+7);while(d.getTime()<=limit);
+ const pad=(n:number)=>String(n).padStart(2,'0');
+ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+}
 function secureIndex(size:number){
  const range=0x100000000,limit=Math.floor(range/size)*size,buffer=new Uint32Array(1);let n:number;
  do{crypto.getRandomValues(buffer);n=buffer[0]}while(n>=limit);
